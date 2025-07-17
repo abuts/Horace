@@ -245,12 +245,11 @@ Namely, ``cut_pars`` have the form:
 
 where:
 
-- `proj <#projection-proj>`_ defines the axes and origin of the cut including
+- `proj <Cutting_data_of_interest_from_SQW_files_and_objects.html#projection-proj>`__ defines the axes and origin of the cut including
   the shape of the region to extract and the representation in the resulting
   histogram. If not provided, the projection is taken from the input ``win`` object.
-- `pN_bin <#binning-arguments>`_ describe the histogram bins to capture the
-  data.
-- optional ``'-nopix'` argument means that resulting object would be ``dnd`` object, i.e. object
+- `pN_bin <Cutting_data_of_interest_from_SQW_files_and_objects.html#binning-arguments>`__ describe the histogram bins to capture the  data. In details they described in the `chapter about binning arguments  <Cutting_data_of_interest_from_SQW_files_and_objects.html#binning-arguments>`__
+- optional ``'-nopix'`` argument means that resulting object would be ``dnd`` object, i.e. object
   which does not contain pixels.
 
 
