@@ -1,21 +1,21 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>7. Loading sqw and dnd objects to memory &mdash; Horace  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
-
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
-      <script src="../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
-      <script src="../_static/doctools.js?v=888ff710"></script>
-      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -71,10 +71,11 @@
 <li class="toctree-l2"><a class="reference internal" href="Binary_operations.html">12. Binary operations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Plotting.html">13. Plotting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Simulation.html">14. Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Multifit.html">15. Multifit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Tobyfit.html">16. Tobyfit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Parallel.html">17. Running Horace in Parallel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Changing_Horace_settings.html">18. Changing Horace settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Generic_Transformation.html">15. Generic Transformations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Multifit.html">16. Multifit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tobyfit.html">17. Tobyfit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Parallel.html">18. Running Horace in Parallel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Changing_Horace_settings.html">19. Changing Horace settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="List_of_functions.html">List of functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Input_file_formats.html">Input file formats</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FAQ.html">FAQ</a></li>
@@ -114,7 +115,7 @@
            <div itemprop="articleBody">
              
   <section id="loading-sqw-and-dnd-objects-to-memory">
-<h1><span class="section-number">7. </span>Loading <code class="docutils literal notranslate"><span class="pre">sqw</span></code> and <code class="docutils literal notranslate"><span class="pre">dnd</span></code> objects to memory<a class="headerlink" href="#loading-sqw-and-dnd-objects-to-memory" title="Permalink to this heading"></a></h1>
+<h1><span class="section-number">7. </span>Loading <code class="docutils literal notranslate"><span class="pre">sqw</span></code> and <code class="docutils literal notranslate"><span class="pre">dnd</span></code> objects to memory<a class="headerlink" href="#loading-sqw-and-dnd-objects-to-memory" title="Link to this heading"></a></h1>
 <p>Majority of Horace algorithms accept the name of file containing binary <code class="docutils literal notranslate"><span class="pre">sqw</span></code> or <code class="docutils literal notranslate"><span class="pre">dnd</span></code> object
 as the source of the data for operations. This is necessary as not every <code class="docutils literal notranslate"><span class="pre">sqw</span></code> object may fit to memory.
 When an object can fit memory it is convenient to place it for speed and convenience operating with it.
@@ -126,7 +127,7 @@ must fit memory.</p>
 <p><code class="docutils literal notranslate"><span class="pre">read</span></code> is standard MATLAB command allowing users loading various data in memory. To allow operations with Horace
 <code class="docutils literal notranslate"><span class="pre">.sqw</span></code> files  without overloading standard <code class="docutils literal notranslate"><span class="pre">read</span></code> command, Horace introduces <code class="docutils literal notranslate"><span class="pre">read_horace</span></code> family of commands.</p>
 <section id="read-horace">
-<h2><span class="section-number">7.1. </span>read_horace<a class="headerlink" href="#read-horace" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">7.1. </span>read_horace<a class="headerlink" href="#read-horace" title="Link to this heading"></a></h2>
 <p>Reads <code class="docutils literal notranslate"><span class="pre">sqw</span></code> or <code class="docutils literal notranslate"><span class="pre">dnd</span></code> data from a file. The object type is determined from
 the contents of the file.</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">output</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">read_horace</span><span class="p">(</span><span class="n">filename</span><span class="p">);</span>
@@ -135,7 +136,7 @@ the contents of the file.</p>
 <p>The returned variable is an <code class="docutils literal notranslate"><span class="pre">sqw</span></code> or <code class="docutils literal notranslate"><span class="pre">dnd</span></code> object.</p>
 </section>
 <section id="read-sqw">
-<h2><span class="section-number">7.2. </span>read_sqw<a class="headerlink" href="#read-sqw" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">7.2. </span>read_sqw<a class="headerlink" href="#read-sqw" title="Link to this heading"></a></h2>
 <p>Reads <code class="docutils literal notranslate"><span class="pre">sqw</span></code> data from a file.</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">output</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">read_sqw</span><span class="p">(</span><span class="n">filename</span><span class="p">);</span>
 </pre></div>
@@ -143,7 +144,7 @@ the contents of the file.</p>
 <p>The returned variable is an <code class="docutils literal notranslate"><span class="pre">sqw</span></code> object.</p>
 </section>
 <section id="read-dnd">
-<h2><span class="section-number">7.3. </span>read_dnd<a class="headerlink" href="#read-dnd" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">7.3. </span>read_dnd<a class="headerlink" href="#read-dnd" title="Link to this heading"></a></h2>
 <p>As <a class="reference internal" href="#read-sqw">read_sqw</a>, but reads <code class="docutils literal notranslate"><span class="pre">dnd</span></code> data saved to file. If the file contains a
 full sqw dataset, then only the binned data will be read.</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">output</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">read_dnd</span><span class="p">(</span><span class="n">filename</span><span class="p">);</span>
@@ -152,7 +153,7 @@ full sqw dataset, then only the binned data will be read.</p>
 <p>The returned variable is an <code class="docutils literal notranslate"><span class="pre">dnd</span></code> object.</p>
 </section>
 <section id="constructing-sqw-object-from-filename">
-<h2><span class="section-number">7.4. </span>Constructing <code class="docutils literal notranslate"><span class="pre">sqw</span></code> object from filename<a class="headerlink" href="#constructing-sqw-object-from-filename" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">7.4. </span>Constructing <code class="docutils literal notranslate"><span class="pre">sqw</span></code> object from filename<a class="headerlink" href="#constructing-sqw-object-from-filename" title="Link to this heading"></a></h2>
 <p>Calling <code class="docutils literal notranslate"><span class="pre">sqw</span></code> constructor with the name of binary sqw file is equivalent to invoking <code class="docutils literal notranslate"><span class="pre">read_sqw</span></code> function.</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">output</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sqw</span><span class="p">(</span><span class="n">sqw_filename</span><span class="p">);</span>
 </pre></div>
@@ -160,9 +161,9 @@ full sqw dataset, then only the binned data will be read.</p>
 </section>
 </section>
 <section id="saving-sqw-objects-from-memory-and-creating-filebacked-objects">
-<h1><span class="section-number">8. </span>Saving sqw objects from memory and creating filebacked objects<a class="headerlink" href="#saving-sqw-objects-from-memory-and-creating-filebacked-objects" title="Permalink to this heading"></a></h1>
+<h1><span class="section-number">8. </span>Saving sqw objects from memory and creating filebacked objects<a class="headerlink" href="#saving-sqw-objects-from-memory-and-creating-filebacked-objects" title="Link to this heading"></a></h1>
 <section id="save">
-<h2><span class="section-number">8.1. </span>save<a class="headerlink" href="#save" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">8.1. </span>save<a class="headerlink" href="#save" title="Link to this heading"></a></h2>
 <p>There are two ways of saving <code class="docutils literal notranslate"><span class="pre">sqw</span></code> or <code class="docutils literal notranslate"><span class="pre">dnd</span></code> objects to files on disk.</p>
 <p>First – use MATLAB <code class="docutils literal notranslate"><span class="pre">save</span></code> command, which would
 save objects from memory into MATLAB <code class="docutils literal notranslate"><span class="pre">.mat</span></code> files, and second one – using
@@ -193,7 +194,7 @@ write this object. It will be possible to restore the object later by accessing 
 <p>See <a class="reference internal" href="Cutting_data_of_interest_from_SQW_files_and_objects.html#file-and-memory-backed-cuts"><span class="std std-ref">File- and memory-backed cuts</span></a> to read a bit more about filebacked and memory based cuts and <a class="reference internal" href="Changing_Horace_settings.html#horace-config"><span class="std std-ref">Horace Config</span></a> for the information on how to set up the size of memory based object.</p>
 </section>
 <section id="create-filebacked-objects-from-data-on-disk">
-<h2><span class="section-number">8.2. </span>Create filebacked objects from data on disk<a class="headerlink" href="#create-filebacked-objects-from-data-on-disk" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">8.2. </span>Create filebacked objects from data on disk<a class="headerlink" href="#create-filebacked-objects-from-data-on-disk" title="Link to this heading"></a></h2>
 <p>If your <code class="docutils literal notranslate"><span class="pre">sqw</span></code> file is big enough (see <a class="reference internal" href="Changing_Horace_settings.html#horace-config"><span class="std std-ref">mem_chunk_size and fb_scale_factor from “hor_config” class</span></a> for numerical meaning of “big enough”, the command:</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">fb_obj</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sqw</span><span class="p">(</span><span class="s">&#39;filename&#39;</span><span class="p">);</span>
 </pre></div>
@@ -223,7 +224,7 @@ write this object. It will be possible to restore the object later by accessing 
 
   <div role="contentinfo">
     <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jun 26, 2025, 3:51:35 PM.
+      <span class="lastupdated">Last updated on Jul 15, 2025, 4:40:27 PM.
       </span></p>
   </div>
 

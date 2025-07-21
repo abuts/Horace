@@ -1,21 +1,21 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>dnd vs sqw: the difference &mdash; Horace  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
-
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
-      <script src="../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
-      <script src="../_static/doctools.js?v=888ff710"></script>
-      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -106,7 +106,7 @@
            <div itemprop="articleBody">
              
   <section id="dnd-vs-sqw-the-difference">
-<h1>dnd vs sqw: the difference<a class="headerlink" href="#dnd-vs-sqw-the-difference" title="Permalink to this heading"></a></h1>
+<h1>dnd vs sqw: the difference<a class="headerlink" href="#dnd-vs-sqw-the-difference" title="Link to this heading"></a></h1>
 <p>This tutorial was originally a script designed to illustrate and explain the
 different key data types – <code class="docutils literal notranslate"><span class="pre">sqw</span></code> and <code class="docutils literal notranslate"><span class="pre">dnd</span></code> (the <code class="docutils literal notranslate"><span class="pre">d0d</span></code>, <code class="docutils literal notranslate"><span class="pre">d1d</span></code>, …
 family). – in Horace, and why they are important.</p>
@@ -151,7 +151,7 @@ here</span></a>.</p>
 in the Workspace part of the Matlab window. You can see that the <code class="docutils literal notranslate"><span class="pre">csqw</span></code> object
 has a lot more information associated with it.</p>
 <section id="general-principle">
-<h2>General principle<a class="headerlink" href="#general-principle" title="Permalink to this heading"></a></h2>
+<h2>General principle<a class="headerlink" href="#general-principle" title="Link to this heading"></a></h2>
 <p>Use <code class="docutils literal notranslate"><span class="pre">dnd</span></code> if you are just looking at the data - it takes up less computer
 memory, which is a good thing.</p>
 <p>If you want to <code class="docutils literal notranslate"><span class="pre">fit</span></code> or <code class="docutils literal notranslate"><span class="pre">simulate</span></code> the data and you are only simulating a
@@ -209,7 +209,7 @@ along a non-plot axis, you should use <code class="docutils literal notranslate"
 to capture this correctly.</p>
 </section>
 <section id="specific-case-a-resolution-modelling">
-<h2>Specific case A: resolution modelling<a class="headerlink" href="#specific-case-a-resolution-modelling" title="Permalink to this heading"></a></h2>
+<h2>Specific case A: resolution modelling<a class="headerlink" href="#specific-case-a-resolution-modelling" title="Link to this heading"></a></h2>
 <p>If you want to include resolution in your simulation or fitting, you must use
 Tobyfit, and you also need the detector pixel information that you get in an
 <code class="docutils literal notranslate"><span class="pre">sqw</span></code> object but not in a <code class="docutils literal notranslate"><span class="pre">dnd</span></code>.</p>
@@ -219,13 +219,13 @@ Tobyfit, and you also need the detector pixel information that you get in an
 </div>
 </section>
 <section id="specific-case-b-spurion-identification">
-<h2>Specific case B: spurion identification<a class="headerlink" href="#specific-case-b-spurion-identification" title="Permalink to this heading"></a></h2>
+<h2>Specific case B: spurion identification<a class="headerlink" href="#specific-case-b-spurion-identification" title="Link to this heading"></a></h2>
 <p>See separate tutorial about how to do this. Basically, if you need to know
 something about data from a particular run, or from a particular detector, you
 need <code class="docutils literal notranslate"><span class="pre">sqw</span></code>.</p>
 </section>
 <section id="specific-case-c-smoothing">
-<h2>Specific case C: smoothing<a class="headerlink" href="#specific-case-c-smoothing" title="Permalink to this heading"></a></h2>
+<h2>Specific case C: smoothing<a class="headerlink" href="#specific-case-c-smoothing" title="Link to this heading"></a></h2>
 <p>If you apply the <code class="docutils literal notranslate"><span class="pre">smooth</span></code> algorithm to your data you will get a dataset of the
 same type back again.  Smoothing works for <code class="docutils literal notranslate"><span class="pre">dnd</span></code>, but is forbidden for <code class="docutils literal notranslate"><span class="pre">sqw</span></code>
 data. The reason is that the smoothing operation only makes sense in the plot
@@ -234,7 +234,7 @@ signal displayed in the plot and the detector pixel information that contributed
 to it.</p>
 </section>
 <section id="specific-case-d-symmetrisation">
-<h2>Specific case D: symmetrisation<a class="headerlink" href="#specific-case-d-symmetrisation" title="Permalink to this heading"></a></h2>
+<h2>Specific case D: symmetrisation<a class="headerlink" href="#specific-case-d-symmetrisation" title="Link to this heading"></a></h2>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>Currently in Horace 4.0.0, <code class="docutils literal notranslate"><span class="pre">dnd</span></code> symmetrisation is disabled. Due to
@@ -246,7 +246,7 @@ along any axis. Generally you are much safer doing symmetrisation with <code cla
 objects.</p>
 </section>
 <section id="whole-script">
-<h2>Whole Script<a class="headerlink" href="#whole-script" title="Permalink to this heading"></a></h2>
+<h2>Whole Script<a class="headerlink" href="#whole-script" title="Link to this heading"></a></h2>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="c">%Take two cuts:</span>
 <span class="n">sqw_file</span><span class="p">=</span><span class="s">&#39;/mnt/data/Science/URu2Si2/data/sqw/Ei81_20K.sqw&#39;</span><span class="p">;</span>
 
@@ -300,7 +300,7 @@ objects.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jun 26, 2025, 3:51:35 PM.
+      <span class="lastupdated">Last updated on Jul 15, 2025, 4:40:27 PM.
       </span></p>
   </div>
 

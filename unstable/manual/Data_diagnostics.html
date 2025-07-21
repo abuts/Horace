@@ -1,22 +1,22 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>3. Data diagnostics &mdash; Horace  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
-
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
-      <script src="../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
-      <script src="../_static/doctools.js?v=888ff710"></script>
-      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
-      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -68,10 +68,11 @@
 <li class="toctree-l2"><a class="reference internal" href="Binary_operations.html">12. Binary operations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Plotting.html">13. Plotting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Simulation.html">14. Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Multifit.html">15. Multifit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Tobyfit.html">16. Tobyfit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Parallel.html">17. Running Horace in Parallel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Changing_Horace_settings.html">18. Changing Horace settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Generic_Transformation.html">15. Generic Transformations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Multifit.html">16. Multifit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tobyfit.html">17. Tobyfit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Parallel.html">18. Running Horace in Parallel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Changing_Horace_settings.html">19. Changing Horace settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="List_of_functions.html">List of functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Input_file_formats.html">Input file formats</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FAQ.html">FAQ</a></li>
@@ -111,14 +112,14 @@
            <div itemprop="articleBody">
              
   <section id="data-diagnostics">
-<h1><span class="section-number">3. </span>Data diagnostics<a class="headerlink" href="#data-diagnostics" title="Permalink to this heading"></a></h1>
+<h1><span class="section-number">3. </span>Data diagnostics<a class="headerlink" href="#data-diagnostics" title="Link to this heading"></a></h1>
 <p>Horace contains various tools for diagnosing issues with the data. The foremost
 of these is the <a class="reference internal" href="#run-inspector">run_inspector</a> tool.</p>
 <p>If you wish to decompose an sqw object into the data from its constituent runs,
 the <a class="reference internal" href="#split">split</a> routine outlined below can be used. If necessary after
 manipulation, these data can then be recombined using the <a class="reference internal" href="#join">join</a> routine.</p>
 <section id="run-inspector">
-<h2><span class="section-number">3.1. </span>run_inspector<a class="headerlink" href="#run-inspector" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">3.1. </span>run_inspector<a class="headerlink" href="#run-inspector" title="Link to this heading"></a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">run_inspector</span></code> routine may be used on 1d or 2d <code class="docutils literal notranslate"><span class="pre">sqw</span></code> objects to plot the
 data from each individual run.</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">run_inspector</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
@@ -144,7 +145,7 @@ example. First we generate a QE slice such as the one below</p>
 <figure class="align-center" id="id1">
 <a class="reference internal image-reference" href="../_images/Fe_slice.jpg"><img alt="../_images/Fe_slice.jpg" src="../_images/Fe_slice.jpg" style="width: 500px;" /></a>
 <figcaption>
-<p><span class="caption-text">Selected QE slice</span><a class="headerlink" href="#id1" title="Permalink to this image"></a></p>
+<p><span class="caption-text">Selected QE slice</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>We can now use <code class="docutils literal notranslate"><span class="pre">run_inspector</span></code> to plot a series of slices that come from a
@@ -152,24 +153,24 @@ single contributing dataset, shown below.</p>
 <figure class="align-center" id="id2">
 <a class="reference internal image-reference" href="../_images/Fe_slice_run_inspector_1.jpg"><img alt="../_images/Fe_slice_run_inspector_1.jpg" src="../_images/Fe_slice_run_inspector_1.jpg" style="width: 500px;" /></a>
 <figcaption>
-<p><span class="caption-text">Frame 1 in run inspector</span><a class="headerlink" href="#id2" title="Permalink to this image"></a></p>
+<p><span class="caption-text">Frame 1 in run inspector</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id3">
 <a class="reference internal image-reference" href="../_images/Fe_slice_run_inspector_11.jpg"><img alt="../_images/Fe_slice_run_inspector_11.jpg" src="../_images/Fe_slice_run_inspector_11.jpg" style="width: 500px;" /></a>
 <figcaption>
-<p><span class="caption-text">Frame 11 in run inspector</span><a class="headerlink" href="#id3" title="Permalink to this image"></a></p>
+<p><span class="caption-text">Frame 11 in run inspector</span><a class="headerlink" href="#id3" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id4">
 <a class="reference internal image-reference" href="../_images/Fe_slice_run_inspector_21.jpg"><img alt="../_images/Fe_slice_run_inspector_21.jpg" src="../_images/Fe_slice_run_inspector_21.jpg" style="width: 500px;" /></a>
 <figcaption>
-<p><span class="caption-text">Frame 21 in run inspector</span><a class="headerlink" href="#id4" title="Permalink to this image"></a></p>
+<p><span class="caption-text">Frame 21 in run inspector</span><a class="headerlink" href="#id4" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>
 <section id="split">
-<h2><span class="section-number">3.2. </span>split<a class="headerlink" href="#split" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">3.2. </span>split<a class="headerlink" href="#split" title="Link to this heading"></a></h2>
 <p>Split an sqw object into an array of <code class="docutils literal notranslate"><span class="pre">sqw</span></code> objects, each containing data from a
 single contributing run. So if your dataset comprises information from 100 runs,
 the output will be a 100-by-1 array of <code class="docutils literal notranslate"><span class="pre">sqw</span></code> objects.</p>
@@ -182,7 +183,7 @@ the output will be a 100-by-1 array of <code class="docutils literal notranslate
 <p><code class="docutils literal notranslate"><span class="pre">wout</span></code> - an array of <code class="docutils literal notranslate"><span class="pre">sqw</span></code> objects, each one made from a single <code class="docutils literal notranslate"><span class="pre">.spe</span></code> data file</p>
 </section>
 <section id="join">
-<h2><span class="section-number">3.3. </span>join<a class="headerlink" href="#join" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">3.3. </span>join<a class="headerlink" href="#join" title="Link to this heading"></a></h2>
 <p>Inverse of <code class="docutils literal notranslate"><span class="pre">split</span></code> - takes an array of <code class="docutils literal notranslate"><span class="pre">sqw</span></code> objects that have been created
 using <code class="docutils literal notranslate"><span class="pre">split</span></code> and recombines them.</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">wout</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">join</span><span class="p">(</span><span class="n">w</span><span class="p">[,</span><span class="w"> </span><span class="n">wi</span><span class="p">])</span>
@@ -195,7 +196,7 @@ using <code class="docutils literal notranslate"><span class="pre">split</span><
 <p><code class="docutils literal notranslate"><span class="pre">wout</span></code> - an <code class="docutils literal notranslate"><span class="pre">sqw</span></code> object formed of from the <code class="docutils literal notranslate"><span class="pre">w</span></code> input.</p>
 </section>
 <section id="instrument-view-cut">
-<h2><span class="section-number">3.4. </span>Instrument view cut<a class="headerlink" href="#instrument-view-cut" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">3.4. </span>Instrument view cut<a class="headerlink" href="#instrument-view-cut" title="Link to this heading"></a></h2>
 <p>Normally Horace works with <span class="math notranslate nohighlight">\(S(\vec{Q},\omega)\)</span> scattering function build in reciprocal coordinate system related to a crystal. If sample is not sufficiently large to allow neutrons thermalization or instrument have various problems with its detectors or background scattering, some scattering artefacts may add noise or unrelated signals to measured  <span class="math notranslate nohighlight">\(S(\vec{Q},\omega)\)</span> function.
 These artefacts will have spherical symmetry around the beam direction. To clearly identify such artefacts one may use
 <code class="docutils literal notranslate"><span class="pre">instrument_view_cut</span></code> algorithm:</p>
@@ -208,7 +209,7 @@ According to Horace agreement, beam in Horace is directed along <span class="mat
 <figure class="align-center" id="id5">
 <a class="reference internal image-reference" href="../_images/kf_sphere_coordinate_system.png"><img alt="../_images/kf_sphere_coordinate_system.png" src="../_images/kf_sphere_coordinate_system.png" style="width: 500px;" /></a>
 <figcaption>
-<p><span class="caption-text">Spherical coordinate system aligned with the beam and used by <code class="docutils literal notranslate"><span class="pre">instrument_view_cut</span></code>.</span><a class="headerlink" href="#id5" title="Permalink to this image"></a></p>
+<p><span class="caption-text">Spherical coordinate system aligned with the beam and used by <code class="docutils literal notranslate"><span class="pre">instrument_view_cut</span></code>.</span><a class="headerlink" href="#id5" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>The algorithm processes whole <code class="docutils literal notranslate"><span class="pre">sqw</span></code> source so takes a while to complete. Picture below shows the result
@@ -217,7 +218,7 @@ There are various instrument artefacts clearly observable on the images. The noi
 <figure class="align-center" id="id6">
 <a class="reference internal image-reference" href="../_images/InstrumentView_issues.png"><img alt="../_images/InstrumentView_issues.png" src="../_images/InstrumentView_issues.png" style="width: 1200px;" /></a>
 <figcaption>
-<p><span class="caption-text">Various issues identified on instrument view.</span><a class="headerlink" href="#id6" title="Permalink to this image"></a></p>
+<p><span class="caption-text">Various issues identified on instrument view.</span><a class="headerlink" href="#id6" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>The best way of dealing with these kind of issues if they can not be clearly observable from a single run is to use Mantid
@@ -292,7 +293,7 @@ this correspondence have been broken.</p>
 <figure class="align-center" id="id7">
 <a class="reference internal image-reference" href="../_images/InstrumetViewCut_kf_dE_coordinates.png"><img alt="../_images/InstrumetViewCut_kf_dE_coordinates.png" src="../_images/InstrumetViewCut_kf_dE_coordinates.png" style="width: 1200px;" /></a>
 <figcaption>
-<p><span class="caption-text">Correct – a) and broken – b) relationship between experiment information and pixels information.</span><a class="headerlink" href="#id7" title="Permalink to this image"></a></p>
+<p><span class="caption-text">Correct – a) and broken – b) relationship between experiment information and pixels information.</span><a class="headerlink" href="#id7" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>The dataset with broken pixel-experiment correspondence can be cut, sliced and multifitted, but Tobyfit would not
@@ -314,7 +315,7 @@ be able to help you rebuilding such <code class="docutils literal notranslate"><
 
   <div role="contentinfo">
     <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jun 26, 2025, 3:51:35 PM.
+      <span class="lastupdated">Last updated on Jul 15, 2025, 4:40:27 PM.
       </span></p>
   </div>
 

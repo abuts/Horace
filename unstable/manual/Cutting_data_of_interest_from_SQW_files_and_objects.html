@@ -1,22 +1,22 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>5. Cutting data of interest from SQW files and objects &mdash; Horace  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
-
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
-      <script src="../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
-      <script src="../_static/doctools.js?v=888ff710"></script>
-      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
-      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -94,10 +94,11 @@
 <li class="toctree-l2"><a class="reference internal" href="Binary_operations.html">12. Binary operations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Plotting.html">13. Plotting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Simulation.html">14. Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Multifit.html">15. Multifit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Tobyfit.html">16. Tobyfit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Parallel.html">17. Running Horace in Parallel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Changing_Horace_settings.html">18. Changing Horace settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Generic_Transformation.html">15. Generic Transformations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Multifit.html">16. Multifit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tobyfit.html">17. Tobyfit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Parallel.html">18. Running Horace in Parallel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Changing_Horace_settings.html">19. Changing Horace settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="List_of_functions.html">List of functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Input_file_formats.html">Input file formats</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FAQ.html">FAQ</a></li>
@@ -137,7 +138,7 @@
            <div itemprop="articleBody">
              
   <section id="cutting-data-of-interest-from-sqw-files-and-objects">
-<h1><span class="section-number">5. </span>Cutting data of interest from SQW files and objects<a class="headerlink" href="#cutting-data-of-interest-from-sqw-files-and-objects" title="Permalink to this heading"></a></h1>
+<h1><span class="section-number">5. </span>Cutting data of interest from SQW files and objects<a class="headerlink" href="#cutting-data-of-interest-from-sqw-files-and-objects" title="Link to this heading"></a></h1>
 <p>The <code class="docutils literal notranslate"><span class="pre">sqw</span></code> object is the main object Horace uses.
 It contains complete information about the results of a neutron experiment.
 This includes information about each neutron “event” registered
@@ -173,7 +174,7 @@ in accordance with the bin’s grid-index.
 This improves the speed with which they can be processed.</p>
 </div>
 <section id="cut">
-<h2><span class="section-number">5.1. </span>cut<a class="headerlink" href="#cut" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">5.1. </span>cut<a class="headerlink" href="#cut" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">cut</span></code> takes a (or multiple) section(s) of data from an <code class="docutils literal notranslate"><span class="pre">sqw</span></code> or <code class="docutils literal notranslate"><span class="pre">dnd</span></code>
 object or file, discards the pixels which lie outside of the binning regions
 (described <a class="reference external" href="#binning-arguments">below</a>), extracts contributing pixels and accumulates
@@ -228,7 +229,7 @@ directly to a file named <code class="docutils literal notranslate"><span class=
 mandatory.</p>
 </div>
 <section id="datasource">
-<span id="id1"></span><h3><span class="section-number">5.1.1. </span>Data Source<a class="headerlink" href="#datasource" title="Permalink to this heading"></a></h3>
+<span id="id1"></span><h3><span class="section-number">5.1.1. </span>Data Source<a class="headerlink" href="#datasource" title="Link to this heading"></a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">data_source</span></code> in <code class="docutils literal notranslate"><span class="pre">cut</span></code> is either a string giving the full filename (including path) of
 the input <code class="docutils literal notranslate"><span class="pre">.sqw</span></code> file or just the variable containing an <code class="docutils literal notranslate"><span class="pre">sqw</span></code> or <code class="docutils literal notranslate"><span class="pre">dnd</span></code>
 object stored in memory from which the pixels will be taken.</p>
@@ -240,7 +241,7 @@ the types stored inside, e.g. <code class="docutils literal notranslate"><span c
 </div>
 </section>
 <section id="projection-proj">
-<h3><span class="section-number">5.1.2. </span>Projection (proj)<a class="headerlink" href="#projection-proj" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">5.1.2. </span>Projection (proj)<a class="headerlink" href="#projection-proj" title="Link to this heading"></a></h3>
 <p>The projection defines the coordinate system and thus the meaning of the
 <a class="reference internal" href="#binning-arguments">Binning arguments</a> and the presentation of the data.</p>
 <p><code class="docutils literal notranslate"><span class="pre">proj</span></code> should be a projection type such as <code class="docutils literal notranslate"><span class="pre">line_proj</span></code>, <code class="docutils literal notranslate"><span class="pre">sphere_proj</span></code>,
@@ -263,7 +264,7 @@ when making a cut.</p>
 </div>
 </section>
 <section id="binning-arguments">
-<h3><span class="section-number">5.1.3. </span>Binning arguments<a class="headerlink" href="#binning-arguments" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">5.1.3. </span>Binning arguments<a class="headerlink" href="#binning-arguments" title="Link to this heading"></a></h3>
 <p>The binning arguments (<code class="docutils literal notranslate"><span class="pre">p1_bin</span></code>, <code class="docutils literal notranslate"><span class="pre">p2_bin</span></code>, <code class="docutils literal notranslate"><span class="pre">p3_bin</span></code> and <code class="docutils literal notranslate"><span class="pre">p4_bin</span></code>)
 specify the binning / integration ranges for the Q &amp; Energy axes in <strong>the target
 projection’s</strong> coordinate system (c.f. <a class="reference internal" href="#projection-in-details"><span class="std std-ref">Projection in more detail</span></a> and
@@ -351,7 +352,7 @@ and their meaning in the context of a cut, where: <code class="docutils literal 
 <code class="docutils literal notranslate"><span class="pre">upper</span> <span class="pre">=</span> <span class="pre">7</span></code>, <code class="docutils literal notranslate"><span class="pre">separation</span> <span class="pre">=</span> <span class="pre">2</span></code> and <code class="docutils literal notranslate"><span class="pre">cut_width</span> <span class="pre">=</span> <span class="pre">0.6</span></code>, i.e <code class="docutils literal notranslate"><span class="pre">[1,</span>
 <span class="pre">2,</span> <span class="pre">7,</span> <span class="pre">0.6]</span></code>. <span class="math notranslate nohighlight">\(\zeta\)</span> and <span class="math notranslate nohighlight">\(\xi\)</span> are arbitrary axes
 where <span class="math notranslate nohighlight">\(\zeta\)</span> is the specified axis. This will produce 4 cut
-objects around <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">3</span></code>, <code class="docutils literal notranslate"><span class="pre">5</span></code> and <code class="docutils literal notranslate"><span class="pre">7</span></code>.</span><a class="headerlink" href="#id5" title="Permalink to this image"></a></p>
+objects around <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">3</span></code>, <code class="docutils literal notranslate"><span class="pre">5</span></code> and <code class="docutils literal notranslate"><span class="pre">7</span></code>.</span><a class="headerlink" href="#id5" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <div class="admonition warning" id="separation-warn">
@@ -363,7 +364,7 @@ integration ranges for three cuts, the first cut integrates the axis over
 </div>
 </section>
 <section id="file-and-memory-backed-cuts">
-<span id="id2"></span><h3><span class="section-number">5.1.4. </span>File- and memory-backed cuts<a class="headerlink" href="#file-and-memory-backed-cuts" title="Permalink to this heading"></a></h3>
+<span id="id2"></span><h3><span class="section-number">5.1.4. </span>File- and memory-backed cuts<a class="headerlink" href="#file-and-memory-backed-cuts" title="Link to this heading"></a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">cut</span></code> generally tries to return its result in memory. However, if the
 resulting object is sufficiently large (the threshold of which is the product of
 <code class="docutils literal notranslate"><span class="pre">mem_chunk_size</span></code> and <code class="docutils literal notranslate"><span class="pre">fb_scale_factor</span></code> defined in the <code class="docutils literal notranslate"><span class="pre">hor_config</span></code> class), the object is written to a
@@ -396,7 +397,7 @@ memory.</p>
 </div>
 </section>
 <section id="projection-in-more-detail">
-<span id="projection-in-details"></span><h3><span class="section-number">5.1.5. </span>Projection in more detail<a class="headerlink" href="#projection-in-more-detail" title="Permalink to this heading"></a></h3>
+<span id="projection-in-details"></span><h3><span class="section-number">5.1.5. </span>Projection in more detail<a class="headerlink" href="#projection-in-more-detail" title="Link to this heading"></a></h3>
 <p>As mentioned in <a class="reference internal" href="#projection-proj">Projection (proj)</a>, the <code class="docutils literal notranslate"><span class="pre">proj</span></code> argument defines the coordinate
 system of the histogrammed image.</p>
 <div class="admonition warning">
@@ -408,7 +409,7 @@ call <code class="docutils literal notranslate"><span class="pre">cut</span></co
 warning and construct a <code class="docutils literal notranslate"><span class="pre">line_proj</span></code> internally.</p>
 </div>
 <section id="lattice-based-projections-line-proj">
-<h4><span class="section-number">5.1.5.1. </span>Lattice based projections (<code class="docutils literal notranslate"><span class="pre">line_proj</span></code>)<a class="headerlink" href="#lattice-based-projections-line-proj" title="Permalink to this heading"></a></h4>
+<h4><span class="section-number">5.1.5.1. </span>Lattice based projections (<code class="docutils literal notranslate"><span class="pre">line_proj</span></code>)<a class="headerlink" href="#lattice-based-projections-line-proj" title="Link to this heading"></a></h4>
 <p>The most common type of projection for single-crystal experiments is the
 <code class="docutils literal notranslate"><span class="pre">line_proj</span></code> which defines a (usually orthogonal, but not necessarily) system
 of linear coordinates from a set of basis vectors.</p>
@@ -563,7 +564,7 @@ later by setting their properties:</p>
 </div></blockquote>
 </div>
 <section id="non-orthogonal-axes">
-<h5><span class="section-number">5.1.5.1.1. </span>Non-orthogonal axes<a class="headerlink" href="#non-orthogonal-axes" title="Permalink to this heading"></a></h5>
+<h5><span class="section-number">5.1.5.1.1. </span>Non-orthogonal axes<a class="headerlink" href="#non-orthogonal-axes" title="Link to this heading"></a></h5>
 <p>You may choose to use non-orthogonal axes (c.f. <a class="reference external" href="#nonortho">here</a>), e.g.:</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">proj</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">line_proj</span><span class="p">([</span><span class="mi">1</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="s">&#39;nonorthogonal&#39;</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
 </pre></div>
@@ -574,7 +575,7 @@ later by setting their properties:</p>
 <figcaption>
 <p><span class="caption-text">Plot to show the difference between <code class="docutils literal notranslate"><span class="pre">nonorthogonal=false</span></code> and
 <code class="docutils literal notranslate"><span class="pre">nonorthogonal=true</span></code> with a hexagonal material (<span class="math notranslate nohighlight">\(\textrm{UPd}_3\)</span>)
-where <code class="docutils literal notranslate"><span class="pre">angdeg=[90,90,120]</span></code>.</span><a class="headerlink" href="#id6" title="Permalink to this image"></a></p>
+where <code class="docutils literal notranslate"><span class="pre">angdeg=[90,90,120]</span></code>.</span><a class="headerlink" href="#id6" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>We can see that for the <code class="docutils literal notranslate"><span class="pre">nonorthogonal=false</span></code> case, the image clearly shows
@@ -587,7 +588,7 @@ the axes are simply <span class="math notranslate nohighlight">\([\zeta,0,0]\)</
 image (note the powder rings which should be circular).</p>
 </section>
 <section id="line-proj-2d-cut-examples-fe-scattering-function">
-<h5><span class="section-number">5.1.5.1.2. </span><code class="docutils literal notranslate"><span class="pre">line_proj</span></code> 2D cut examples: Fe Scattering Function<a class="headerlink" href="#line-proj-2d-cut-examples-fe-scattering-function" title="Permalink to this heading"></a></h5>
+<h5><span class="section-number">5.1.5.1.2. </span><code class="docutils literal notranslate"><span class="pre">line_proj</span></code> 2D cut examples: Fe Scattering Function<a class="headerlink" href="#line-proj-2d-cut-examples-fe-scattering-function" title="Link to this heading"></a></h5>
 <div class="admonition note" id="datalink">
 <p class="admonition-title">Note</p>
 <p>This dataset is available as part of the Horace source on <a class="reference external" href="https://github.com/pace-neutrons/Horace/tree/master/demo">Github</a>.</p>
@@ -611,7 +612,7 @@ the lattice parameters from the <code class="docutils literal notranslate"><span
 <a class="reference internal image-reference" href="../_images/iv_hkl.png"><img alt="2d cut" src="../_images/iv_hkl.png" style="width: 800px;" /></a>
 <figcaption>
 <p><span class="caption-text">MAPS Fe data; reciprocal space covered by MAPS for an iron sample
-with incident neutron energy of 401meV.</span><a class="headerlink" href="#id7" title="Permalink to this image"></a></p>
+with incident neutron energy of 401meV.</span><a class="headerlink" href="#id7" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>The cut with the same parameters as above at higher energy transfer</p>
@@ -624,12 +625,12 @@ with incident neutron energy of 401meV.</span><a class="headerlink" href="#id7" 
 <a class="reference internal image-reference" href="../_images/iv_hkl_dE.png"><img alt="2d cut instrument view energy transfer." src="../_images/iv_hkl_dE.png" style="width: 800px;" /></a>
 <figcaption>
 <p><span class="caption-text">MAPS Fe Data; reciprocal space covered by MAPS for an iron sample
-with incident neutron energy of 401meV. Energies integrated between [50, 60].</span><a class="headerlink" href="#id8" title="Permalink to this image"></a></p>
+with incident neutron energy of 401meV. Energies integrated between [50, 60].</span><a class="headerlink" href="#id8" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>
 <section id="line-proj-1d-cut-example">
-<h5><span class="section-number">5.1.5.1.3. </span><code class="docutils literal notranslate"><span class="pre">line_proj</span></code> 1D cut example<a class="headerlink" href="#line-proj-1d-cut-example" title="Permalink to this heading"></a></h5>
+<h5><span class="section-number">5.1.5.1.3. </span><code class="docutils literal notranslate"><span class="pre">line_proj</span></code> 1D cut example<a class="headerlink" href="#line-proj-1d-cut-example" title="Link to this heading"></a></h5>
 <p>It is simple to take a 1-d cut by integrating over all but one axis. The example
 cut generated by the code below shows a cut along the <span class="math notranslate nohighlight">\([1,1,0]\)</span> direction
 (note the projection’s <code class="docutils literal notranslate"><span class="pre">u</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">v</span></code>), i.e. the diagonal of the figure
@@ -644,13 +645,13 @@ above.</p>
 <figure class="align-center" id="id9">
 <a class="reference internal image-reference" href="../_images/Fe_cut1D.png"><img alt="1d cut along diagonal." src="../_images/Fe_cut1D.png" style="width: 800px;" /></a>
 <figcaption>
-<p><span class="caption-text">MAPS Fe Data; 1D cut along the diagonal of the 2D image above.</span><a class="headerlink" href="#id9" title="Permalink to this image"></a></p>
+<p><span class="caption-text">MAPS Fe Data; 1D cut along the diagonal of the 2D image above.</span><a class="headerlink" href="#id9" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>
 </section>
 <section id="spherical-projections">
-<span id="id4"></span><h4><span class="section-number">5.1.5.2. </span>Spherical Projections<a class="headerlink" href="#spherical-projections" title="Permalink to this heading"></a></h4>
+<span id="id4"></span><h4><span class="section-number">5.1.5.2. </span>Spherical Projections<a class="headerlink" href="#spherical-projections" title="Link to this heading"></a></h4>
 <p>In order to construct a spherical projection (i.e. a projection in <span class="math notranslate nohighlight">\(|\textbf{Q}|\)</span>,
 <span class="math notranslate nohighlight">\(\theta\)</span> (polar angle), <span class="math notranslate nohighlight">\(\phi\)</span> (azimuthal angle), <span class="math notranslate nohighlight">\(E\)</span>) we
 create a projection in an analogous way to the <code class="docutils literal notranslate"><span class="pre">line_proj</span></code>, but using the
@@ -790,7 +791,7 @@ and the plane <span class="math notranslate nohighlight">\(\vec{u}\)</span>-<spa
 <figure class="align-center" id="id10">
 <span id="fig-sphere-coodinates"></span><a class="reference internal image-reference" href="../_images/sphere_proj_coordinates.png"><img alt="spherical coordinate system." src="../_images/sphere_proj_coordinates.png" style="width: 400px;" /></a>
 <figcaption>
-<p><span class="caption-text">Spherical coordinate system used by <code class="docutils literal notranslate"><span class="pre">sphere_proj</span></code></span><a class="headerlink" href="#id10" title="Permalink to this image"></a></p>
+<p><span class="caption-text">Spherical coordinate system used by <code class="docutils literal notranslate"><span class="pre">sphere_proj</span></code></span><a class="headerlink" href="#id10" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>An alternative description of the spherical coordinate system may be found on MATLAB help pages.
@@ -824,7 +825,7 @@ arguments</a>). However:</p>
 <p>Where the <code class="docutils literal notranslate"><span class="pre">type</span></code> of an angular axis is <code class="docutils literal notranslate"><span class="pre">r</span></code> these values are the equivalent in radians.</p>
 </div>
 <section id="sphere-proj-2d-and-1d-cuts-examples">
-<h5><span class="section-number">5.1.5.2.1. </span><code class="docutils literal notranslate"><span class="pre">sphere_proj</span></code> 2D and 1D cuts examples:<a class="headerlink" href="#sphere-proj-2d-and-1d-cuts-examples" title="Permalink to this heading"></a></h5>
+<h5><span class="section-number">5.1.5.2.1. </span><code class="docutils literal notranslate"><span class="pre">sphere_proj</span></code> 2D and 1D cuts examples:<a class="headerlink" href="#sphere-proj-2d-and-1d-cuts-examples" title="Link to this heading"></a></h5>
 <p>Integrating over the angular terms of a spherical projection of a
 <strong>single crystal</strong> dataset will give an <strong>approximation</strong> of a powder
 average of the sample. Integrating over the angular terms for a
@@ -863,7 +864,7 @@ integration, rather than treating it as powder data.</p>
 <a class="reference internal image-reference" href="../_images/powder_avrg.png"><img alt="|Q|-dE cut." src="../_images/powder_avrg.png" style="width: 500px;" /></a>
 <figcaption>
 <p><span class="caption-text">MAPS Fe data; Powder averaged scattering from iron with an incident energy of 401meV.
-Note integrated spin-waves at <span class="math notranslate nohighlight">\([1,1,0]\)</span> locations, i.e. <span class="math notranslate nohighlight">\(|Q|=1\ in\ |[1,1,0]*a^{*}|\)</span>, <span class="math notranslate nohighlight">\(a^{*}=2.22Å^{-1}\)</span></span><a class="headerlink" href="#id11" title="Permalink to this image"></a></p>
+Note integrated spin-waves at <span class="math notranslate nohighlight">\([1,1,0]\)</span> locations, i.e. <span class="math notranslate nohighlight">\(|Q|=1\ in\ |[1,1,0]*a^{*}|\)</span>, <span class="math notranslate nohighlight">\(a^{*}=2.22Å^{-1}\)</span></span><a class="headerlink" href="#id11" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <div class="admonition note">
@@ -894,7 +895,7 @@ about the <span class="math notranslate nohighlight">\([0,-1,1]\)</span> Bragg p
 missing detectors is obvious in the <span class="math notranslate nohighlight">\(\phi\)</span>-axis range
 <span class="math notranslate nohighlight">\([-50^\circ:+50^\circ]\)</span>.
 Inset: Linear projection of the same region; the red lines show the
-approximate mapping from the linear to spherical projections.</span><a class="headerlink" href="#id12" title="Permalink to this image"></a></p>
+approximate mapping from the linear to spherical projections.</span><a class="headerlink" href="#id12" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>Integrating over the whole <span class="math notranslate nohighlight">\(\theta\)</span> range and thus including other
@@ -908,7 +909,7 @@ detectors substantially improves statistics; this is done by setting the
 <figcaption>
 <p><span class="caption-text">MAPS Fe data; Scattering intensity from cut averaged over all <span class="math notranslate nohighlight">\(\theta\)</span>
 spin-wave with the origin centred at the <span class="math notranslate nohighlight">\([0,-1,1]\)</span> Bragg
-peak.</span><a class="headerlink" href="#id13" title="Permalink to this image"></a></p>
+peak.</span><a class="headerlink" href="#id13" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>The 1D cut below, generated by further integrating over the <span class="math notranslate nohighlight">\(\phi\)</span>-axis,
@@ -921,13 +922,13 @@ the spin-wave centre:</p>
 <a class="reference internal image-reference" href="../_images/spin_w_intensity_1D.png"><img alt="intensity vs Q." src="../_images/spin_w_intensity_1D.png" style="width: 500px;" /></a>
 <figcaption>
 <p><span class="caption-text">Scattering intensity as function of distance from the scattering
-centre at <span class="math notranslate nohighlight">\([0,-1,1]\)</span>.</span><a class="headerlink" href="#id14" title="Permalink to this image"></a></p>
+centre at <span class="math notranslate nohighlight">\([0,-1,1]\)</span>.</span><a class="headerlink" href="#id14" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>
 </section>
 <section id="cylindrical-projections">
-<h4><span class="section-number">5.1.5.3. </span>Cylindrical Projections<a class="headerlink" href="#cylindrical-projections" title="Permalink to this heading"></a></h4>
+<h4><span class="section-number">5.1.5.3. </span>Cylindrical Projections<a class="headerlink" href="#cylindrical-projections" title="Link to this heading"></a></h4>
 <p>In order to construct a cylindrical projection (i.e. a projection in
 <span class="math notranslate nohighlight">\(\vec{Q}_{\perp}\)</span> (the radial distance from the polar axis),
 <span class="math notranslate nohighlight">\(\vec{Q}_{\|}\)</span> (distance from origin along the polar axis), <span class="math notranslate nohighlight">\(\phi\)</span>
@@ -1067,7 +1068,7 @@ When the third component of <code class="docutils literal notranslate"><span cla
 <figure class="align-center" id="id15">
 <span id="fig-cylinder-coodinates"></span><a class="reference internal image-reference" href="../_images/cylinder_proj_coordinates.png"><img alt="cylindrical coordinate system." src="../_images/cylinder_proj_coordinates.png" style="width: 400px;" /></a>
 <figcaption>
-<p><span class="caption-text">Cylindrical coordinate system used by <code class="docutils literal notranslate"><span class="pre">cylinder_proj</span></code></span><a class="headerlink" href="#id15" title="Permalink to this image"></a></p>
+<p><span class="caption-text">Cylindrical coordinate system used by <code class="docutils literal notranslate"><span class="pre">cylinder_proj</span></code></span><a class="headerlink" href="#id15" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>Similarly to <a class="reference internal" href="#fig-sphere-coodinates"><span class="std std-ref">Spherical coordinate system used by sphere_proj</span></a>, detailed description of the cylindrical coordinate system used by
@@ -1091,7 +1092,7 @@ arguments</a>). However:</p>
 <p>Requesting binning outsize of these ranges will fail.</p>
 </div>
 <section id="cylinder-proj-2d-and-1d-cuts-examples">
-<h5><span class="section-number">5.1.5.3.1. </span><code class="docutils literal notranslate"><span class="pre">cylinder_proj</span></code> 2D and 1D cuts examples:<a class="headerlink" href="#cylinder-proj-2d-and-1d-cuts-examples" title="Permalink to this heading"></a></h5>
+<h5><span class="section-number">5.1.5.3.1. </span><code class="docutils literal notranslate"><span class="pre">cylinder_proj</span></code> 2D and 1D cuts examples:<a class="headerlink" href="#cylinder-proj-2d-and-1d-cuts-examples" title="Link to this heading"></a></h5>
 <p>Cylindrical projection can be used to obtain cylindrical cuts in a manner
 analogous to linear and spherical projections.</p>
 <p>The main use of cylindrical projection is for cuts with axis parallel to the
@@ -1123,7 +1124,7 @@ cylindrical symmetry.</p>
 <figure class="align-center" id="id16">
 <span id="img-2d-cylindrical-cuts"></span><a class="reference internal image-reference" href="../_images/cylindrical_cuts_2D.png"><img alt="2D cylindrical cuts." src="../_images/cylindrical_cuts_2D.png" style="width: 1200px;" /></a>
 <figcaption>
-<p><span class="caption-text">Cylindrical cuts along different coordinate axes</span><a class="headerlink" href="#id16" title="Permalink to this image"></a></p>
+<p><span class="caption-text">Cylindrical cuts along different coordinate axes</span><a class="headerlink" href="#id16" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>It is also possible to make one dimensional cylindrical cuts. The following code
@@ -1149,14 +1150,14 @@ function of <span class="math notranslate nohighlight">\(Q_{\perp}\)</span> at d
 <figure class="align-center" id="id17">
 <a class="reference internal image-reference" href="../_images/cylindrical_cuts_1D.png"><img alt="1D cylindrical cuts." src="../_images/cylindrical_cuts_1D.png" style="width: 500px;" /></a>
 <figcaption>
-<p><span class="caption-text">Cylindrical cuts along <span class="math notranslate nohighlight">\(Q_{\perp}\)</span></span><a class="headerlink" href="#id17" title="Permalink to this image"></a></p>
+<p><span class="caption-text">Cylindrical cuts along <span class="math notranslate nohighlight">\(Q_{\perp}\)</span></span><a class="headerlink" href="#id17" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>
 </section>
 </section>
 <section id="additional-notes">
-<h3><span class="section-number">5.1.6. </span>Additional notes<a class="headerlink" href="#additional-notes" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">5.1.6. </span>Additional notes<a class="headerlink" href="#additional-notes" title="Link to this heading"></a></h3>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The number of binning arguments need only match the dimensionality of the
@@ -1170,7 +1171,7 @@ you have is to change the range of the plot axis by specifying
 <code class="docutils literal notranslate"><span class="pre">[lo1,0,hi1]</span></code> instead of <code class="docutils literal notranslate"><span class="pre">[]</span></code> (the ‘0’ means ‘use existing bin size’).</p>
 </div>
 <section id="auto-binning-algorithm">
-<span id="bin-ranges-calculations"></span><h4><span class="section-number">5.1.6.1. </span>Auto-binning algorithm<a class="headerlink" href="#auto-binning-algorithm" title="Permalink to this heading"></a></h4>
+<span id="bin-ranges-calculations"></span><h4><span class="section-number">5.1.6.1. </span>Auto-binning algorithm<a class="headerlink" href="#auto-binning-algorithm" title="Link to this heading"></a></h4>
 <p>When a <code class="docutils literal notranslate"><span class="pre">cut</span></code> will change projections (i.e. the source projection type is different
 or the principal-axes are not orthogonal to the target projection) there are a few things to be aware of,
 particularly when you specify automatic (<code class="docutils literal notranslate"><span class="pre">[]</span></code>, <code class="docutils literal notranslate"><span class="pre">[step]</span></code>) binning arguments.</p>
@@ -1203,7 +1204,7 @@ re-cut your dataset.</p>
 <p><span class="caption-text">Example showing a linear projection (target) encapsulating a spherical
 projection (source).
 Here, if we consider a sphere of radius <span class="math notranslate nohighlight">\(r\)</span>, then the encapsulating
-cuboid has sidelength (<span class="math notranslate nohighlight">\(a\)</span>) of size <span class="math notranslate nohighlight">\(2r\)</span>.</span><a class="headerlink" href="#id18" title="Permalink to this image"></a></p>
+cuboid has sidelength (<span class="math notranslate nohighlight">\(a\)</span>) of size <span class="math notranslate nohighlight">\(2r\)</span>.</span><a class="headerlink" href="#id18" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p class="rubric">Example</p>
@@ -1268,7 +1269,7 @@ get their desired binning.</p>
 </section>
 </section>
 <section id="legacy-calls-to-cut-cut-sqw-and-cut-dnd">
-<h3><span class="section-number">5.1.7. </span>Legacy calls to <code class="docutils literal notranslate"><span class="pre">cut</span></code>: <code class="docutils literal notranslate"><span class="pre">cut_sqw</span></code> and <code class="docutils literal notranslate"><span class="pre">cut_dnd</span></code><a class="headerlink" href="#legacy-calls-to-cut-cut-sqw-and-cut-dnd" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">5.1.7. </span>Legacy calls to <code class="docutils literal notranslate"><span class="pre">cut</span></code>: <code class="docutils literal notranslate"><span class="pre">cut_sqw</span></code> and <code class="docutils literal notranslate"><span class="pre">cut_dnd</span></code><a class="headerlink" href="#legacy-calls-to-cut-cut-sqw-and-cut-dnd" title="Link to this heading"></a></h3>
 <p>Historically, <code class="docutils literal notranslate"><span class="pre">cut</span></code> came in two different forms <code class="docutils literal notranslate"><span class="pre">cut_sqw</span></code> and
 <code class="docutils literal notranslate"><span class="pre">cut_dnd</span></code>. These forms are still available now, however their uses are more
 limited and mostly discouraged.</p>
@@ -1282,7 +1283,7 @@ to a <code class="docutils literal notranslate"><span class="pre">dnd</span></co
 </section>
 </section>
 <section id="section">
-<h2><span class="section-number">5.2. </span>section<a class="headerlink" href="#section" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">5.2. </span>section<a class="headerlink" href="#section" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">section</span></code> is an <code class="docutils literal notranslate"><span class="pre">sqw</span></code> method, which works like <code class="docutils literal notranslate"><span class="pre">cut</span></code>, but uses the
 existing bins of an <code class="docutils literal notranslate"><span class="pre">sqw</span></code> object rather than rebinning.</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">wout</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">section</span><span class="p">(</span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="n">p1_bin</span><span class="p">,</span><span class="w"> </span><span class="n">p2_bin</span><span class="p">,</span><span class="w"> </span><span class="n">p3_bin</span><span class="p">,</span><span class="w"> </span><span class="n">p4_bin</span><span class="p">)</span>
@@ -1355,7 +1356,7 @@ the range. The resulting image range will be <code class="docutils literal notra
 
   <div role="contentinfo">
     <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jun 26, 2025, 3:51:35 PM.
+      <span class="lastupdated">Last updated on Jul 17, 2025, 4:27:38 PM.
       </span></p>
   </div>
 

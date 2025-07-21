@@ -1,22 +1,22 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Getting started &mdash; Horace  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
-
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
-      <script src="../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
-      <script src="../_static/doctools.js?v=888ff710"></script>
-      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
-      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -108,7 +108,7 @@
            <div itemprop="articleBody">
              
   <section id="getting-started">
-<h1>Getting started<a class="headerlink" href="#getting-started" title="Permalink to this heading"></a></h1>
+<h1>Getting started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h1>
 <p>In order to get going with Horace we suggest that you take a little time to
 familiarise yourself with the program. To aid this we have created the following
 step-by-step guide that takes you through the process of converting SPE files
@@ -124,7 +124,7 @@ the MAPS spectrometer at ISIS.</p>
 <code class="docutils literal notranslate"><span class="pre">demo</span></code> folder which will take a few minutes to generate a number of <code class="docutils literal notranslate"><span class="pre">.nxspe</span></code>
 files which will be used during the demo.</p>
 <section id="creating-an-sqw-file">
-<h2>Creating an SQW file<a class="headerlink" href="#creating-an-sqw-file" title="Permalink to this heading"></a></h2>
+<h2>Creating an SQW file<a class="headerlink" href="#creating-an-sqw-file" title="Link to this heading"></a></h2>
 <p>The first step in using Horace is to make your dataset from all of your relevant
 SPE files. How this works depends somewhat on the properties of your computer,
 specifically the amount of memory available, and is dealt with
@@ -157,7 +157,7 @@ was when you used it (much like for the <code class="docutils literal notranslat
 message!</p>
 </div>
 <section id="example">
-<h3>Example<a class="headerlink" href="#example" title="Permalink to this heading"></a></h3>
+<h3>Example<a class="headerlink" href="#example" title="Link to this heading"></a></h3>
 <p>Let’s now run through a simple example. To do this we’ll need some example
 <code class="docutils literal notranslate"><span class="pre">.spe</span></code> files and a <code class="docutils literal notranslate"><span class="pre">.par</span></code> file. The script file containing all of the
 commands described below is located in:</p>
@@ -329,7 +329,7 @@ the status of your <code class="docutils literal notranslate"><span class="pre">
 </section>
 </section>
 <section id="data-visualisation">
-<h2>Data visualisation<a class="headerlink" href="#data-visualisation" title="Permalink to this heading"></a></h2>
+<h2>Data visualisation<a class="headerlink" href="#data-visualisation" title="Link to this heading"></a></h2>
 <p>Now that we’ve made our <code class="docutils literal notranslate"><span class="pre">.sqw</span></code> file the next step is to see what the data look
 like. The first thing to do is to tell the program where the <code class="docutils literal notranslate"><span class="pre">.sqw</span></code> file is
 located:</p>
@@ -483,7 +483,7 @@ difference applies to using <code class="docutils literal notranslate"><span cla
 (c.f. <a class="reference internal" href="../manual/Multifit.html#overview"><span class="std std-ref">Multifit</span></a>).</p>
 </section>
 <section id="basic-data-manipulation">
-<h2>Basic data manipulation<a class="headerlink" href="#basic-data-manipulation" title="Permalink to this heading"></a></h2>
+<h2>Basic data manipulation<a class="headerlink" href="#basic-data-manipulation" title="Link to this heading"></a></h2>
 <p>Horace allows you to manipulate your data in many different ways.</p>
 <p>It is important to realise that there are essentially 3 different kinds of
 function, each with a slightly different syntax:</p>
@@ -526,7 +526,7 @@ subtracting from the real data.</p></li>
 population factor.</p></li>
 </ol>
 <section id="process">
-<h3>Process<a class="headerlink" href="#process" title="Permalink to this heading"></a></h3>
+<h3>Process<a class="headerlink" href="#process" title="Link to this heading"></a></h3>
 <p>First create a new 2D slice and save to file:</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">cut_file</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;&lt;horace_root&gt;\demo\w110.sqw&#39;</span><span class="p">;</span>
 
@@ -563,14 +563,14 @@ data to remove the background:</p>
 </section>
 </section>
 <section id="simulations">
-<h2>Simulations<a class="headerlink" href="#simulations" title="Permalink to this heading"></a></h2>
+<h2>Simulations<a class="headerlink" href="#simulations" title="Link to this heading"></a></h2>
 <p>It is not only possible to plot and manipulate data, it is also possible to
 simulate an entire dataset, or parts of a dataset.</p>
 <p>We will illustrate this option using two examples, one that gives a quartet of
 Gaussian profile peaks, and another that simulates the intensity from a
 Heisenberg ferromagnet.</p>
 <section id="gaussian-profile-peaks">
-<h3>Gaussian Profile Peaks<a class="headerlink" href="#gaussian-profile-peaks" title="Permalink to this heading"></a></h3>
+<h3>Gaussian Profile Peaks<a class="headerlink" href="#gaussian-profile-peaks" title="Link to this heading"></a></h3>
 <p>It is often the case that you do not have a full model of S(<strong>Q</strong>,E), but rather
 you just want to determine how a particular peak changes with, for example,
 temperature or neutron energy transfer.</p>
@@ -637,7 +637,7 @@ object so that intensity is simulated over the entire data range, rather than
 just at the points where there are data in the template object.</p>
 </section>
 <section id="d-heisenberg-ferromagnet">
-<h3>3D Heisenberg Ferromagnet<a class="headerlink" href="#d-heisenberg-ferromagnet" title="Permalink to this heading"></a></h3>
+<h3>3D Heisenberg Ferromagnet<a class="headerlink" href="#d-heisenberg-ferromagnet" title="Link to this heading"></a></h3>
 <p>In this case we will be fitting a full model of S(<strong>Q</strong>,E), using <code class="docutils literal notranslate"><span class="pre">sqw_eval</span></code>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -687,7 +687,7 @@ comprising any other form of input.</p>
 </div>
 </section>
 <section id="apply">
-<h3>Apply<a class="headerlink" href="#apply" title="Permalink to this heading"></a></h3>
+<h3>Apply<a class="headerlink" href="#apply" title="Link to this heading"></a></h3>
 <p>In this example we will look at the generalised application function <code class="docutils literal notranslate"><span class="pre">apply</span></code>.</p>
 <p><code class="docutils literal notranslate"><span class="pre">apply</span></code> is a somewhat advanced function which requires some knowledge of the
 underlying <code class="docutils literal notranslate"><span class="pre">sqw</span></code> object structure but allows us to apply arbitrary functions
@@ -721,7 +721,7 @@ cell-arrays or cell-arrays of cell-arrays in the case of multiple functions.</p>
 </section>
 </section>
 <section id="fitting">
-<h2>Fitting<a class="headerlink" href="#fitting" title="Permalink to this heading"></a></h2>
+<h2>Fitting<a class="headerlink" href="#fitting" title="Link to this heading"></a></h2>
 <p>You can also use Horace to fit parameters to your data. Since this a more
 complicated subject, for an introduction and overview of how to use the fitting
 functions, please read <a class="reference internal" href="../manual/Multifit.html#multifit"><span class="std std-ref">Fitting data</span></a>.</p>
@@ -748,7 +748,7 @@ for S(<strong>Q</strong>,w) to <code class="docutils literal notranslate"><span 
 
   <div role="contentinfo">
     <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jun 26, 2025, 3:51:35 PM.
+      <span class="lastupdated">Last updated on Jul 15, 2025, 4:40:27 PM.
       </span></p>
   </div>
 

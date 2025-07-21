@@ -1,21 +1,21 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Download and setup &mdash; Horace  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
-
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
-      <script src="../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
-      <script src="../_static/doctools.js?v=888ff710"></script>
-      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -99,9 +99,9 @@
            <div itemprop="articleBody">
              
   <section id="download-and-setup">
-<h1>Download and setup<a class="headerlink" href="#download-and-setup" title="Permalink to this heading"></a></h1>
+<h1>Download and setup<a class="headerlink" href="#download-and-setup" title="Link to this heading"></a></h1>
 <section id="system-requirements">
-<h2>System Requirements<a class="headerlink" href="#system-requirements" title="Permalink to this heading"></a></h2>
+<h2>System Requirements<a class="headerlink" href="#system-requirements" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>Windows 64-bit, or Linux 64-bit operating system</p></li>
 <li><p>Plenty of free disk space in order to cope with the combined data files (&gt; 30GB)</p></li>
@@ -117,15 +117,15 @@ and we will try to help you.</p></li>
 </ul>
 </section>
 <section id="download">
-<h2>Download<a class="headerlink" href="#download" title="Permalink to this heading"></a></h2>
+<h2>Download<a class="headerlink" href="#download" title="Link to this heading"></a></h2>
 <p>Horace releases for supported operating systems are available to download on
 <a class="reference external" href="https://github.com/pace-neutrons/Horace/releases">GitHub here</a>.
 These packages contain pre-compiled <cite>mex</cite> libraries for each OS.</p>
 </section>
 <section id="installation-instructions">
-<h2>Installation Instructions<a class="headerlink" href="#installation-instructions" title="Permalink to this heading"></a></h2>
+<h2>Installation Instructions<a class="headerlink" href="#installation-instructions" title="Link to this heading"></a></h2>
 <section id="standard-matlab-install">
-<h3>Standard Matlab install<a class="headerlink" href="#standard-matlab-install" title="Permalink to this heading"></a></h3>
+<h3>Standard Matlab install<a class="headerlink" href="#standard-matlab-install" title="Link to this heading"></a></h3>
 <p>To install Horace you should ideally have the administrative rights. To
 install Horace:</p>
 <ol class="arabic simple">
@@ -150,7 +150,7 @@ folder different from Matlab’s <a class="reference external" href="https://uk.
 <a class="reference internal" href="#troubleshooting">Troubleshooting</a> section below for details of the installation process in this situation.</p>
 </section>
 <section id="installing-the-latest-version">
-<h3>Installing the latest version<a class="headerlink" href="#installing-the-latest-version" title="Permalink to this heading"></a></h3>
+<h3>Installing the latest version<a class="headerlink" href="#installing-the-latest-version" title="Link to this heading"></a></h3>
 <p>If you want to install the latest development version of Horace, you should first <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span></code> the <a class="reference external" href="https://github.com/pace-neutrons/Horace">Horace</a> <code class="docutils literal notranslate"><span class="pre">git</span></code> repository. You can then follow the <code class="docutils literal notranslate"><span class="pre">horace_install</span></code> procedure as
 described above, giving it the path to where <cite>Horace</cite> was cloned.</p>
 <p>Horace should work after the install script is run but to improve performance of some common Horace operations, you may
@@ -160,7 +160,7 @@ not always be the case in future.  You will need to build <code class="docutils 
 the GNU Compiler Collection (GCC).</p>
 </section>
 <section id="cmake-install">
-<h3>CMake install<a class="headerlink" href="#cmake-install" title="Permalink to this heading"></a></h3>
+<h3>CMake install<a class="headerlink" href="#cmake-install" title="Link to this heading"></a></h3>
 <p>If you have cloned the repository and have the <code class="docutils literal notranslate"><span class="pre">CMake</span></code> tool installed, the Horace package supports a CMake build (1a),
 which also builds the relevant <cite>mex</cite> files and links against them.</p>
 <p>Horace also ships with a number of install scripts in <code class="docutils literal notranslate"><span class="pre">tools\build_config</span></code>. These can be used to automate
@@ -197,7 +197,7 @@ c. Then add <code class="docutils literal notranslate"><span class="pre">horace_
 </section>
 </section>
 <section id="horace-configuration">
-<h2>Horace Configuration<a class="headerlink" href="#horace-configuration" title="Permalink to this heading"></a></h2>
+<h2>Horace Configuration<a class="headerlink" href="#horace-configuration" title="Link to this heading"></a></h2>
 <p>Horace uses <a class="reference internal" href="../manual/Changing_Horace_settings.html#changing-horace-settings"><span class="std std-ref">configuration files</span></a> to store its settings and to tune its behaviour
 and performance.  Horace tries to guess the best performance for your machine, but you should check if the configuration
 it selects is indeed optimal for you.</p>
@@ -249,7 +249,7 @@ Descriptions for each option with suggestions for configuring are given below:</
 </div>
 </section>
 <section id="high-performance-computing-configuration">
-<h2>High Performance Computing Configuration<a class="headerlink" href="#high-performance-computing-configuration" title="Permalink to this heading"></a></h2>
+<h2>High Performance Computing Configuration<a class="headerlink" href="#high-performance-computing-configuration" title="Link to this heading"></a></h2>
 <p>If you have a large task and a machine with multiple cores, you may benefit from using Horace’s parallel computing
 extensions (see <a class="reference internal" href="../manual/Parallel.html#running-horace-in-parallel"><span class="std std-ref">Running Horace in Parallel</span></a>).</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">hpc</span></code> command can be used to enable/disable parallel computing options,
@@ -267,7 +267,7 @@ use the <code class="docutils literal notranslate"><span class="pre">hpc_config<
 </div>
 </section>
 <section id="troubleshooting">
-<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this heading"></a></h2>
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h2>
 <p>If you used a <a class="reference external" href="https://github.com/pace-neutrons/Horace/releases">release archive</a>, then <cite>Horace</cite> will be in a folder
 (called <code class="docutils literal notranslate"><span class="pre">&lt;extracted_folder&gt;</span></code> below) with <code class="docutils literal notranslate"><span class="pre">horace_install</span></code> and this script can be called with no arguments (it will
 automatically detect the folders).</p>
@@ -309,7 +309,7 @@ give the path to the <cite>Horace</cite> folders using the <code class="docutils
 
   <div role="contentinfo">
     <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jun 26, 2025, 3:51:35 PM.
+      <span class="lastupdated">Last updated on Jul 15, 2025, 4:40:27 PM.
       </span></p>
   </div>
 

@@ -1,22 +1,22 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FAQ &mdash; Horace  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
-
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
-      <script src="../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
-      <script src="../_static/doctools.js?v=888ff710"></script>
-      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
-      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -62,10 +62,11 @@
 <li class="toctree-l2"><a class="reference internal" href="Binary_operations.html">12. Binary operations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Plotting.html">13. Plotting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Simulation.html">14. Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Multifit.html">15. Multifit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Tobyfit.html">16. Tobyfit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Parallel.html">17. Running Horace in Parallel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Changing_Horace_settings.html">18. Changing Horace settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Generic_Transformation.html">15. Generic Transformations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Multifit.html">16. Multifit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tobyfit.html">17. Tobyfit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Parallel.html">18. Running Horace in Parallel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Changing_Horace_settings.html">19. Changing Horace settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="List_of_functions.html">List of functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Input_file_formats.html">Input file formats</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">FAQ</a><ul>
@@ -115,10 +116,10 @@
            <div itemprop="articleBody">
              
   <section id="faq">
-<h1>FAQ<a class="headerlink" href="#faq" title="Permalink to this heading"></a></h1>
+<h1>FAQ<a class="headerlink" href="#faq" title="Link to this heading"></a></h1>
 <p>Some frequently asked questions about Horace</p>
 <section id="can-i-include-more-than-one-data-file-spe-nxspe-with-the-same-experimental-configuration-in-an-sqw-file">
-<h2>Can I include more than one data file (spe/nxspe) with the same experimental configuration in an sqw file?<a class="headerlink" href="#can-i-include-more-than-one-data-file-spe-nxspe-with-the-same-experimental-configuration-in-an-sqw-file" title="Permalink to this heading"></a></h2>
+<h2>Can I include more than one data file (spe/nxspe) with the same experimental configuration in an sqw file?<a class="headerlink" href="#can-i-include-more-than-one-data-file-spe-nxspe-with-the-same-experimental-configuration-in-an-sqw-file" title="Link to this heading"></a></h2>
 <p>Yes! The <code class="docutils literal notranslate"><span class="pre">gen_sqw</span></code> routine will check for repeat entries of filenames, so that
 you cannot accidentally include the same run twice. But you can have the same
 experimental conditions (<span class="math notranslate nohighlight">\(E_i\)</span> and <span class="math notranslate nohighlight">\(\psi\)</span>) for different runs and
@@ -135,9 +136,9 @@ example below:</p>
 <code class="docutils literal notranslate"><span class="pre">file2</span></code> and <code class="docutils literal notranslate"><span class="pre">fileN</span></code>, will be combined and normalised correctly.</p>
 </section>
 <section id="what-is-the-difference-between-sqw-and-dnd-objects">
-<h2>What is the difference between sqw and dnd objects<a class="headerlink" href="#what-is-the-difference-between-sqw-and-dnd-objects" title="Permalink to this heading"></a></h2>
+<h2>What is the difference between sqw and dnd objects<a class="headerlink" href="#what-is-the-difference-between-sqw-and-dnd-objects" title="Link to this heading"></a></h2>
 <section id="summary">
-<h3>Summary<a class="headerlink" href="#summary" title="Permalink to this heading"></a></h3>
+<h3>Summary<a class="headerlink" href="#summary" title="Link to this heading"></a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">sqw</span></code> object carries around an array containing the information of each
 detector-energy pixel which underlies the result in a raw form. These pixels are
 then accumulated and binned into the intensity histogram which makes up the
@@ -165,7 +166,7 @@ more detail in <a class="reference internal" href="../user_guide/Advanced_use.ht
 </div>
 </section>
 <section id="memory-requirements">
-<h3>Memory requirements<a class="headerlink" href="#memory-requirements" title="Permalink to this heading"></a></h3>
+<h3>Memory requirements<a class="headerlink" href="#memory-requirements" title="Link to this heading"></a></h3>
 <p>Equivalent <code class="docutils literal notranslate"><span class="pre">sqw</span></code> and <code class="docutils literal notranslate"><span class="pre">dnd</span></code> objects require vastly different amounts of
 computer memory. The <code class="docutils literal notranslate"><span class="pre">dnd</span></code> object is usually relatively small (typically
 0.1-10MB), whereas an <code class="docutils literal notranslate"><span class="pre">sqw</span></code> object can easily be multiple GB. This is because
@@ -180,7 +181,7 @@ may take a long time to process!</p>
 </div>
 </section>
 <section id="implications-for-simulations-and-fitting">
-<h3>Implications for simulations and fitting<a class="headerlink" href="#implications-for-simulations-and-fitting" title="Permalink to this heading"></a></h3>
+<h3>Implications for simulations and fitting<a class="headerlink" href="#implications-for-simulations-and-fitting" title="Link to this heading"></a></h3>
 <p>The difference between <code class="docutils literal notranslate"><span class="pre">sqw</span></code> and <code class="docutils literal notranslate"><span class="pre">dnd</span></code> objects is clearly manifest, and
 potentially most significant, when simulating and/or fitting a <span class="math notranslate nohighlight">\(S(\mathbf{Q}, \omega)\)</span> model to
 the data.</p>
@@ -218,7 +219,7 @@ dispersion, e.g. <span class="math notranslate nohighlight">\(S(\mathbf{Q}, \ome
 </section>
 </section>
 <section id="i-ve-got-a-problem-and-i-can-t-find-figure-out-how-to-solve-it-from-the-information-on-this-website">
-<h2>I’ve got a problem and I can’t find figure out how to solve it from the information on this website!<a class="headerlink" href="#i-ve-got-a-problem-and-i-can-t-find-figure-out-how-to-solve-it-from-the-information-on-this-website" title="Permalink to this heading"></a></h2>
+<h2>I’ve got a problem and I can’t find figure out how to solve it from the information on this website!<a class="headerlink" href="#i-ve-got-a-problem-and-i-can-t-find-figure-out-how-to-solve-it-from-the-information-on-this-website" title="Link to this heading"></a></h2>
 <p>First, try using the <strong>Search docs</strong> on the left-hand side of all the pages on
 this website. In the case that you have found the function you need and it is
 failing, make sure you are looking at the docs for the <a class="reference internal" href="../Previous_versions.html#previous-versions"><span class="std std-ref">correct version</span></a> of Horace.</p>
@@ -240,7 +241,7 @@ help you.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jun 26, 2025, 3:51:35 PM.
+      <span class="lastupdated">Last updated on Jul 15, 2025, 4:40:27 PM.
       </span></p>
   </div>
 

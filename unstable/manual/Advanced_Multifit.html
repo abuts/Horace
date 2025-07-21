@@ -1,21 +1,21 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Advanced Multifit &mdash; Horace  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
-
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
-      <script src="../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
-      <script src="../_static/doctools.js?v=888ff710"></script>
-      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -82,14 +82,14 @@
            <div itemprop="articleBody">
              
   <section id="advanced-multifit">
-<h1>Advanced Multifit<a class="headerlink" href="#advanced-multifit" title="Permalink to this heading"></a></h1>
+<h1>Advanced Multifit<a class="headerlink" href="#advanced-multifit" title="Link to this heading"></a></h1>
 <p>At some point in the future it may be possible that someone wishes to extend the
 usage of <code class="docutils literal notranslate"><span class="pre">multifit</span></code> as a generic fitting engine to fit multivariate problems
 with multiple correlated datasets contained in a data-containing class. To
 support this no-doubt noble goal, this section describes how to define a
 dataclass which is compatible with <code class="docutils literal notranslate"><span class="pre">multifit</span></code> specifications.</p>
 <section id="multifit-methods-requirements">
-<h2>Multifit methods requirements<a class="headerlink" href="#multifit-methods-requirements" title="Permalink to this heading"></a></h2>
+<h2>Multifit methods requirements<a class="headerlink" href="#multifit-methods-requirements" title="Link to this heading"></a></h2>
 <p>In many cases, the most convenient thing to do is extract the x, y, and error
 arrays from an object and pass those to <code class="docutils literal notranslate"><span class="pre">multifit</span></code>. This can be done by
 defining an <code class="docutils literal notranslate"><span class="pre">xye</span></code> method on the class which returns an x, y, e triple:</p>
@@ -120,7 +120,7 @@ masked bins is removed from the <code class="docutils literal notranslate"><span
 </div>
 <p>The methods required for fitting objects with <code class="docutils literal notranslate"><span class="pre">multifit</span></code> are as follows:</p>
 <section id="fit-functions">
-<h3>Fit functions<a class="headerlink" href="#fit-functions" title="Permalink to this heading"></a></h3>
+<h3>Fit functions<a class="headerlink" href="#fit-functions" title="Link to this heading"></a></h3>
 <p>The general format for a valid fitting function is:</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">wcalc</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">my_function</span><span class="w"> </span><span class="p">(</span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="n">c1</span><span class="p">,</span><span class="w"> </span><span class="n">c2</span><span class="p">,</span><span class="w"> </span><span class="n">c3</span><span class="p">,</span><span class="w"> </span><span class="k">...</span><span class="c">)</span>
 </pre></div>
@@ -140,7 +140,7 @@ fitting operation itself). This is done when fitting a Guassian to an <code clas
 for example, where the <code class="docutils literal notranslate"><span class="pre">sqw</span></code> determines the correct dimensionality of Gaussian
 to match that of the object.</p>
 <section id="utility-methods">
-<h4>Utility methods<a class="headerlink" href="#utility-methods" title="Permalink to this heading"></a></h4>
+<h4>Utility methods<a class="headerlink" href="#utility-methods" title="Link to this heading"></a></h4>
 <p>This section contains a list of methods which <code class="docutils literal notranslate"><span class="pre">multifit</span></code> understands and are
 used to fit user-defined classes.</p>
 <div class="admonition note">
@@ -151,7 +151,7 @@ can be helpful in optimisation. They will be used if available, but
 provided.</p>
 </div>
 <section id="mask">
-<h5>mask<a class="headerlink" href="#mask" title="Permalink to this heading"></a></h5>
+<h5>mask<a class="headerlink" href="#mask" title="Link to this heading"></a></h5>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">wout</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">mask</span><span class="p">(</span><span class="n">win</span><span class="p">,</span><span class="w"> </span><span class="n">msk</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -160,7 +160,7 @@ be a valid instance of the class in which the masked values have been removed in
 whatever sense the class and fitting requires.</p>
 </section>
 <section id="mask-points-optional">
-<span id="mask-points"></span><h5>mask_points [optional]<a class="headerlink" href="#mask-points-optional" title="Permalink to this heading"></a></h5>
+<span id="mask-points"></span><h5>mask_points [optional]<a class="headerlink" href="#mask-points-optional" title="Link to this heading"></a></h5>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">msk</span><span class="p">,</span><span class="w"> </span><span class="n">ok</span><span class="p">,</span><span class="w"> </span><span class="n">mess</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">mask_points</span><span class="p">(</span><span class="n">win</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;keep&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">xkeep</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;remove&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">xremove</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;mask&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">msk_in</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -186,7 +186,7 @@ not complying.</p>
 </div>
 </section>
 <section id="sigvar-get">
-<h5>sigvar_get<a class="headerlink" href="#sigvar-get" title="Permalink to this heading"></a></h5>
+<h5>sigvar_get<a class="headerlink" href="#sigvar-get" title="Link to this heading"></a></h5>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="nb">var</span><span class="p">,</span><span class="w"> </span><span class="n">msk</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sigvar_get</span><span class="p">(</span><span class="n">win</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -212,7 +212,7 @@ be a different shape.</p>
 </div>
 </section>
 <section id="sigvar-getx-optional">
-<span id="sigvar-getx"></span><h5>sigvar_getx [optional]<a class="headerlink" href="#sigvar-getx-optional" title="Permalink to this heading"></a></h5>
+<span id="sigvar-getx"></span><h5>sigvar_getx [optional]<a class="headerlink" href="#sigvar-getx-optional" title="Link to this heading"></a></h5>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">x</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sigvar_getx</span><span class="p">(</span><span class="n">win</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -236,7 +236,7 @@ function. However, if <code class="docutils literal notranslate"><span class="pr
 </div>
 </section>
 <section id="plus-optional">
-<h5>plus [optional]<a class="headerlink" href="#plus-optional" title="Permalink to this heading"></a></h5>
+<h5>plus [optional]<a class="headerlink" href="#plus-optional" title="Link to this heading"></a></h5>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">wsum</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">plus</span><span class="p">(</span><span class="n">w1</span><span class="p">,</span><span class="w"> </span><span class="n">w2</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -264,7 +264,7 @@ objects must be defined.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jun 26, 2025, 3:51:35 PM.
+      <span class="lastupdated">Last updated on Jul 15, 2025, 4:40:27 PM.
       </span></p>
   </div>
 

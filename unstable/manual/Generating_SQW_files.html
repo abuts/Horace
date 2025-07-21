@@ -1,21 +1,21 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>2. Generating SQW files &mdash; Horace  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
-
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
-      <script src="../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
-      <script src="../_static/doctools.js?v=888ff710"></script>
-      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -66,10 +66,11 @@
 <li class="toctree-l2"><a class="reference internal" href="Binary_operations.html">12. Binary operations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Plotting.html">13. Plotting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Simulation.html">14. Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Multifit.html">15. Multifit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Tobyfit.html">16. Tobyfit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Parallel.html">17. Running Horace in Parallel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Changing_Horace_settings.html">18. Changing Horace settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Generic_Transformation.html">15. Generic Transformations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Multifit.html">16. Multifit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tobyfit.html">17. Tobyfit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Parallel.html">18. Running Horace in Parallel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Changing_Horace_settings.html">19. Changing Horace settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="List_of_functions.html">List of functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Input_file_formats.html">Input file formats</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FAQ.html">FAQ</a></li>
@@ -109,7 +110,7 @@
            <div itemprop="articleBody">
              
   <section id="generating-sqw-files">
-<h1><span class="section-number">2. </span>Generating SQW files<a class="headerlink" href="#generating-sqw-files" title="Permalink to this heading"></a></h1>
+<h1><span class="section-number">2. </span>Generating SQW files<a class="headerlink" href="#generating-sqw-files" title="Link to this heading"></a></h1>
 <p>This page tells you how to generate a <code class="docutils literal notranslate"><span class="pre">.sqw</span></code> file from experimental data.  There are two different situations when you will want to do this:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -133,7 +134,7 @@ parameter file (the <code class="docutils literal notranslate"><span class="pre"
 details about these files and how to create them can be found <a class="reference internal" href="Input_file_formats.html#input-file-formats"><span class="std std-ref">here</span></a>.</p></li>
 </ul>
 <section id="accumulate-sqw">
-<h2><span class="section-number">2.1. </span>accumulate_sqw<a class="headerlink" href="#accumulate-sqw" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">2.1. </span>accumulate_sqw<a class="headerlink" href="#accumulate-sqw" title="Link to this heading"></a></h2>
 <p>This is a way of generating data ‘on the fly’ during an experiment. It saves
 time by appending new data to an already existing <code class="docutils literal notranslate"><span class="pre">.sqw</span></code> file.</p>
 <p>The syntax is as follows:</p>
@@ -208,7 +209,7 @@ offset in <code class="docutils literal notranslate"><span class="pre">psi</span
 <figure class="align-center" id="id1">
 <a class="reference internal image-reference" href="../_images/Gonio_angle_definitions.jpg"><img alt="../_images/Gonio_angle_definitions.jpg" src="../_images/Gonio_angle_definitions.jpg" style="width: 300px;" /></a>
 <figcaption>
-<p><span class="caption-text">Virtual goniometer angle definitions</span><a class="headerlink" href="#id1" title="Permalink to this image"></a></p>
+<p><span class="caption-text">Virtual goniometer angle definitions</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>The optional input arguments are as follows:</p>
@@ -244,7 +245,7 @@ experiment. Use this option to start afresh.</p></li>
 </ul>
 </section>
 <section id="gen-sqw">
-<h2><span class="section-number">2.2. </span>gen_sqw<a class="headerlink" href="#gen-sqw" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">2.2. </span>gen_sqw<a class="headerlink" href="#gen-sqw" title="Link to this heading"></a></h2>
 <p>This is the main function you will use to turn the data accumulated in multiple
 <code class="docutils literal notranslate"><span class="pre">.spe</span></code> files into a single <code class="docutils literal notranslate"><span class="pre">.sqw</span></code> file that will be used by the rest of the
 Horace functions. An introduction to its use is given in the <a class="reference internal" href="../user_guide/Getting_started.html#creating-an-sqw-file"><span class="std std-ref">getting
@@ -293,7 +294,7 @@ data.</p></li>
 </ul>
 </section>
 <section id="applying-symmetry-operations-to-an-entire-dataset">
-<h2><span class="section-number">2.3. </span>Applying symmetry operations to an entire dataset<a class="headerlink" href="#applying-symmetry-operations-to-an-entire-dataset" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">2.3. </span>Applying symmetry operations to an entire dataset<a class="headerlink" href="#applying-symmetry-operations-to-an-entire-dataset" title="Link to this heading"></a></h2>
 <p>In the explanation below, we wish to apply symmetrisation to the entire data
 file. Under the hood, what happens is that the data for each run is symmetrised,
 and then these symmetrised data are combined to make the sqw file. This avoids
@@ -342,7 +343,7 @@ dataset in <a class="reference internal" href="Symmetrising_etc.html#gen-sqw"><s
 
   <div role="contentinfo">
     <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jun 26, 2025, 3:51:35 PM.
+      <span class="lastupdated">Last updated on Jul 15, 2025, 4:40:27 PM.
       </span></p>
   </div>
 

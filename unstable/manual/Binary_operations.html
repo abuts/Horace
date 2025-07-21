@@ -1,21 +1,21 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>12. Binary operations &mdash; Horace  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
-
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
-      <script src="../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
-      <script src="../_static/doctools.js?v=888ff710"></script>
-      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -79,10 +79,11 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="Plotting.html">13. Plotting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Simulation.html">14. Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Multifit.html">15. Multifit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Tobyfit.html">16. Tobyfit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Parallel.html">17. Running Horace in Parallel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Changing_Horace_settings.html">18. Changing Horace settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Generic_Transformation.html">15. Generic Transformations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Multifit.html">16. Multifit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tobyfit.html">17. Tobyfit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Parallel.html">18. Running Horace in Parallel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Changing_Horace_settings.html">19. Changing Horace settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="List_of_functions.html">List of functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Input_file_formats.html">Input file formats</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FAQ.html">FAQ</a></li>
@@ -122,9 +123,9 @@
            <div itemprop="articleBody">
              
   <section id="binary-operations">
-<h1><span class="section-number">12. </span>Binary operations<a class="headerlink" href="#binary-operations" title="Permalink to this heading"></a></h1>
+<h1><span class="section-number">12. </span>Binary operations<a class="headerlink" href="#binary-operations" title="Link to this heading"></a></h1>
 <section id="overview">
-<h2><span class="section-number">12.1. </span>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">12.1. </span>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
 <p>Binary operations between two objects can be applied in a variety of ways in
 Horace. You can either use the symbolic form (<code class="docutils literal notranslate"><span class="pre">+</span></code>, <code class="docutils literal notranslate"><span class="pre">-</span></code> , <code class="docutils literal notranslate"><span class="pre">*</span></code>, <code class="docutils literal notranslate"><span class="pre">/</span></code>,
 <code class="docutils literal notranslate"><span class="pre">\</span></code>), or you can use the explicit function names (<code class="docutils literal notranslate"><span class="pre">plus,</span> <span class="pre">minus,</span> <span class="pre">mtimes,</span>
@@ -167,7 +168,7 @@ divided by the number of “pixels” contributing to that bin.</p>
 <p>Commonly used binary operations are described in more detail below.</p>
 </section>
 <section id="sqw-objects">
-<h2><span class="section-number">12.2. </span>sqw objects<a class="headerlink" href="#sqw-objects" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">12.2. </span>sqw objects<a class="headerlink" href="#sqw-objects" title="Link to this heading"></a></h2>
 <p>Let us take for our example the addition operator <code class="docutils literal notranslate"><span class="pre">+</span></code>. Our initial <code class="docutils literal notranslate"><span class="pre">sqw</span></code>
 object is called <code class="docutils literal notranslate"><span class="pre">w2</span></code> and has an attached <code class="docutils literal notranslate"><span class="pre">pix</span></code> array.</p>
 <div class="admonition note">
@@ -176,7 +177,7 @@ object is called <code class="docutils literal notranslate"><span class="pre">w2
 and <code class="docutils literal notranslate"><span class="pre">variance</span></code> elements of the pixel data.</p>
 </div>
 <section id="single-sqw-object">
-<h3><span class="section-number">12.2.1. </span>Single sqw object<a class="headerlink" href="#single-sqw-object" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">12.2.1. </span>Single sqw object<a class="headerlink" href="#single-sqw-object" title="Link to this heading"></a></h3>
 <p>You operate on <code class="docutils literal notranslate"><span class="pre">w2</span></code> with the following types:</p>
 <ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">w2_sqw</span></code> is an <code class="docutils literal notranslate"><span class="pre">sqw</span></code> object with a pix array of identical size to the pix
@@ -210,7 +211,7 @@ exactly onto the real dataset, and needs to be subtracted.</p>
 </ul>
 </section>
 <section id="array-of-sqw-objects">
-<h3><span class="section-number">12.2.2. </span>Array of sqw objects<a class="headerlink" href="#array-of-sqw-objects" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">12.2.2. </span>Array of sqw objects<a class="headerlink" href="#array-of-sqw-objects" title="Link to this heading"></a></h3>
 <p>You can use the same binary operation syntax as for single sqw objects, with the
 following conditions</p>
 <ul class="simple">
@@ -227,7 +228,7 @@ sqw objects.</p></li>
 </section>
 </section>
 <section id="dnd-objects">
-<h2><span class="section-number">12.3. </span>dnd objects<a class="headerlink" href="#dnd-objects" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">12.3. </span>dnd objects<a class="headerlink" href="#dnd-objects" title="Link to this heading"></a></h2>
 <p>Let us again take for our example the addition operator <code class="docutils literal notranslate"><span class="pre">+</span></code>, with our initial
 <code class="docutils literal notranslate"><span class="pre">dnd</span></code> object called <code class="docutils literal notranslate"><span class="pre">w2</span></code> .</p>
 <div class="admonition note">
@@ -236,7 +237,7 @@ sqw objects.</p></li>
 <code class="docutils literal notranslate"><span class="pre">e</span></code> matrices</p>
 </div>
 <section id="single-dnd-object">
-<h3><span class="section-number">12.3.1. </span>Single dnd object<a class="headerlink" href="#single-dnd-object" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">12.3.1. </span>Single dnd object<a class="headerlink" href="#single-dnd-object" title="Link to this heading"></a></h3>
 <p>You can add values to <code class="docutils literal notranslate"><span class="pre">w2</span></code> in the following ways:</p>
 <ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">w2_sqw</span></code> is an <code class="docutils literal notranslate"><span class="pre">sqw</span></code> object with a <code class="docutils literal notranslate"><span class="pre">dnd</span></code> (in <code class="docutils literal notranslate"><span class="pre">data</span></code>) of identical size to
@@ -263,7 +264,7 @@ sqw objects.</p></li>
 </ul>
 </section>
 <section id="array-of-dnd-objects">
-<h3><span class="section-number">12.3.2. </span>Array of dnd objects<a class="headerlink" href="#array-of-dnd-objects" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">12.3.2. </span>Array of dnd objects<a class="headerlink" href="#array-of-dnd-objects" title="Link to this heading"></a></h3>
 <p>Similar to arrays of sqw objects.</p>
 <p>As for sqw objects, arrays have to be the same size as the array of dnd objects
 with respectively commensurate array sizes, or a scalar object as the same size
@@ -271,9 +272,9 @@ of each.</p>
 </section>
 </section>
 <section id="tips-and-tricks">
-<h2><span class="section-number">12.4. </span>Tips and Tricks<a class="headerlink" href="#tips-and-tricks" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">12.4. </span>Tips and Tricks<a class="headerlink" href="#tips-and-tricks" title="Link to this heading"></a></h2>
 <section id="list-of-operations-and-their-equivalent-code">
-<h3><span class="section-number">12.4.1. </span>List of operations and their equivalent code<a class="headerlink" href="#list-of-operations-and-their-equivalent-code" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">12.4.1. </span>List of operations and their equivalent code<a class="headerlink" href="#list-of-operations-and-their-equivalent-code" title="Link to this heading"></a></h3>
 <p>The arithmetic operations above correspond to equivalent MATLAB functions. For reference,
 the corresponding functions are:</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">w1</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">w2</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="nb">plus</span><span class="p">(</span><span class="n">w1</span><span class="p">,</span><span class="n">w2</span><span class="p">);</span>
@@ -281,7 +282,7 @@ the corresponding functions are:</p>
 <span class="n">w1</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">w2</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="nb">mtimes</span><span class="p">(</span><span class="n">w1</span><span class="p">,</span><span class="n">w2</span><span class="p">);</span>
 <span class="n">w1</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">w2</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="nb">mrdivide</span><span class="p">(</span><span class="n">w1</span><span class="p">,</span><span class="n">w2</span><span class="p">);</span>
 <span class="n">w1</span><span class="w"> </span><span class="o">\</span><span class="w"> </span><span class="n">w2</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="nb">mldivide</span><span class="p">(</span><span class="n">w1</span><span class="p">,</span><span class="n">w2</span><span class="p">);</span>
-<span class="n">w1</span><span class="w"> </span><span class="o">^</span><span class="w"> </span><span class="n">w2</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="nb">mpower</span><span class="p">(</span><span class="n">w1</span><span class="p">,</span><span class="n">w2</span><span class="p">);</span>
+<span class="n">w1</span><span class="w"> </span><span class="s">^</span><span class="w"> </span><span class="s">w2</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="nb">mpower</span><span class="p">(</span><span class="n">w1</span><span class="p">,</span><span class="n">w2</span><span class="p">);</span>
 </pre></div>
 </div>
 <div class="admonition warning">
@@ -301,7 +302,7 @@ errors are accumulated in each operation so:</p>
 </div>
 </section>
 <section id="binary-operations-manager">
-<h3><span class="section-number">12.4.2. </span>Binary operations manager<a class="headerlink" href="#binary-operations-manager" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">12.4.2. </span>Binary operations manager<a class="headerlink" href="#binary-operations-manager" title="Link to this heading"></a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">sqw</span></code> objects contain both pixels and image information and this information is consistent, i.e.
 image is calculated from pixels and pixels are sorted within <code class="docutils literal notranslate"><span class="pre">PixelData</span></code> array in such a way that the block of
 pixels contributed into image bin(cell) is located in specific position of <code class="docutils literal notranslate"><span class="pre">PixelData</span></code> array and this position can be
@@ -341,7 +342,7 @@ Unfortunately, any future operations on the result of such operation may produce
 
   <div role="contentinfo">
     <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jun 26, 2025, 3:51:35 PM.
+      <span class="lastupdated">Last updated on Jul 15, 2025, 4:40:27 PM.
       </span></p>
   </div>
 

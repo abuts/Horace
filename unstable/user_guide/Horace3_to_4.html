@@ -1,21 +1,21 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Converting from Horace 3 to Horace 4 &mdash; Horace  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
-
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
-      <script src="../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
-      <script src="../_static/doctools.js?v=888ff710"></script>
-      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -97,13 +97,13 @@
            <div itemprop="articleBody">
              
   <section id="converting-from-horace-3-to-horace-4">
-<h1>Converting from Horace 3 to Horace 4<a class="headerlink" href="#converting-from-horace-3-to-horace-4" title="Permalink to this heading"></a></h1>
+<h1>Converting from Horace 3 to Horace 4<a class="headerlink" href="#converting-from-horace-3-to-horace-4" title="Link to this heading"></a></h1>
 <p>Horace 4 has been a major rewrite and refactoring effort on the code
 from Horace 3. This document outlines the breaking changes between
 versions as well as describing a fast way to convert existing scripts
 from Horace 3 to Horace 4.</p>
 <section id="projections">
-<h2>Projections<a class="headerlink" href="#projections" title="Permalink to this heading"></a></h2>
+<h2>Projections<a class="headerlink" href="#projections" title="Link to this heading"></a></h2>
 <p>In Horace 4, projections have been expanded and reworked to be
 generalised for other shapes of cuts (e.g. spherical, cylindrical). As
 a result, the old-style projections, e.g.:</p>
@@ -127,7 +127,7 @@ replacing the <code class="docutils literal notranslate"><span class="pre">struc
 </div>
 </section>
 <section id="symmetrisation">
-<h2>Symmetrisation<a class="headerlink" href="#symmetrisation" title="Permalink to this heading"></a></h2>
+<h2>Symmetrisation<a class="headerlink" href="#symmetrisation" title="Link to this heading"></a></h2>
 <p>The function <code class="docutils literal notranslate"><span class="pre">sqw.symmetrise_sqw</span></code> has been significantly rewritten
 to generalise it and allow rotational symmetry reduction. As part of
 this rewrite, it now takes <code class="docutils literal notranslate"><span class="pre">Symop</span></code> s as arguments rather than a pair
@@ -153,13 +153,13 @@ transformed into the correct <code class="docutils literal notranslate"><span cl
 switch.</p>
 </section>
 <section id="spaghetti-plot">
-<h2>Spaghetti Plot<a class="headerlink" href="#spaghetti-plot" title="Permalink to this heading"></a></h2>
+<h2>Spaghetti Plot<a class="headerlink" href="#spaghetti-plot" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">qwidth</span></code> in <code class="docutils literal notranslate"><span class="pre">spaghetti_plot</span></code> arguments now correctly refers to a full-width of the perpendicular
 bins. This means that to achieve the same results in Horace 4 as Horace 3, a user-specified
 <code class="docutils literal notranslate"><span class="pre">qwidth</span></code> should be twice as large. Default <code class="docutils literal notranslate"><span class="pre">qwidths</span></code> have been updated to reflect this change.</p>
 </section>
 <section id="crystal-alignment">
-<h2>Crystal Alignment<a class="headerlink" href="#crystal-alignment" title="Permalink to this heading"></a></h2>
+<h2>Crystal Alignment<a class="headerlink" href="#crystal-alignment" title="Link to this heading"></a></h2>
 <p>Crystal alignment in Horace 4 has changed slightly in that only one
 object is returned from the realignment functions. This object
 contains all the data necessary for the realignment.</p>
@@ -180,7 +180,7 @@ arguments, e.g.:</p>
 <p>And simply pass <code class="docutils literal notranslate"><span class="pre">rlu_corr</span></code> to all operations as normal.</p>
 </section>
 <section id="multifit">
-<h2>Multifit<a class="headerlink" href="#multifit" title="Permalink to this heading"></a></h2>
+<h2>Multifit<a class="headerlink" href="#multifit" title="Link to this heading"></a></h2>
 <p>As of Horace 4, the deprecated legacy multifit syntax (i.e. all in one
 line):</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">wfit</span><span class="p">,</span><span class="w"> </span><span class="n">fitdata</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">multifit_sqw</span><span class="p">(</span><span class="n">my_new_cut</span><span class="p">,</span><span class="w"> </span><span class="p">@</span><span class="n">sr122_xsec</span><span class="p">,</span><span class="w"> </span><span class="n">pars</span><span class="p">,</span><span class="w"> </span><span class="n">pfree</span><span class="p">,</span><span class="w"> </span><span class="n">pbind</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;list&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
@@ -224,7 +224,7 @@ parameters should be reported to the developers at <a class="reference external"
 </div>
 </section>
 <section id="deprecated-functions">
-<h2>Deprecated Functions<a class="headerlink" href="#deprecated-functions" title="Permalink to this heading"></a></h2>
+<h2>Deprecated Functions<a class="headerlink" href="#deprecated-functions" title="Link to this heading"></a></h2>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>All deprecation warning IDs in horace are of the form
@@ -284,7 +284,7 @@ parameters should be reported to the developers at <a class="reference external"
 </tbody>
 </table>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id2" role="doc-footnote">
+<aside class="footnote brackets" id="id2" role="note">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
 <p>Deprecated warnings are as follows:</p>
 <blockquote>
@@ -350,7 +350,7 @@ parameters should be reported to the developers at <a class="reference external"
 
   <div role="contentinfo">
     <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jun 26, 2025, 3:51:35 PM.
+      <span class="lastupdated">Last updated on Jul 15, 2025, 4:40:27 PM.
       </span></p>
   </div>
 

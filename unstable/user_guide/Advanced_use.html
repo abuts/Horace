@@ -1,22 +1,22 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Advanced use &mdash; Horace  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
-
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
-      <script src="../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
-      <script src="../_static/doctools.js?v=888ff710"></script>
-      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
-      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -104,12 +104,12 @@
            <div itemprop="articleBody">
              
   <section id="advanced-use">
-<h1>Advanced use<a class="headerlink" href="#advanced-use" title="Permalink to this heading"></a></h1>
+<h1>Advanced use<a class="headerlink" href="#advanced-use" title="Link to this heading"></a></h1>
 <p>The following describes the functions in the Horace suite in more comprehensive detail. In the <a class="reference internal" href="Getting_started.html#getting-started"><span class="std std-ref">Getting started</span></a> section there is a brief tutorial on the use of the essential Horace
 functions. In addition there is also a <a class="reference internal" href="../manual/List_of_functions.html#list-of-functions"><span class="std std-ref">list of functions</span></a>, which
 details the syntax for every function.</p>
 <section id="preamble">
-<h2>Preamble<a class="headerlink" href="#preamble" title="Permalink to this heading"></a></h2>
+<h2>Preamble<a class="headerlink" href="#preamble" title="Link to this heading"></a></h2>
 <p>Horace has been designed to make use of the fact that Matlab can be written in an ‘object-oriented’ manner. We will not
 go into the (numerous) technical details of object oriented programming here, except to make a few points about why it
 is advantageous for the case of Horace to be written this way.</p>
@@ -148,7 +148,7 @@ Horace, e.g. if you type <code class="docutils literal notranslate"><span class=
 the d1d, d2d, d3d, and sqw directories (<strong>N.B.</strong> 0D and 4D types are not plottable in Horace).</p>
 </section>
 <section id="help">
-<h2>Help<a class="headerlink" href="#help" title="Permalink to this heading"></a></h2>
+<h2>Help<a class="headerlink" href="#help" title="Link to this heading"></a></h2>
 <p>To get help concerning a Horace function there are two options, in addition to reading this manual. Simply typing</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="nb">doc</span><span class="w"> </span><span class="n">function_name</span>
 </pre></div>
@@ -166,7 +166,7 @@ help given by this method is rather terse. For more detailed help you can type</
 information is not available then an error is returned.</p>
 </section>
 <section id="creating-an-object-from-scratch">
-<h2>Creating an object from scratch<a class="headerlink" href="#creating-an-object-from-scratch" title="Permalink to this heading"></a></h2>
+<h2>Creating an object from scratch<a class="headerlink" href="#creating-an-object-from-scratch" title="Link to this heading"></a></h2>
 <p>Suppose you wish to simulate the scattering over a particular region of reciprocal space, independent of any
 experimental data you have collected. To do this you can create a dnd (where <code class="docutils literal notranslate"><span class="pre">n</span></code> is any number between 0 and 4) from
 scratch that matches your own specifications. Since the sqw object contains detector pixel information it should not be
@@ -329,7 +329,7 @@ SPE file, the index of the contributing detector, the index of the energy channe
 and the error on the intensity in the pixel.</p>
 </section>
 <section id="reading-and-writing-to-file">
-<h2>Reading and writing to file<a class="headerlink" href="#reading-and-writing-to-file" title="Permalink to this heading"></a></h2>
+<h2>Reading and writing to file<a class="headerlink" href="#reading-and-writing-to-file" title="Link to this heading"></a></h2>
 <p>One way of storing datasets that you’ve created is to save your Matlab workspace, however this may not always be the
 most efficient thing to do – for example your Matlab workspace may contain lots of objects that you do not wish to
 save.</p>
@@ -348,7 +348,7 @@ fact it is probably a good idea to use the extensions .d0d,…,.d4d, or .sqw so 
 object has been saved by just looking at the filename.</p>
 </section>
 <section id="binary-operations">
-<h2>Binary operations<a class="headerlink" href="#binary-operations" title="Permalink to this heading"></a></h2>
+<h2>Binary operations<a class="headerlink" href="#binary-operations" title="Link to this heading"></a></h2>
 <p>Horace allows you to perform simple binary arithmetic operations on dnd and sqw objects. There are a few constrains on
 how you can use these functions, however:</p>
 <ul class="simple">
@@ -367,13 +367,13 @@ spectra from completely different parts of reciprocal space that you maybe didn�
 <p>A complete list of binary arithmetic operations can be found <a class="reference internal" href="../manual/Binary_operations.html#binary-operations"><span class="std std-ref">here</span></a></p>
 </section>
 <section id="unary-operations">
-<h2>Unary operations<a class="headerlink" href="#unary-operations" title="Permalink to this heading"></a></h2>
+<h2>Unary operations<a class="headerlink" href="#unary-operations" title="Link to this heading"></a></h2>
 <p>One can also use Horace to perform unary mathematical operations, i.e. operations that act on a single object. An
 example would be <code class="docutils literal notranslate"><span class="pre">cos</span></code>, which takes the cosine of the intensity at every point in a dnd/sqw object.</p>
 <p>A full list of unary operations can be found <a class="reference internal" href="../manual/Unary_operations.html#unary-operations"><span class="std std-ref">here</span></a>.</p>
 </section>
 <section id="obtaining-information-about-objects">
-<h2>Obtaining information about objects<a class="headerlink" href="#obtaining-information-about-objects" title="Permalink to this heading"></a></h2>
+<h2>Obtaining information about objects<a class="headerlink" href="#obtaining-information-about-objects" title="Link to this heading"></a></h2>
 <p>There are several functions which one can use to find out general information about sqw and dnd objects, i.e. they print
 information to the Matlab command window that you would otherwise have to obtain by using the <code class="docutils literal notranslate"><span class="pre">get</span></code> command and then
 inspecting the resulting structure array.</p>
@@ -418,7 +418,7 @@ printing to the screen, and <code class="docutils literal notranslate"><span cla
 the energy axis.</p>
 </section>
 <section id="reformatting-the-data">
-<h2>Reformatting the data<a class="headerlink" href="#reformatting-the-data" title="Permalink to this heading"></a></h2>
+<h2>Reformatting the data<a class="headerlink" href="#reformatting-the-data" title="Link to this heading"></a></h2>
 <p>You can convert an sqw object into a dnd object (i.e. you throw away the individual pixel information) quite easily. You
 simply type</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">dnd_out</span><span class="p">=</span><span class="n">dnd</span><span class="p">(</span><span class="n">sqw_obj</span><span class="p">);</span>
@@ -458,7 +458,7 @@ data over the extra dimension(s). At present <code class="docutils literal notra
 <code class="docutils literal notranslate"><span class="pre">wref</span></code> can be either a dnd or an sqw.</p>
 </section>
 <section id="plotting">
-<h2>Plotting<a class="headerlink" href="#plotting" title="Permalink to this heading"></a></h2>
+<h2>Plotting<a class="headerlink" href="#plotting" title="Link to this heading"></a></h2>
 <p>The command for default plotting is</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="nb">plot</span><span class="p">(</span><span class="n">obj</span><span class="p">);</span>
 </pre></div>
@@ -484,7 +484,7 @@ can be used to alter its appearance (e.g. the axes, labels, etc.).</p>
 use <code class="docutils literal notranslate"><span class="pre">linx</span></code>…etc. A full list of formatting options can be found <a class="reference external" href="http://www.libisis.org/User_Manual#Plot_Commands">here</a>.</p>
 </section>
 <section id="simulating">
-<h2>Simulating<a class="headerlink" href="#simulating" title="Permalink to this heading"></a></h2>
+<h2>Simulating<a class="headerlink" href="#simulating" title="Link to this heading"></a></h2>
 <p>Simulating data involves running a theoretical model a known set of parameters, in order to compare the model’s results
 to those of the experimental data (or another model).</p>
 <p>There are two functions used for doing simulations - <code class="docutils literal notranslate"><span class="pre">func_eval</span></code> and <code class="docutils literal notranslate"><span class="pre">sqw_eval</span></code>. The difference between these two
@@ -510,7 +510,7 @@ co-ordinate system is (H,0,0) / (0,K,0) / (0,0,L).</p>
 <p>Further information concerning simulations can be found in the <a class="reference internal" href="../manual/List_of_functions.html#lof-fitting"><span class="std std-ref">Simulations</span></a> section of the list of functions.</p>
 </section>
 <section id="fitting">
-<h2>Fitting<a class="headerlink" href="#fitting" title="Permalink to this heading"></a></h2>
+<h2>Fitting<a class="headerlink" href="#fitting" title="Link to this heading"></a></h2>
 <p>You can also use Horace to fit a theoretical model (akin to those used in simulation) to your data by modifying its
 parameters to find a minimal difference between the model and the data. Depending on the size of the data and complexity
 of the model it can take quite a long time for the fit to converge, so it is a good idea to provide a good initial guess
@@ -520,7 +520,7 @@ functions that can be obtained by using the <code class="docutils literal notran
 Gaussians to d1d objects) or <code class="docutils literal notranslate"><span class="pre">doc</span> <span class="pre">sqw/multifit_sqw</span></code> (fitting models for S(Q,w) to sqw objects).</p>
 </section>
 <section id="sqw-generation-and-manipulation">
-<h2>SQW generation and manipulation<a class="headerlink" href="#sqw-generation-and-manipulation" title="Permalink to this heading"></a></h2>
+<h2>SQW generation and manipulation<a class="headerlink" href="#sqw-generation-and-manipulation" title="Link to this heading"></a></h2>
 <p>When converting a series of SPE files into a single SQW file there are only a few commands that you ever need to
 use. The first is <code class="docutils literal notranslate"><span class="pre">gen_sqw</span></code>:</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">tmp_file</span><span class="p">,</span><span class="n">grid_size</span><span class="p">,</span><span class="n">urange</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">gen_sqw</span><span class="w"> </span><span class="p">(</span><span class="n">spe_file</span><span class="p">,</span><span class="w"> </span><span class="n">par_file</span><span class="p">,</span><span class="w"> </span><span class="n">sqw_file</span><span class="p">,</span><span class="w"> </span><span class="n">efix</span><span class="p">,</span><span class="w"> </span><span class="n">emode</span><span class="p">,</span><span class="w"> </span><span class="n">alatt</span><span class="p">,</span><span class="w"> </span><span class="n">angdeg</span><span class="p">,</span><span class="k">...</span>
@@ -588,7 +588,7 @@ that <code class="docutils literal notranslate"><span class="pre">eps_lo</span><
 
   <div role="contentinfo">
     <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jun 26, 2025, 3:51:35 PM.
+      <span class="lastupdated">Last updated on Jul 15, 2025, 4:40:27 PM.
       </span></p>
   </div>
 

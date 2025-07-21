@@ -1,22 +1,22 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Input file formats &mdash; Horace  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
-
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
-      <script src="../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
-      <script src="../_static/doctools.js?v=888ff710"></script>
-      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
-      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -62,10 +62,11 @@
 <li class="toctree-l2"><a class="reference internal" href="Binary_operations.html">12. Binary operations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Plotting.html">13. Plotting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Simulation.html">14. Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Multifit.html">15. Multifit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Tobyfit.html">16. Tobyfit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Parallel.html">17. Running Horace in Parallel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Changing_Horace_settings.html">18. Changing Horace settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Generic_Transformation.html">15. Generic Transformations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Multifit.html">16. Multifit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tobyfit.html">17. Tobyfit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Parallel.html">18. Running Horace in Parallel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Changing_Horace_settings.html">19. Changing Horace settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="List_of_functions.html">List of functions</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Input file formats</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#nxspe-file"><code class="docutils literal notranslate"><span class="pre">.nxspe</span></code> file</a><ul>
@@ -116,7 +117,7 @@
            <div itemprop="articleBody">
              
   <section id="input-file-formats">
-<h1>Input file formats<a class="headerlink" href="#input-file-formats" title="Permalink to this heading"></a></h1>
+<h1>Input file formats<a class="headerlink" href="#input-file-formats" title="Link to this heading"></a></h1>
 <p>To generate the <code class="docutils literal notranslate"><span class="pre">.sqw</span></code> file from which Horace reads <span class="math notranslate nohighlight">\(S(\mathbf{Q}, \omega{})\)</span>, neutron scattering
 data for each individual run needs to be provided in one of two formats:</p>
 <ul class="simple">
@@ -141,7 +142,7 @@ using. However, if you want to use Horace to analyse data from other instruments
 you need to know how to create the input files from whatever format your data is
 saved in.</p>
 <section id="nxspe-file">
-<h2><code class="docutils literal notranslate"><span class="pre">.nxspe</span></code> file<a class="headerlink" href="#nxspe-file" title="Permalink to this heading"></a></h2>
+<h2><code class="docutils literal notranslate"><span class="pre">.nxspe</span></code> file<a class="headerlink" href="#nxspe-file" title="Link to this heading"></a></h2>
 <p>The recommended input data file for Horace is the <code class="docutils literal notranslate"><span class="pre">.nxspe</span></code> file, which holds both
 the <span class="math notranslate nohighlight">\(S(\mathbf{Q}, \omega{})\)</span> data and errors for each detector, detector position and size
 information, together with the crystal orientation angle <span class="math notranslate nohighlight">\(\psi\)</span> and the
@@ -168,7 +169,7 @@ to output <code class="docutils literal notranslate"><span class="pre">.nxspe</s
 input/output for each algorithm are available at the <a class="reference external" href="http://www.mantidproject.org/">Mantid web site</a>.</p>
 </div>
 <section id="gen-nxspe">
-<h3>gen_nxspe<a class="headerlink" href="#gen-nxspe" title="Permalink to this heading"></a></h3>
+<h3>gen_nxspe<a class="headerlink" href="#gen-nxspe" title="Link to this heading"></a></h3>
 <p>More suitable for a ‘quick start’, is if you can read corrected scattering data,
 associated estimated errors, and detector parameters into Matlab arrays. You can
 then use the Horace utility function <code class="docutils literal notranslate"><span class="pre">gen_nxspe</span></code> to create <code class="docutils literal notranslate"><span class="pre">.nxspe</span></code> files.</p>
@@ -231,7 +232,7 @@ define the horizontal scattering plane of the crystal.</p></li>
 </section>
 </section>
 <section id="spe-file-and-par-file">
-<h2><code class="docutils literal notranslate"><span class="pre">.spe</span></code> file and <code class="docutils literal notranslate"><span class="pre">.par</span></code> file<a class="headerlink" href="#spe-file-and-par-file" title="Permalink to this heading"></a></h2>
+<h2><code class="docutils literal notranslate"><span class="pre">.spe</span></code> file and <code class="docutils literal notranslate"><span class="pre">.par</span></code> file<a class="headerlink" href="#spe-file-and-par-file" title="Link to this heading"></a></h2>
 <p>These files may be encountered if you are using Horace to analyse older
 data. The ASCII <code class="docutils literal notranslate"><span class="pre">.spe</span></code> format file stores S(w) and associated error bars as a
 function of energy transfer and <span class="math notranslate nohighlight">\(\hbar{}W\)</span>, for each detector in turn.</p>
@@ -248,7 +249,7 @@ file for time-of-flight neutron spectrometers.</p>
 <p>The format of these two files is described here. However, it is not recommended
 to create new <code class="docutils literal notranslate"><span class="pre">.spe</span></code> files as it is now an obsolete file format.</p>
 <section id="spe-file-format">
-<h3><code class="docutils literal notranslate"><span class="pre">.spe</span></code> file format<a class="headerlink" href="#spe-file-format" title="Permalink to this heading"></a></h3>
+<h3><code class="docutils literal notranslate"><span class="pre">.spe</span></code> file format<a class="headerlink" href="#spe-file-format" title="Link to this heading"></a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">.spe</span></code> file contains the intensity and estimated standard deviation on those
 intensities for each detector element in turn, with header blocks that give the
 number of detectors and energy bins, and the scattering angle and energy
@@ -327,7 +328,7 @@ source of problem when parsing/writing the files.)</p></li>
 </div>
 </section>
 <section id="par-file-format">
-<h3><code class="docutils literal notranslate"><span class="pre">.par</span></code> file format<a class="headerlink" href="#par-file-format" title="Permalink to this heading"></a></h3>
+<h3><code class="docutils literal notranslate"><span class="pre">.par</span></code> file format<a class="headerlink" href="#par-file-format" title="Link to this heading"></a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">.par</span></code> file contains the position information of the detectors and their
 sizes. The format is:</p>
 <table class="docutils align-default">
@@ -391,7 +392,7 @@ dummy values need to be present in the file.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jun 26, 2025, 3:51:35 PM.
+      <span class="lastupdated">Last updated on Jul 15, 2025, 4:40:27 PM.
       </span></p>
   </div>
 

@@ -1,26 +1,26 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>14. Simulation &mdash; Horace  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
-
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
-      <script src="../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
-      <script src="../_static/doctools.js?v=888ff710"></script>
-      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
-      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="15. Multifit" href="Multifit.html" />
+    <link rel="next" title="15. Generic Transformations" href="Generic_Transformation.html" />
     <link rel="prev" title="13. Plotting" href="Plotting.html" /> 
 </head>
 
@@ -70,10 +70,11 @@
 <li class="toctree-l3"><a class="reference internal" href="#disp2sqw-plot">14.6. disp2sqw_plot</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="Multifit.html">15. Multifit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Tobyfit.html">16. Tobyfit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Parallel.html">17. Running Horace in Parallel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Changing_Horace_settings.html">18. Changing Horace settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Generic_Transformation.html">15. Generic Transformations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Multifit.html">16. Multifit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tobyfit.html">17. Tobyfit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Parallel.html">18. Running Horace in Parallel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Changing_Horace_settings.html">19. Changing Horace settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="List_of_functions.html">List of functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Input_file_formats.html">Input file formats</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FAQ.html">FAQ</a></li>
@@ -113,7 +114,7 @@
            <div itemprop="articleBody">
              
   <section id="simulation">
-<h1><span class="section-number">14. </span>Simulation<a class="headerlink" href="#simulation" title="Permalink to this heading"></a></h1>
+<h1><span class="section-number">14. </span>Simulation<a class="headerlink" href="#simulation" title="Link to this heading"></a></h1>
 <p>There are a variety of simulation tools available in Horace, so that if you have
 a theoretical model to describe your data you can simulate the results for the
 specific data points that you measured.</p>
@@ -124,7 +125,7 @@ difference between what is calculated for equivalent <code class="docutils liter
 datasets. See <a class="reference internal" href="FAQ.html#faq"><span class="std std-ref">FAQ</span></a>.</p>
 </div>
 <section id="func-eval">
-<h2><span class="section-number">14.1. </span>func_eval<a class="headerlink" href="#func-eval" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">14.1. </span>func_eval<a class="headerlink" href="#func-eval" title="Link to this heading"></a></h2>
 <p>This evaluates a user-supplied function at the x, y, z, … values of an
 n-dimensional dataset, or array of datasets. The syntax is as follows:</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">wout</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">func_eval</span><span class="p">(</span><span class="n">win</span><span class="p">,</span><span class="w"> </span><span class="p">@</span><span class="n">myfunc</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="p">);</span>
@@ -160,7 +161,7 @@ not <code class="docutils literal notranslate"><span class="pre">sqw</span></cod
 </ul>
 </section>
 <section id="sqw-eval">
-<h2><span class="section-number">14.2. </span>sqw_eval<a class="headerlink" href="#sqw-eval" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">14.2. </span>sqw_eval<a class="headerlink" href="#sqw-eval" title="Link to this heading"></a></h2>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">wout</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sqw_eval</span><span class="p">(</span><span class="n">win</span><span class="p">,</span><span class="w"> </span><span class="p">@</span><span class="n">my_sqw_func</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="p">);</span>
 <span class="n">wout</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sqw_eval</span><span class="p">(</span><span class="n">win</span><span class="p">,</span><span class="w"> </span><span class="p">@</span><span class="n">my_sqw_func</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;all&#39;</span><span class="p">);</span>
 </pre></div>
@@ -191,7 +192,7 @@ temperature, for example.</p>
 example, one had a model of the spin-wave cross-section for magnetic scattering.</p>
 </section>
 <section id="dispersion">
-<h2><span class="section-number">14.3. </span>dispersion<a class="headerlink" href="#dispersion" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">14.3. </span>dispersion<a class="headerlink" href="#dispersion" title="Link to this heading"></a></h2>
 <p>Calculate dispersion relation for a dataset or array of datasets.</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">wdisp</span><span class="p">,</span><span class="n">weight</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">dispersion</span><span class="p">(</span><span class="n">win</span><span class="p">,</span><span class="w"> </span><span class="n">dispreln</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="p">)</span><span class="w">   </span><span class="c">% dispersion and spectral weight</span>
 </pre></div>
@@ -292,7 +293,7 @@ current figure.</p>
 </div>
 </section>
 <section id="disp2sqw-eval">
-<h2><span class="section-number">14.4. </span>disp2sqw_eval<a class="headerlink" href="#disp2sqw-eval" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">14.4. </span>disp2sqw_eval<a class="headerlink" href="#disp2sqw-eval" title="Link to this heading"></a></h2>
 <p>Similar to <code class="docutils literal notranslate"><span class="pre">sqw_eval</span></code>, but takes as the input function a routine that
 calculates both the dispersion and the spectral weight, and only requires as its
 inputs <span class="math notranslate nohighlight">\(h, k, l\)</span> and some model parameters.</p>
@@ -331,7 +332,7 @@ object.</p></li>
 </ul>
 </section>
 <section id="dispersion-plot">
-<h2><span class="section-number">14.5. </span>dispersion_plot<a class="headerlink" href="#dispersion-plot" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">14.5. </span>dispersion_plot<a class="headerlink" href="#dispersion-plot" title="Link to this heading"></a></h2>
 <p>Plot dispersion relation or array of dispersion relations along a path in
 reciprocal space. It can be called in the following ways, with or without
 outputs, as below:</p>
@@ -385,7 +386,7 @@ spectral weight, one per dispersion relation</p></li>
 </ul>
 </section>
 <section id="disp2sqw-plot">
-<h2><span class="section-number">14.6. </span>disp2sqw_plot<a class="headerlink" href="#disp2sqw-plot" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">14.6. </span>disp2sqw_plot<a class="headerlink" href="#disp2sqw-plot" title="Link to this heading"></a></h2>
 <p>Generate an <strong>Q</strong>-E intensity plot for a dispersion relation along a path in
 reciprocal space. The function is very closely related to <a class="reference internal" href="#dispersion-plot">dispersion_plot</a>, and most of the input arguments and options are the same
 for the two functions.</p>
@@ -452,14 +453,14 @@ are the parameters given in <code class="docutils literal notranslate"><span cla
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="Plotting.html" class="btn btn-neutral float-left" title="13. Plotting" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="Multifit.html" class="btn btn-neutral float-right" title="15. Multifit" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Generic_Transformation.html" class="btn btn-neutral float-right" title="15. Generic Transformations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
     <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jun 26, 2025, 3:51:35 PM.
+      <span class="lastupdated">Last updated on Jul 15, 2025, 4:40:27 PM.
       </span></p>
   </div>
 

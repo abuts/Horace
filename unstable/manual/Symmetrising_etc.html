@@ -1,22 +1,22 @@
-
-
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>10. Symmetry Operations &mdash; Horace  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
-
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
   
-      <script src="../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
-      <script src="../_static/doctools.js?v=888ff710"></script>
-      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
-      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -89,10 +89,11 @@
 <li class="toctree-l2"><a class="reference internal" href="Binary_operations.html">12. Binary operations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Plotting.html">13. Plotting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Simulation.html">14. Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Multifit.html">15. Multifit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Tobyfit.html">16. Tobyfit</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Parallel.html">17. Running Horace in Parallel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Changing_Horace_settings.html">18. Changing Horace settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Generic_Transformation.html">15. Generic Transformations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Multifit.html">16. Multifit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tobyfit.html">17. Tobyfit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Parallel.html">18. Running Horace in Parallel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Changing_Horace_settings.html">19. Changing Horace settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="List_of_functions.html">List of functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Input_file_formats.html">Input file formats</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FAQ.html">FAQ</a></li>
@@ -132,9 +133,9 @@
            <div itemprop="articleBody">
              
   <section id="symmetry-operations">
-<h1><span class="section-number">10. </span>Symmetry Operations<a class="headerlink" href="#symmetry-operations" title="Permalink to this heading"></a></h1>
+<h1><span class="section-number">10. </span>Symmetry Operations<a class="headerlink" href="#symmetry-operations" title="Link to this heading"></a></h1>
 <section id="symmetry-operators">
-<h2><span class="section-number">10.1. </span>Symmetry Operators<a class="headerlink" href="#symmetry-operators" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">10.1. </span>Symmetry Operators<a class="headerlink" href="#symmetry-operators" title="Link to this heading"></a></h2>
 <p>Symmetry operators or “sym op”s define the transformation between sets of
 symmetry related sets. In Horace these are implemented as the <code class="docutils literal notranslate"><span class="pre">Symop</span></code> class,
 which is subclassed to represent the three basic forms of symmetry operations:</p>
@@ -153,7 +154,7 @@ series of reflections and rotations</p></li>
 such must have a determinant of <code class="docutils literal notranslate"><span class="pre">1</span></code> (Rotation) or <code class="docutils literal notranslate"><span class="pre">-1</span></code> (Reflection).</p>
 </div>
 <section id="reflections">
-<h3><span class="section-number">10.1.1. </span>Reflections<a class="headerlink" href="#reflections" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">10.1.1. </span>Reflections<a class="headerlink" href="#reflections" title="Link to this heading"></a></h3>
 <p>Reflections are implemented as the <code class="docutils literal notranslate"><span class="pre">SymopReflection</span></code> class and are defined in
 Horace by three 3-vectors; two vectors which define the plane of reflection, and
 a vector which defines a point on the plane (the offset). The constructor for a
@@ -169,7 +170,7 @@ to <code class="docutils literal notranslate"><span class="pre">[0</span> <span 
 </div>
 </section>
 <section id="rotations">
-<h3><span class="section-number">10.1.2. </span>Rotations<a class="headerlink" href="#rotations" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">10.1.2. </span>Rotations<a class="headerlink" href="#rotations" title="Link to this heading"></a></h3>
 <p>Rotations are implemented as the <code class="docutils literal notranslate"><span class="pre">SymopRotation</span></code> class and are defined by two
 3-vectors and a scalar; these are the axis of rotation, the angle (in degrees)
 of rotation and a point on the axis (the offset). The constructor for a
@@ -228,7 +229,7 @@ time) and the axis and offset of the rotation as above.</p>
 </div>
 </section>
 <section id="general-transformations">
-<h3><span class="section-number">10.1.3. </span>General Transformations<a class="headerlink" href="#general-transformations" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">10.1.3. </span>General Transformations<a class="headerlink" href="#general-transformations" title="Link to this heading"></a></h3>
 <p>Generalised matrix transforms are implemented as the <code class="docutils literal notranslate"><span class="pre">SymopGeneral</span></code> class and
 are defined by a 3x3 matrix and a 3-vector. These are the transform itself and
 the offset. The constructor for a <code class="docutils literal notranslate"><span class="pre">SymopGeneral</span></code> is as follows:</p>
@@ -267,7 +268,7 @@ offsets.</p>
 </div>
 </section>
 <section id="groups-of-symmetry-operators">
-<h3><span class="section-number">10.1.4. </span>Groups of symmetry operators<a class="headerlink" href="#groups-of-symmetry-operators" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">10.1.4. </span>Groups of symmetry operators<a class="headerlink" href="#groups-of-symmetry-operators" title="Link to this heading"></a></h3>
 <p>For a more complex transformation involving a series of rotations and
 reflections it is possible to construct an array of transformations to be
 applied in sequence (as a series of pre-multiplications, i.e. applied in the
@@ -278,7 +279,7 @@ reverse order of the list).</p>
 </div>
 </section>
 <section id="irreducible-region">
-<h3><span class="section-number">10.1.5. </span>Irreducible region<a class="headerlink" href="#irreducible-region" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">10.1.5. </span>Irreducible region<a class="headerlink" href="#irreducible-region" title="Link to this heading"></a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">Symop</span></code> transformations on pixels take what we call the irreducible region
 into account when transforming. The irreducible region exists to ensure that
 symmetry reductions reduce the data, rather than mapping the data across the
@@ -322,7 +323,7 @@ and some of a negative domain.</p>
 </section>
 </section>
 <section id="commands-for-cuts-and-slices">
-<h2><span class="section-number">10.2. </span>Commands for cuts and slices<a class="headerlink" href="#commands-for-cuts-and-slices" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">10.2. </span>Commands for cuts and slices<a class="headerlink" href="#commands-for-cuts-and-slices" title="Link to this heading"></a></h2>
 <p>In Horace it is possible to symmetrise by 3 methods:</p>
 <ul class="simple">
 <li><p>symmetrise whole S(<strong>Q</strong>, <span class="math notranslate nohighlight">\(\omega{}\)</span>) objects using <code class="docutils literal notranslate"><span class="pre">symmetrise_sqw</span></code></p></li>
@@ -348,9 +349,9 @@ site rather than their original location.</p>
 </div>
 </section>
 <section id="symmetrising">
-<h2><span class="section-number">10.3. </span>Symmetrising<a class="headerlink" href="#symmetrising" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">10.3. </span>Symmetrising<a class="headerlink" href="#symmetrising" title="Link to this heading"></a></h2>
 <section id="symmetrise-sqw">
-<h3><span class="section-number">10.3.1. </span><code class="docutils literal notranslate"><span class="pre">symmetrise_sqw</span></code><a class="headerlink" href="#symmetrise-sqw" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">10.3.1. </span><code class="docutils literal notranslate"><span class="pre">symmetrise_sqw</span></code><a class="headerlink" href="#symmetrise-sqw" title="Link to this heading"></a></h3>
 <p>It is possible to reduce an entire dataset at once by symmetry, transforming all
 pixels according to the symmetry operations and accumulating the transformed
 pixels into the bins appropriately. This is done through the <code class="docutils literal notranslate"><span class="pre">symmetrise_sqw</span></code>
@@ -421,7 +422,7 @@ only defined for <code class="docutils literal notranslate"><span class="pre">Sy
 </div>
 </section>
 <section id="gen-sqw">
-<h3><span class="section-number">10.3.2. </span><code class="docutils literal notranslate"><span class="pre">gen_sqw</span></code><a class="headerlink" href="#gen-sqw" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">10.3.2. </span><code class="docutils literal notranslate"><span class="pre">gen_sqw</span></code><a class="headerlink" href="#gen-sqw" title="Link to this heading"></a></h3>
 <p id="id1">If you need to symmetrise a large <code class="docutils literal notranslate"><span class="pre">sqw</span></code> object, it can also be done during
 <code class="docutils literal notranslate"><span class="pre">sqw</span></code> generation, i.e. during generation of the <code class="docutils literal notranslate"><span class="pre">sqw</span></code> file, rather than
 after the object has been created. The <code class="docutils literal notranslate"><span class="pre">gen_sqw</span></code> function has a special option
@@ -491,7 +492,7 @@ as:</p>
 </section>
 </section>
 <section id="cutting">
-<h2><span class="section-number">10.4. </span>Cutting<a class="headerlink" href="#cutting" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">10.4. </span>Cutting<a class="headerlink" href="#cutting" title="Link to this heading"></a></h2>
 <p>In order to do a symmetrised cut, the ordinary <code class="docutils literal notranslate"><span class="pre">cut</span></code> function (see
 <a class="reference internal" href="Cutting_data_of_interest_from_SQW_files_and_objects.html#cut"><span class="std std-ref">cut</span></a>)
 is used with the appropriate symmetry operations additionally passed into the
@@ -515,7 +516,7 @@ according to the symmetry operations as though the S(<strong>Q</strong>, <span c
 rectangle specified by the two corners (0.2,32) and (0.8, 70). The reflection
 about the Y-axis captures the data in the region between (-0.2, 32) and
 (-0.8, 70) which are transformed by the symmetry operation into the primary
-axes and accumulated into the cut.</span><a class="headerlink" href="#id2" title="Permalink to this image"></a></p>
+axes and accumulated into the cut.</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">w</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sqw</span><span class="p">(</span><span class="k">...</span><span class="c">)</span>
@@ -560,7 +561,7 @@ axes and accumulated into the cut.</span><a class="headerlink" href="#id2" title
 </figure>
 </section>
 <section id="combining">
-<h2><span class="section-number">10.5. </span>Combining<a class="headerlink" href="#combining" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">10.5. </span>Combining<a class="headerlink" href="#combining" title="Link to this heading"></a></h2>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">wout</span><span class="p">=</span><span class="n">combine_sqw</span><span class="p">(</span><span class="n">win</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -579,7 +580,7 @@ object will have the projection axes of <code class="docutils literal notranslat
 </div>
 </section>
 <section id="rebinning">
-<h2><span class="section-number">10.6. </span>Rebinning<a class="headerlink" href="#rebinning" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">10.6. </span>Rebinning<a class="headerlink" href="#rebinning" title="Link to this heading"></a></h2>
 <p>Resize the bin boundaries along one or more axes, and rebin the data
 accordingly. There are several possibilities for the input format:</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">wout</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">rebin_sqw</span><span class="p">(</span><span class="n">win</span><span class="p">,</span><span class="n">step1</span><span class="p">,</span><span class="n">step2</span><span class="p">,</span><span class="k">...</span><span class="c">)</span>
@@ -601,7 +602,7 @@ rebinned.</p>
 template object <code class="docutils literal notranslate"><span class="pre">w2</span></code>.</p>
 </section>
 <section id="symmetrise-data-then-unfold-back-to-original-range">
-<h2><span class="section-number">10.7. </span>Symmetrise data, then unfold back to original range<a class="headerlink" href="#symmetrise-data-then-unfold-back-to-original-range" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">10.7. </span>Symmetrise data, then unfold back to original range<a class="headerlink" href="#symmetrise-data-then-unfold-back-to-original-range" title="Link to this heading"></a></h2>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>For producing plots only, any analysis on these results will be invalid due to
@@ -648,7 +649,7 @@ dataset (thereby increasing the counts four-fold).</p>
 </div>
 </section>
 <section id="limitations">
-<h2><span class="section-number">10.8. </span>Limitations<a class="headerlink" href="#limitations" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">10.8. </span>Limitations<a class="headerlink" href="#limitations" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>At present <code class="docutils literal notranslate"><span class="pre">symmetrise_sqw</span></code>, <code class="docutils literal notranslate"><span class="pre">combine_sqw</span></code>, and <code class="docutils literal notranslate"><span class="pre">rebin_sqw</span></code> work ONLY
 for sqw objects, since they require access to individual detector pixel
@@ -657,7 +658,7 @@ however.</p></li>
 </ul>
 </section>
 <section id="symop-methods-advanced">
-<h2><span class="section-number">10.9. </span>Symop Methods - Advanced<a class="headerlink" href="#symop-methods-advanced" title="Permalink to this heading"></a></h2>
+<h2><span class="section-number">10.9. </span>Symop Methods - Advanced<a class="headerlink" href="#symop-methods-advanced" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">Symop</span></code> objects have methods to transform a variety of objects which
 may be related by symmetry. These are:</p>
 <ul class="simple">
@@ -668,7 +669,7 @@ may be related by symmetry. These are:</p>
 <p>Which transform numeric vectors, <code class="docutils literal notranslate"><span class="pre">PixelDataBase</span></code> objects and <cite>aProjection</cite>
 objects respectively.</p>
 <section id="transform-vec">
-<h3><span class="section-number">10.9.1. </span><code class="docutils literal notranslate"><span class="pre">transform_vec</span></code><a class="headerlink" href="#transform-vec" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">10.9.1. </span><code class="docutils literal notranslate"><span class="pre">transform_vec</span></code><a class="headerlink" href="#transform-vec" title="Link to this heading"></a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">transform_vec</span></code> takes a 3xN list of 3-vectors to transform. This method can be
 applied directly from a single <code class="docutils literal notranslate"><span class="pre">Symop</span></code> or from an array (but not cell array)
 of <code class="docutils literal notranslate"><span class="pre">Symop</span></code> objects (see: <a class="reference internal" href="#groups-of-symmetry-operators">Groups of symmetry operators</a>).</p>
@@ -705,7 +706,7 @@ of <code class="docutils literal notranslate"><span class="pre">Symop</span></co
 </div>
 </section>
 <section id="transform-pix">
-<h3><span class="section-number">10.9.2. </span><code class="docutils literal notranslate"><span class="pre">transform_pix</span></code><a class="headerlink" href="#transform-pix" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">10.9.2. </span><code class="docutils literal notranslate"><span class="pre">transform_pix</span></code><a class="headerlink" href="#transform-pix" title="Link to this heading"></a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">transform_pix</span></code> takes a <code class="docutils literal notranslate"><span class="pre">PixelDataBase</span></code> derived object and transforms the
 contained pixel q-coordinates according to the symmetry operations and returns a
 new object with the transformed pixels.</p>
@@ -752,7 +753,7 @@ the irreducible region.</p>
 </div>
 </section>
 <section id="transform-proj">
-<h3><span class="section-number">10.9.3. </span><code class="docutils literal notranslate"><span class="pre">transform_proj</span></code><a class="headerlink" href="#transform-proj" title="Permalink to this heading"></a></h3>
+<h3><span class="section-number">10.9.3. </span><code class="docutils literal notranslate"><span class="pre">transform_proj</span></code><a class="headerlink" href="#transform-proj" title="Link to this heading"></a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">transform_proj</span></code> is used to transform subclasses of the <code class="docutils literal notranslate"><span class="pre">aProjection</span></code>
 type. It is an internal function which creates a new projection with the
 symmetries applied and is not normally needed by users, but is recorded here for
@@ -773,7 +774,7 @@ completeness.</p>
 
   <div role="contentinfo">
     <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jun 26, 2025, 3:51:35 PM.
+      <span class="lastupdated">Last updated on Jul 15, 2025, 4:40:27 PM.
       </span></p>
   </div>
 
