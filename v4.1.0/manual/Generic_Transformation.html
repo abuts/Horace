@@ -583,6 +583,20 @@ in the comments to the function. The main idea of the operation is that you sele
 <code class="docutils literal notranslate"><span class="pre">sqw_op_bin_pixels</span></code> algorithm with combine function above.</span><a class="headerlink" href="#id3" title="Link to this image"></a></p>
 </figcaption>
 </figure>
+<p>Simple script which allows to produce result presented on the right side of picture above (image (c) ) from the data on the left side of the image above using <code class="docutils literal notranslate"><span class="pre">sqw_op_bin_pixels</span></code> and <a class="reference internal" href="#move-all-to-proj-label"><span class="std std-ref">combine function above</span></a> looks as follows:</p>
+<div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">source</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">sqw</span><span class="p">(</span><span class="s">&#39;source_file_name&#39;</span><span class="p">);</span><span class="w">  </span><span class="c">% define filebacked source sqw object</span>
+<span class="n">w2</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">cut</span><span class="p">(</span><span class="n">line_proj</span><span class="p">,[],[],[</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">0.1</span><span class="p">],[</span><span class="o">-</span><span class="mi">5</span><span class="p">,</span><span class="mi">5</span><span class="p">],</span><span class="s">&#39;-nopix&#39;</span><span class="p">);</span>
+<span class="nb">plot</span><span class="p">(</span><span class="n">w2</span><span class="p">)</span><span class="w">    </span><span class="c">% plot image (a)</span>
+<span class="n">proj1</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">line_proj</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]);</span>
+<span class="n">proj2</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">line_proj</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]);</span>
+<span class="n">cut_ranges</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">{[],[</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">0.1</span><span class="p">],[</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span><span class="mf">0.1</span><span class="p">],[</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">360</span><span class="p">]};</span>
+<span class="n">cut1</span><span class="w">  </span><span class="p">=</span><span class="w"> </span><span class="n">cut</span><span class="p">(</span><span class="n">source</span><span class="p">,</span><span class="n">proj1</span><span class="p">,</span><span class="n">cut_ranges</span><span class="p">{:});</span><span class="w">  </span><span class="c">% cut sqw object presented on image b1)</span>
+<span class="n">cut2</span><span class="w">  </span><span class="p">=</span><span class="w"> </span><span class="n">cut</span><span class="p">(</span><span class="n">source</span><span class="p">,</span><span class="n">proj2</span><span class="p">,</span><span class="n">cut_ranges</span><span class="p">{:});</span><span class="w">  </span><span class="c">% cut sqw object presented on image b2)</span>
+<span class="c">% combine cut1 and cut2 together producing final result.</span>
+<span class="n">wout</span><span class="w">  </span><span class="p">=</span><span class="w"> </span><span class="n">sqw_op_bin_pixels</span><span class="p">({</span><span class="n">cut1</span><span class="p">,</span><span class="n">cut2</span><span class="p">},{[</span><span class="n">proj1</span><span class="p">,</span><span class="n">proj2</span><span class="p">]},</span><span class="n">proj1</span><span class="p">,</span><span class="n">cut_ranges</span><span class="p">{:},</span><span class="s">&#39;-combine&#39;</span><span class="p">);</span>
+<span class="nb">plot</span><span class="p">(</span><span class="n">wout</span><span class="p">);</span><span class="w"> </span><span class="c">% plot image c)</span>
+</pre></div>
+</div>
 </section>
 </section>
 
@@ -598,7 +612,7 @@ in the comments to the function. The main idea of the operation is that you sele
 
   <div role="contentinfo">
     <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jul 21, 2025, 8:00:14 PM.
+      <span class="lastupdated">Last updated on Jul 22, 2025, 8:18:18 AM.
       </span></p>
   </div>
 
