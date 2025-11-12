@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>15. Generic Transformations &mdash; Horace  documentation</title>
@@ -14,7 +14,7 @@
         <script src="../_static/jquery.js?v=5d32c60e"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
         <script src="../_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
         <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
         <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -208,7 +208,8 @@ perform multiple unary or binary operations simultaneously while transforming la
 <p>If your theoretical model is built in Crystal Cartesian coordinate system rather than in <cite>hkldE</cite> coordinates you may write and apply it to pixel coordinates exactly like <cite>hkldE</cite> model for <code class="docutils literal notranslate"><span class="pre">sqw_eval</span></code> algorithm. Here, as the example of using <code class="docutils literal notranslate"><span class="pre">sqw_op</span></code> we try to remove cylindrical background obtained in the <a class="reference external" href="Data_diagnostics.html#instrument-view-cut">diagnostics</a> chapter of this manual. It may be not the best way of removing whole background but a good example of using special projection to transform data expressed in Crystal Cartesian coordinate system to image coordinate system.</p>
 <p>The sample background present in this case may be estimated by running Mantid reduction script and adding all reduced runs together:</p>
 <figure class="align-center">
-<a class="reference internal image-reference" href="../_images/BackgroundToRemove.png"><img alt="../_images/BackgroundToRemove.png" src="../_images/BackgroundToRemove.png" style="width: 800px;" /></a>
+<a class="reference internal image-reference" href="../_images/BackgroundToRemove.png"><img alt="../_images/BackgroundToRemove.png" src="../_images/BackgroundToRemove.png" style="width: 800px;" />
+</a>
 </figure>
 <p>Left part of the image represents Mantid instrument view image. It is obvious that there is small beam leakage around beam stop window and strong powder lines around Bragg peaks. This is the background which one wants to remove. Right part of this image represents 2-dimensional image obtained from <code class="docutils literal notranslate"><span class="pre">instrument_view_cut</span></code> and we want to extract this image from whole sqw file containing magnetic signals.</p>
 <p>Slim-lined script which would produce such background removal is provided below:</p>
@@ -282,7 +283,8 @@ perform multiple unary or binary operations simultaneously while transforming la
 </div>
 <p>Modified image clearly shows substantial decrease in parasitic signal around elastic line:</p>
 <figure class="align-center">
-<a class="reference internal image-reference" href="../_images/RemovedBackground.png"><img alt="../_images/RemovedBackground.png" src="../_images/RemovedBackground.png" style="width: 1200px;" /></a>
+<a class="reference internal image-reference" href="../_images/RemovedBackground.png"><img alt="../_images/RemovedBackground.png" src="../_images/RemovedBackground.png" style="width: 1200px;" />
+</a>
 </figure>
 <p>Better background model is possible to remove more parasitic signal, though this task is fully in the hands of user.</p>
 </section>
@@ -290,10 +292,11 @@ perform multiple unary or binary operations simultaneously while transforming la
 <h2><span class="section-number">15.3. </span><code class="docutils literal notranslate"><span class="pre">sqw_op_bin_pixels</span></code> algorithm<a class="headerlink" href="#sqw-op-bin-pixels-algorithm" title="Link to this heading"></a></h2>
 <p>Let’s assume you are interested in magnetic signal which is present at relatively low <span class="math notranslate nohighlight">\(\|Q\|\)</span> due to magnetic form factor and signal covers multiple Brillouin zones at low <span class="math notranslate nohighlight">\(\|Q\|\)</span>. You want to accumulate magnetic signal in first Brillouin zone to increase statistics and consider everything which is beyond some specific <span class="math notranslate nohighlight">\(\|Q\|\)</span> - value to be background to remove as signal there is negligibly small due to magnetic form factor, so you also want to move this signal to first Brillouin zone and extract background from the magnetic signal. Figure below give example of such situation:</p>
 <figure class="align-center" id="id2">
-<a class="reference internal image-reference" href="../_images/Fe_BZ_signal.png"><img alt="Sample differential cross-section measured on MAPS" src="../_images/Fe_BZ_signal.png" style="width: 400px;" /></a>
+<a class="reference internal image-reference" href="../_images/Fe_BZ_signal.png"><img alt="Sample differential cross-section measured on MAPS" src="../_images/Fe_BZ_signal.png" style="width: 400px;" />
+</a>
 <figcaption>
 <p><span class="caption-text">Sample differential cross-section measured on MAPS and showing
-magnetic signal within read-cycle surrounded area and background signal (phonons)
+magnetic signal within red-cycle surrounded area and background signal (phonons)
 inside and outside of this area. Yellow box represents double-size Brillouin zone where
 data moved using shift operation and its top right quadrant – the area where data should
 be finally moved using folding and reflection.</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
@@ -358,7 +361,7 @@ which does not contain pixels.</p></li>
 <span class="n">alatt</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">src400</span><span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">alatt</span><span class="p">;</span><span class="w">  </span><span class="c">% get access to lattice parameters</span>
 <span class="n">angdeg</span><span class="p">=</span><span class="w"> </span><span class="n">src400</span><span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">angdeg</span><span class="p">;</span><span class="w"> </span><span class="c">% and lattice angles</span>
 <span class="n">rlu</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">2</span><span class="o">*</span><span class="nb">pi</span><span class="o">./</span><span class="n">alatt</span><span class="p">;</span><span class="w">          </span><span class="c">% calculate reciprocal lattice (case of cubic lattice)</span>
-<span class="n">r_cut2</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">(</span><span class="mf">3.5</span><span class="o">*</span><span class="n">rlu</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>^<span class="mi">2</span><span class="p">;</span><span class="w">    </span><span class="c">% define cut-off radius for background</span>
+<span class="n">r_cut2</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">(</span><span class="mf">3.5</span><span class="o">*</span><span class="n">rlu</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span><span class="o">^</span><span class="mi">2</span><span class="p">;</span><span class="w">    </span><span class="c">% define cut-off radius for background</span>
 <span class="n">old_range</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">src400</span><span class="p">.</span><span class="n">data</span><span class="p">.</span><span class="n">axes</span><span class="p">.</span><span class="n">get_cut_range</span><span class="p">();</span><span class="w"> </span><span class="c">% obtain binning for existing object</span>
 <span class="n">del</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mf">0.05</span><span class="p">;</span><span class="w">                 </span><span class="c">% define new binning for q-coordinates</span>
 <span class="n">zoneBins</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="o">-</span><span class="n">del</span><span class="p">,</span><span class="mf">0.05</span><span class="p">,</span><span class="mi">1</span><span class="o">+</span><span class="n">del</span><span class="p">];</span>
@@ -423,7 +426,8 @@ full control and responsibility for writing his own background/foreground functi
 <p>Figure below shows sample background calculated using <code class="docutils literal notranslate"><span class="pre">sqw_op_bin_pixels</span></code> algorithm and background-calculating function <code class="docutils literal notranslate"><span class="pre">sqw_op_build_bz_bckgrnd.mat</span></code> provided above. The background extraction is also performed using <code class="docutils literal notranslate"><span class="pre">sqw_op_bin_pixels</span></code> algorithm as it combines moving foreground signal into first Brillouin zone,
 background extraction, Magnetic form-factor corrections and parasitic signal removal. As this is relatively complex user function based on elements, provided above, we do not provide script to obtain this result in the document but placed the script which does these operations (<code class="docutils literal notranslate"><span class="pre">sqw_op_move_to_bz0_and_remove_bckgrnd.mat</span></code>) into <code class="docutils literal notranslate"><span class="pre">Horace/example/</span></code> folder.</p>
 <figure class="align-center" id="id3">
-<a class="reference internal image-reference" href="../_images/BackgroundVSForegroundFe_400meV.png"><img alt="Background vs Foreground in first Brillouin zone." src="../_images/BackgroundVSForegroundFe_400meV.png" style="width: 1200px;" /></a>
+<a class="reference internal image-reference" href="../_images/BackgroundVSForegroundFe_400meV.png"><img alt="Background vs Foreground in first Brillouin zone." src="../_images/BackgroundVSForegroundFe_400meV.png" style="width: 1200px;" />
+</a>
 <figcaption>
 <p><span class="caption-text">Background and Foreground signals for data demonstrated at the beginning of this chapter.
 Note the difference in intensity scale between background and foreground signals.</span><a class="headerlink" href="#id3" title="Link to this image"></a></p>
@@ -464,7 +468,8 @@ may be from different <code class="docutils literal notranslate"><span class="pr
 </tr>
 <tr class="row-odd"><td><p>2</p></td>
 <td><p>Multiple transformations
-applied to single data</p></td>
+applied to symmetrized
+data</p></td>
 <td><p>Not allowed</p></td>
 <td><p>simple modifications to standard script</p></td>
 </tr>
@@ -593,7 +598,8 @@ internal structure.</p></li>
 in the comments to the function. The main idea of the operation is that you select one main cut and combine all additional images forcefully “overlapping” images one over another transforming pixels coordinates accordingly.</p>
 <p>Image below shows the way to overlapping two cuts together and the result of such overlapping.</p>
 <figure class="align-center" id="id4">
-<a class="reference internal image-reference" href="../_images/SQW_op_Combine2Cuts.png"><img alt="../_images/SQW_op_Combine2Cuts.png" src="../_images/SQW_op_Combine2Cuts.png" style="width: 800px;" /></a>
+<a class="reference internal image-reference" href="../_images/SQW_op_Combine2Cuts.png"><img alt="../_images/SQW_op_Combine2Cuts.png" src="../_images/SQW_op_Combine2Cuts.png" style="width: 800px;" />
+</a>
 <figcaption>
 <p><span class="caption-text">Overlap two cuts demonstrated on the left image, display them (central image) and combine together using
 <code class="docutils literal notranslate"><span class="pre">sqw_op_bin_pixels</span></code> algorithm with combine function above.</span><a class="headerlink" href="#id4" title="Link to this image"></a></p>
@@ -628,7 +634,7 @@ in the comments to the function. The main idea of the operation is that you sele
 
   <div role="contentinfo">
     <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jul 24, 2025, 9:57:55 AM.
+      <span class="lastupdated">Last updated on Nov 12, 2025, 12:24:04 PM.
       </span></p>
   </div>
 
