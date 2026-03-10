@@ -1,22 +1,22 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Getting started &mdash; Horace  documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
   
-        <script src="../_static/jquery.js?v=5d32c60e"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="../_static/doctools.js?v=888ff710"></script>
-        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -235,7 +235,8 @@ which case you write</p>
 </div>
 <p>The definitions of these angles are best described with reference to the picture
 below:</p>
-<a class="reference internal image-reference" href="../_images/Gonio_angle_definitions.jpg"><img alt="Virtual goniometer angle definitions" src="../_images/Gonio_angle_definitions.jpg" style="width: 300px;" /></a>
+<a class="reference internal image-reference" href="../_images/Gonio_angle_definitions.jpg"><img alt="Virtual goniometer angle definitions" src="../_images/Gonio_angle_definitions.jpg" style="width: 300px;" />
+</a>
 <p>In this diagram the nominal vectors <span class="math notranslate nohighlight">\(\vec{u}\)</span> and <span class="math notranslate nohighlight">\(\vec{v}\)</span> are
 those supplied to Horace, whereas <span class="math notranslate nohighlight">\(\vec{u'}\)</span> and <span class="math notranslate nohighlight">\(\vec{v'}\)</span> are the
 actual vectors. <code class="docutils literal notranslate"><span class="pre">gl</span></code> and <code class="docutils literal notranslate"><span class="pre">gs</span></code> deal with misorientation about axes which lie
@@ -291,7 +292,8 @@ specifying where the <code class="docutils literal notranslate"><span class="pre
 <p>If everything has worked then the Matlab command window will show text like
 this, which will be updated when each successive <code class="docutils literal notranslate"><span class="pre">.spe</span></code> file is read from the
 disk.</p>
-<a class="reference internal image-reference" href="../_images/Screenshot1.png"><img alt="The command window display during gen_sqw" src="../_images/Screenshot1.png" style="width: 500px;" /></a>
+<a class="reference internal image-reference" href="../_images/Screenshot1.png"><img alt="The command window display during gen_sqw" src="../_images/Screenshot1.png" style="width: 500px;" />
+</a>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The above screenshot was created when processing a larger number of files
@@ -300,7 +302,8 @@ difference this makes is to the size of errorbars in 1d cuts, the time taken
 to process the data, and some of the on-screen printouts.</p>
 </div>
 <p>Further through the process you should see something like this:</p>
-<a class="reference internal image-reference" href="../_images/Screenshot2.png"><img alt="The command window display during gen_sqw" src="../_images/Screenshot2.png" style="width: 500px;" /></a>
+<a class="reference internal image-reference" href="../_images/Screenshot2.png"><img alt="The command window display during gen_sqw" src="../_images/Screenshot2.png" style="width: 500px;" />
+</a>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This was run on a Linux machine, hence the different style of
@@ -368,7 +371,8 @@ start by making a 2D slice:</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">w100_2</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">cut</span><span class="p">(</span><span class="n">data_source</span><span class="p">,</span><span class="w"> </span><span class="n">proj_100</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="o">-</span><span class="mf">0.2</span><span class="p">,</span><span class="w"> </span><span class="mf">0.2</span><span class="p">],</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="o">-</span><span class="mf">0.2</span><span class="p">,</span><span class="w"> </span><span class="mf">0.2</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">500</span><span class="p">]);</span>
 </pre></div>
 </div>
-<a class="reference internal image-reference" href="../_images/Screenshot_cut1.png"><img alt="Matlab window during cutting" src="../_images/Screenshot_cut1.png" style="width: 500px;" /></a>
+<a class="reference internal image-reference" href="../_images/Screenshot_cut1.png"><img alt="Matlab window during cutting" src="../_images/Screenshot_cut1.png" style="width: 500px;" />
+</a>
 <p>This slice has as its axes <span class="math notranslate nohighlight">\([0,1,0]\)</span> and energy. The first two arguments in the
 function <code class="docutils literal notranslate"><span class="pre">cut_sqw</span></code> are where the data is on the computer, and the details of
 the projections.</p>
@@ -397,12 +401,14 @@ we write:</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="nb">plot</span><span class="p">(</span><span class="n">w100_2</span><span class="p">);</span>
 </pre></div>
 </div>
-<a class="reference internal image-reference" href="../_images/Screenshot_cut2.png"><img alt="2d cut from the data" src="../_images/Screenshot_cut2.png" style="width: 301px;" /></a>
+<a class="reference internal image-reference" href="../_images/Screenshot_cut2.png"><img alt="2d cut from the data" src="../_images/Screenshot_cut2.png" style="width: 301px;" />
+</a>
 <p>The ranges of the axes are not quite right, but we can easily change that:</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">lx</span><span class="w"> </span><span class="s">1</span><span class="w"> </span><span class="s">3</span><span class="w"> </span><span class="s">ly</span><span class="w"> </span><span class="s">0</span><span class="w"> </span><span class="s">150</span><span class="w"> </span><span class="s">lz</span><span class="w"> </span><span class="s">0</span><span class="w"> </span><span class="s">1</span>
 </pre></div>
 </div>
-<a class="reference internal image-reference" href="../_images/Screenshot_cut3.png"><img alt="2d cut from data, with plot axes modified" src="../_images/Screenshot_cut3.png" style="width: 301px;" /></a>
+<a class="reference internal image-reference" href="../_images/Screenshot_cut3.png"><img alt="2d cut from data, with plot axes modified" src="../_images/Screenshot_cut3.png" style="width: 301px;" />
+</a>
 <p>This makes the horizontal axis go from 1 to 3, the vertical axis from 0 to 150,
 and the colour scale go from 0 to 1.</p>
 <p>If we wanted to make a 1D cut through the data then the syntax is exactly the
@@ -412,14 +418,16 @@ same. For example:</p>
 <span class="n">lx</span><span class="w"> </span><span class="s">1</span><span class="w"> </span><span class="s">3</span><span class="w"> </span><span class="s">ly</span><span class="w"> </span><span class="s">0.2</span><span class="w"> </span><span class="s">0.8</span>
 </pre></div>
 </div>
-<a class="reference internal image-reference" href="../_images/Screenshot_1dcut.png"><img alt="1d cut" src="../_images/Screenshot_1dcut.png" style="width: 301px;" /></a>
+<a class="reference internal image-reference" href="../_images/Screenshot_1dcut.png"><img alt="1d cut" src="../_images/Screenshot_1dcut.png" style="width: 301px;" />
+</a>
 <p>would give us a cut along the <span class="math notranslate nohighlight">\([0,k,0]\)</span> axis at a constant energy of
 <span class="math notranslate nohighlight">\(65meV\)</span>.</p>
 <p>3D slices are also possible. To visualize these the “sliceomatic” program is
 used. When the plot command is executed a GUI is launched that allows you to
 plot multiple slices through the data. For example you could plot the same slice
 with x and y axes of (1,0,0) and (0,1,0) at a range of energies.</p>
-<a class="reference internal image-reference" href="../_images/Screenshot_3dslice.png"><img alt="Sliceomatic in action" src="../_images/Screenshot_3dslice.png" style="width: 501px;" /></a>
+<a class="reference internal image-reference" href="../_images/Screenshot_3dslice.png"><img alt="Sliceomatic in action" src="../_images/Screenshot_3dslice.png" style="width: 501px;" />
+</a>
 <p>It is possible to save your cuts / slices to be viewed again later. This can be
 done very simply in two ways. If you add an extra argument to the end of
 <code class="docutils literal notranslate"><span class="pre">cut</span></code>, then the cut data are sent to a file. For our 1D cut above this
@@ -551,7 +559,8 @@ axes:</p>
 <p>Here we are passing <code class="docutils literal notranslate"><span class="pre">w110</span></code> as the 2D template object to expand the slice we
 just made to the same shape.</p>
 </div>
-<a class="reference internal image-reference" href="../_images/Screenshot_background_replicated.png"><img alt="2d cut made by replicating a 1d cut" src="../_images/Screenshot_background_replicated.png" style="width: 300px;" /></a>
+<a class="reference internal image-reference" href="../_images/Screenshot_background_replicated.png"><img alt="2d cut made by replicating a 1d cut" src="../_images/Screenshot_background_replicated.png" style="width: 300px;" />
+</a>
 <p>This is a now 2D slice that is over the same range as w110. We can now
 <a class="reference internal" href="../manual/Binary_operations.html#binary-operations"><span class="std std-ref">subtract</span></a> this from the real
 data to remove the background:</p>
@@ -559,7 +568,8 @@ data to remove the background:</p>
 <span class="nb">plot</span><span class="p">(</span><span class="n">wdiff</span><span class="p">);</span>
 </pre></div>
 </div>
-<a class="reference internal image-reference" href="../_images/Screenshot_background_subtracted.png"><img alt="Background-subtracted data" src="../_images/Screenshot_background_subtracted.png" style="width: 300px;" /></a>
+<a class="reference internal image-reference" href="../_images/Screenshot_background_subtracted.png"><img alt="Background-subtracted data" src="../_images/Screenshot_background_subtracted.png" style="width: 300px;" />
+</a>
 </section>
 </section>
 <section id="simulations">
@@ -580,7 +590,8 @@ temperature or neutron energy transfer.</p>
 </pre></div>
 </div>
 <p>This should give a plot that looks like this:</p>
-<a class="reference internal image-reference" href="../_images/Screenshot_CutToSim.png"><img alt="2d data" src="../_images/Screenshot_CutToSim.png" style="width: 300px;" /></a>
+<a class="reference internal image-reference" href="../_images/Screenshot_CutToSim.png"><img alt="2d data" src="../_images/Screenshot_CutToSim.png" style="width: 300px;" />
+</a>
 <p>We will now simulate this using the demonstration function <code class="docutils literal notranslate"><span class="pre">demo_4gauss</span></code>. This
 is a specially written function which works only for 2D datasets (slices) where
 both axes are momentum (h,k,l).</p>
@@ -616,7 +627,8 @@ case they correspond respectively to:</p>
 to pass anything other than a vector of parameters, such as that shown above,
 then it must be packed into a cell array.</p>
 </div>
-<a class="reference internal image-reference" href="../_images/Screenshot_SimCut.png"><img alt="2d simulation" src="../_images/Screenshot_SimCut.png" style="width: 300px;" /></a>
+<a class="reference internal image-reference" href="../_images/Screenshot_SimCut.png"><img alt="2d simulation" src="../_images/Screenshot_SimCut.png" style="width: 300px;" />
+</a>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p><code class="docutils literal notranslate"><span class="pre">func_eval</span></code> works for both <code class="docutils literal notranslate"><span class="pre">sqw</span></code> and <code class="docutils literal notranslate"><span class="pre">dnd</span></code> objects with almost the same
@@ -747,8 +759,8 @@ for S(<strong>Q</strong>,w) to <code class="docutils literal notranslate"><span 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jul 15, 2025, 4:40:27 PM.
+    <p>&#169; Copyright 2006-2026, STFC RAL.
+      <span class="lastupdated">Last updated on Feb 4, 2026, 11:12:22 AM.
       </span></p>
   </div>
 

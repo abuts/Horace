@@ -1,21 +1,21 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>2. Generating SQW files &mdash; Horace  documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
   
-        <script src="../_static/jquery.js?v=5d32c60e"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="../_static/doctools.js?v=888ff710"></script>
-        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -207,7 +207,8 @@ with respect to the notional <code class="docutils literal notranslate"><span cl
 offset in <code class="docutils literal notranslate"><span class="pre">psi</span></code>, should you wish. These angle definitions are shown below:</p></li>
 </ul>
 <figure class="align-center" id="id1">
-<a class="reference internal image-reference" href="../_images/Gonio_angle_definitions.jpg"><img alt="../_images/Gonio_angle_definitions.jpg" src="../_images/Gonio_angle_definitions.jpg" style="width: 300px;" /></a>
+<a class="reference internal image-reference" href="../_images/Gonio_angle_definitions.jpg"><img alt="../_images/Gonio_angle_definitions.jpg" src="../_images/Gonio_angle_definitions.jpg" style="width: 300px;" />
+</a>
 <figcaption>
 <p><span class="caption-text">Virtual goniometer angle definitions</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
 </figcaption>
@@ -303,7 +304,7 @@ sections of the unfolded <code class="docutils literal notranslate"><span class=
 <p>To use this functionality, call <code class="docutils literal notranslate"><span class="pre">gen_sqw</span></code> or <code class="docutils literal notranslate"><span class="pre">accumulate_sqw</span></code> as above, with
 the additional argument <code class="docutils literal notranslate"><span class="pre">'transform_sqw'</span></code> which takes a function handle:</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">gen_sqw</span><span class="w"> </span><span class="p">(</span><span class="n">spefile</span><span class="p">,</span><span class="w"> </span><span class="n">par_file</span><span class="p">,</span><span class="w"> </span><span class="n">sym_sqw_file</span><span class="p">,</span><span class="w"> </span><span class="n">efix</span><span class="p">,</span><span class="w"> </span><span class="n">emode</span><span class="p">,</span><span class="w"> </span><span class="n">alatt</span><span class="p">,</span><span class="w"> </span><span class="n">angdeg</span><span class="p">,</span><span class="k">...</span>
-<span class="w">    </span><span class="n">u</span><span class="p">,</span><span class="w"> </span><span class="n">v</span><span class="p">,</span><span class="w"> </span><span class="nb">psi</span><span class="p">,</span><span class="w"> </span><span class="n">omega</span><span class="p">,</span><span class="w"> </span><span class="n">dpsi</span><span class="p">,</span><span class="w"> </span><span class="n">gl</span><span class="p">,</span><span class="w"> </span><span class="n">gs</span><span class="p">,</span><span class="s">&#39;transform_sqw&#39;</span><span class="p">,@(</span><span class="n">x</span><span class="p">)(</span><span class="n">symmetrise_sqw</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">v1</span><span class="p">,</span><span class="n">v2</span><span class="p">,</span><span class="n">v3</span><span class="p">)))</span>
+<span class="w">    </span><span class="n">u</span><span class="p">,</span><span class="w"> </span><span class="n">v</span><span class="p">,</span><span class="w"> </span><span class="nb">psi</span><span class="p">,</span><span class="w"> </span><span class="n">omega</span><span class="p">,</span><span class="w"> </span><span class="n">dpsi</span><span class="p">,</span><span class="w"> </span><span class="n">gl</span><span class="p">,</span><span class="w"> </span><span class="n">gs</span><span class="p">,</span><span class="s">&#39;transform_sqw&#39;</span><span class="p">,@(</span><span class="n">x</span><span class="p">)(</span><span class="n">symmetrise_sqw</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">SymopReflection</span><span class="p">(</span><span class="n">v1</span><span class="p">,</span><span class="n">v2</span><span class="p">,</span><span class="n">v3</span><span class="p">))))</span>
 </pre></div>
 </div>
 <p>or more generally</p>
@@ -320,10 +321,10 @@ folds a cubic system so that all six of the symmetrically equivalent (1,0,0)
 type positions are folded on to each other:</p>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="k">function</span><span class="w"> </span>wout<span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nf">user_symmetrisation_routine</span><span class="p">(</span>win<span class="p">)</span>
 
-<span class="n">wout</span><span class="p">=</span><span class="n">symmetrise_sqw</span><span class="p">(</span><span class="n">win</span><span class="p">,[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]);</span><span class="w">   </span><span class="c">% fold about line (1,1,0) in HK plane</span>
-<span class="n">wout</span><span class="p">=</span><span class="n">symmetrise_sqw</span><span class="p">(</span><span class="n">wout</span><span class="p">,[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]);</span><span class="w"> </span><span class="c">% fold about line (-1,1,0) in HK plane</span>
-<span class="n">wout</span><span class="p">=</span><span class="n">symmetrise_sqw</span><span class="p">(</span><span class="n">wout</span><span class="p">,[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]);</span><span class="w">  </span><span class="c">% fold about line (1,0,1) in HL plane</span>
-<span class="n">wout</span><span class="p">=</span><span class="n">symmetrise_sqw</span><span class="p">(</span><span class="n">wout</span><span class="p">,[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]);</span><span class="w"> </span><span class="c">% fold about line (1,0,-1) in HL plane</span>
+<span class="n">wout</span><span class="p">=</span><span class="n">symmetrise_sqw</span><span class="p">(</span><span class="n">win</span><span class="p">,</span><span class="n">SymopReflection</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]));</span><span class="w">   </span><span class="c">% fold about line (1,1,0) in HK plane</span>
+<span class="n">wout</span><span class="p">=</span><span class="n">symmetrise_sqw</span><span class="p">(</span><span class="n">wout</span><span class="p">,</span><span class="n">SymopReflection</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]));</span><span class="w"> </span><span class="c">% fold about line (-1,1,0) in HK plane</span>
+<span class="n">wout</span><span class="p">=</span><span class="n">symmetrise_sqw</span><span class="p">(</span><span class="n">wout</span><span class="p">,</span><span class="n">SymopReflection</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]));</span><span class="w">  </span><span class="c">% fold about line (1,0,1) in HL plane</span>
+<span class="n">wout</span><span class="p">=</span><span class="n">symmetrise_sqw</span><span class="p">(</span><span class="n">wout</span><span class="p">,</span><span class="n">SymopReflection</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]));</span><span class="w"> </span><span class="c">% fold about line (1,0,-1) in HL plane</span>
 </pre></div>
 </div>
 <p>see very important notes on the technical details of symmetrising a whole
@@ -342,8 +343,8 @@ dataset in <a class="reference internal" href="Symmetrising_etc.html#gen-sqw"><s
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jul 15, 2025, 4:40:27 PM.
+    <p>&#169; Copyright 2006-2026, STFC RAL.
+      <span class="lastupdated">Last updated on Feb 27, 2026, 11:05:50 AM.
       </span></p>
   </div>
 

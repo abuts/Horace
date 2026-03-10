@@ -210,6 +210,9 @@ Modified image clearly shows substantial decrease in parasitic signal around ela
  
 Better background model is possible to remove more parasitic signal, though this task is fully in the hands of user.
 
+
+.. _sqw-op-bin-pixels-algorithm:
+
 ``sqw_op_bin_pixels`` algorithm
 ===============================
 
@@ -222,7 +225,7 @@ Let's assume you are interested in magnetic signal which is present at relativel
    :alt: Sample differential cross-section measured on MAPS
    
    Sample differential cross-section measured on MAPS and showing
-   magnetic signal within read-cycle surrounded area and background signal (phonons)
+   magnetic signal within red-cycle surrounded area and background signal (phonons)
    inside and outside of this area. Yellow box represents double-size Brillouin zone where 
    data moved using shift operation and its top right quadrant -- the area where data should
    be finally moved using folding and reflection.
@@ -405,7 +408,8 @@ The similarities and differences between these two algorithms are summarized in 
 |         |                          | operations                   |                                           |
 +---------+--------------------------+------------------------------+-------------------------------------------+
 |    2    | Multiple transformations |    Not allowed               | simple modifications to standard script   |
-|         | applied to single data   |                              |                                           |
+|         | applied to symmetrized   |                              |                                           |
+|         | data                     |                              |                                           |
 +---------+--------------------------+------------------------------+-------------------------------------------+
 |    3    | Include same pixels from |    No. Efficient exclusion   | request complex coding. Probably          |
 |         | multiple symmetry op.    |    algorithm                 | not very efficient but possible.          |

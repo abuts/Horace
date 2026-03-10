@@ -1,21 +1,21 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>The Horace Rationale &mdash; Horace  documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
   
-        <script src="../_static/jquery.js?v=5d32c60e"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="../_static/doctools.js?v=888ff710"></script>
-        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -89,7 +89,8 @@
 <h1>The Horace Rationale<a class="headerlink" href="#the-horace-rationale" title="Link to this heading"></a></h1>
 <p>Horace is a suite of programs for the visualisation and analysis of large datasets from time-of-flight neutron inelastic scattering spectrometers. The feature of Horace that is new compared to existing software, such as MSlice, is that it allows you to combine data from multiple runs (each with different incident energy and/or sample orientation) and thus build up a 4-dimensional dataset that, in principle, covers Q and energy in all directions.</p>
 <p>To understand why this is not possible with a single run, consider the diagram shown below.</p>
-<a class="reference internal image-reference" href="../_images/ToF_QE_coupling.jpg"><img alt="This is a caption" src="../_images/ToF_QE_coupling.jpg" style="width: 300px;" /></a>
+<a class="reference internal image-reference" href="../_images/ToF_QE_coupling.jpg"><img alt="This is a caption" src="../_images/ToF_QE_coupling.jpg" style="width: 300px;" />
+</a>
 <p>For a single incident energy and crystal orientation it is clear that one of the components of <strong>Q</strong>, that parallel to the scattered beam (<strong>Q2</strong>), is coupled to time-of-flight rather than detector position. This means that this component of <strong>Q</strong> is coupled to neutron energy transfer. Put simply, the effect of this is that a linear “scan” in <strong>Q</strong> actually follows a curved path in either energy or <strong>Q2</strong>. Clearly this can be avoided by taking measurements with a different orientation of the sample with respect to the incident beam, since for different orientations the coupling between <strong>Q</strong> and energy will be different. By making measurements at lots of different sample orientations, <strong>Q</strong> and energy can be completely decoupled.</p>
 <p>Horace is a set of programs that can be used to build, visualise and analyse such a dateset. ToF_QE_coupling.</p>
 </section>
@@ -105,8 +106,8 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jul 15, 2025, 4:40:27 PM.
+    <p>&#169; Copyright 2006-2026, STFC RAL.
+      <span class="lastupdated">Last updated on Feb 4, 2026, 11:12:22 AM.
       </span></p>
   </div>
 
