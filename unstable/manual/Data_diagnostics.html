@@ -1,22 +1,22 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>3. Data diagnostics &mdash; Horace  documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
   
-        <script src="../_static/jquery.js?v=5d32c60e"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="../_static/doctools.js?v=888ff710"></script>
-        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -143,7 +143,8 @@ frame will be plotted with different (tight) axes and a different colour scale.<
 <p>Let us illustrate the information that may be obtained by means of an
 example. First we generate a QE slice such as the one below</p>
 <figure class="align-center" id="id1">
-<a class="reference internal image-reference" href="../_images/Fe_slice.jpg"><img alt="../_images/Fe_slice.jpg" src="../_images/Fe_slice.jpg" style="width: 500px;" /></a>
+<a class="reference internal image-reference" href="../_images/Fe_slice.jpg"><img alt="../_images/Fe_slice.jpg" src="../_images/Fe_slice.jpg" style="width: 500px;" />
+</a>
 <figcaption>
 <p><span class="caption-text">Selected QE slice</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
 </figcaption>
@@ -151,19 +152,22 @@ example. First we generate a QE slice such as the one below</p>
 <p>We can now use <code class="docutils literal notranslate"><span class="pre">run_inspector</span></code> to plot a series of slices that come from a
 single contributing dataset, shown below.</p>
 <figure class="align-center" id="id2">
-<a class="reference internal image-reference" href="../_images/Fe_slice_run_inspector_1.jpg"><img alt="../_images/Fe_slice_run_inspector_1.jpg" src="../_images/Fe_slice_run_inspector_1.jpg" style="width: 500px;" /></a>
+<a class="reference internal image-reference" href="../_images/Fe_slice_run_inspector_1.jpg"><img alt="../_images/Fe_slice_run_inspector_1.jpg" src="../_images/Fe_slice_run_inspector_1.jpg" style="width: 500px;" />
+</a>
 <figcaption>
 <p><span class="caption-text">Frame 1 in run inspector</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id3">
-<a class="reference internal image-reference" href="../_images/Fe_slice_run_inspector_11.jpg"><img alt="../_images/Fe_slice_run_inspector_11.jpg" src="../_images/Fe_slice_run_inspector_11.jpg" style="width: 500px;" /></a>
+<a class="reference internal image-reference" href="../_images/Fe_slice_run_inspector_11.jpg"><img alt="../_images/Fe_slice_run_inspector_11.jpg" src="../_images/Fe_slice_run_inspector_11.jpg" style="width: 500px;" />
+</a>
 <figcaption>
 <p><span class="caption-text">Frame 11 in run inspector</span><a class="headerlink" href="#id3" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id4">
-<a class="reference internal image-reference" href="../_images/Fe_slice_run_inspector_21.jpg"><img alt="../_images/Fe_slice_run_inspector_21.jpg" src="../_images/Fe_slice_run_inspector_21.jpg" style="width: 500px;" /></a>
+<a class="reference internal image-reference" href="../_images/Fe_slice_run_inspector_21.jpg"><img alt="../_images/Fe_slice_run_inspector_21.jpg" src="../_images/Fe_slice_run_inspector_21.jpg" style="width: 500px;" />
+</a>
 <figcaption>
 <p><span class="caption-text">Frame 21 in run inspector</span><a class="headerlink" href="#id4" title="Link to this image"></a></p>
 </figcaption>
@@ -207,7 +211,8 @@ These artefacts will have spherical symmetry around the beam direction. To clear
 The algorithm makes the cut in the spherical coordinate system wich z-axis is aligned along the beam direction.
 According to Horace agreement, beam in Horace is directed along <span class="math notranslate nohighlight">\(e_{x}\)</span> coordinate or direction <span class="math notranslate nohighlight">\(\vec{u}\)</span> of the crystal (see Chapter on <a class="reference internal" href="Generating_SQW_files.html#generating-sqw-files"><span class="std std-ref">Generating SQW files</span></a> for details):</p>
 <figure class="align-center" id="id5">
-<a class="reference internal image-reference" href="../_images/kf_sphere_coordinate_system.png"><img alt="../_images/kf_sphere_coordinate_system.png" src="../_images/kf_sphere_coordinate_system.png" style="width: 500px;" /></a>
+<a class="reference internal image-reference" href="../_images/kf_sphere_coordinate_system.png"><img alt="../_images/kf_sphere_coordinate_system.png" src="../_images/kf_sphere_coordinate_system.png" style="width: 500px;" />
+</a>
 <figcaption>
 <p><span class="caption-text">Spherical coordinate system aligned with the beam and used by <code class="docutils literal notranslate"><span class="pre">instrument_view_cut</span></code>.</span><a class="headerlink" href="#id5" title="Link to this image"></a></p>
 </figcaption>
@@ -216,7 +221,8 @@ According to Horace agreement, beam in Horace is directed along <span class="mat
 of executing this algorithm on two old (2010) MAPS <cite>sqw</cite> files produced without diagnostics running over contributing <code class="docutils literal notranslate"><span class="pre">nxspe</span></code> files.
 There are various instrument artefacts clearly observable on the images. The noisy ADC are not even identifiable by diagnostics.</p>
 <figure class="align-center" id="id6">
-<a class="reference internal image-reference" href="../_images/InstrumentView_issues.png"><img alt="../_images/InstrumentView_issues.png" src="../_images/InstrumentView_issues.png" style="width: 1200px;" /></a>
+<a class="reference internal image-reference" href="../_images/InstrumentView_issues.png"><img alt="../_images/InstrumentView_issues.png" src="../_images/InstrumentView_issues.png" style="width: 1200px;" />
+</a>
 <figcaption>
 <p><span class="caption-text">Various issues identified on instrument view.</span><a class="headerlink" href="#id6" title="Link to this image"></a></p>
 </figcaption>
@@ -291,7 +297,8 @@ runs and crystal orientation is violated. The following figure represents two <c
 was build with correct correspondence between experiment and pixels information and the second one – where
 this correspondence have been broken.</p>
 <figure class="align-center" id="id7">
-<a class="reference internal image-reference" href="../_images/InstrumetViewCut_kf_dE_coordinates.png"><img alt="../_images/InstrumetViewCut_kf_dE_coordinates.png" src="../_images/InstrumetViewCut_kf_dE_coordinates.png" style="width: 1200px;" /></a>
+<a class="reference internal image-reference" href="../_images/InstrumetViewCut_kf_dE_coordinates.png"><img alt="../_images/InstrumetViewCut_kf_dE_coordinates.png" src="../_images/InstrumetViewCut_kf_dE_coordinates.png" style="width: 1200px;" />
+</a>
 <figcaption>
 <p><span class="caption-text">Correct – a) and broken – b) relationship between experiment information and pixels information.</span><a class="headerlink" href="#id7" title="Link to this image"></a></p>
 </figcaption>
@@ -314,8 +321,8 @@ be able to help you rebuilding such <code class="docutils literal notranslate"><
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jul 15, 2025, 4:40:27 PM.
+    <p>&#169; Copyright 2006-2026, STFC RAL.
+      <span class="lastupdated">Last updated on Feb 4, 2026, 11:12:22 AM.
       </span></p>
   </div>
 

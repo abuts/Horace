@@ -3,10 +3,10 @@ Generic Transformations
 #######################
 
 The previous chapters describe how one may do various  
-:doc:`unary </manual/Unary_operations>` or :doc:`binary operations </manual/Binary_operations>` over your data or build analytical model and :doc:`simulate it over whole sqw file </manual/Simulation>`. 
+:doc:`unary </manual/Unary_operations>` or :doc:`binary operations </manual/Binary_operations>` over your data, apply :doc:`symmetry operations </manual/Symmetrising_etc>` or build analytical model and :doc:`simulate it over whole sqw file </manual/Simulation>`. 
 As whole ``sqw`` file can not be generally placed in memory, all these operations are 
 based on special ``PageOp`` family of algorithms, which operate loading a page of data in memory
-and applying various operations to these data. For :doc:`unary </manual/Unary_operations>` and :doc:`binary </manual/Binary_operations>` operations we wrote these transformations for users and the ``sqw_eval`` algorithm from :doc:`Simulation </manual/Simulation>` section 
+and applying various operations to these data. For :doc:`unary </manual/Unary_operations>`, :doc:`binary </manual/Binary_operations>` and :doc:`symmetry operations </manual/Symmetrising_etc>` we wrote these transformations for users and the ``sqw_eval`` algorithm from :doc:`Simulation </manual/Simulation>` section 
 gives user a set of rules to write his own model in `hklE` coordinate system and apply it to whole ``sqw`` object.
 
 Introduction
@@ -50,12 +50,13 @@ Where ``proj`` is usually projection used by ``sqw`` object of interests, `pix_c
 Finally user should be familiar with concept of object oriented programming as to write custom transformation one needs to use properties of the core transformation classes ``PageOp_sqw_op`` or
 ``PageOp_sqw_op_bin_pixels`` described below alongside with the description of the appropriate algorithm.
 
+.. _sqw-op-algorithm:
 
 ``sqw_op`` algorithm
 ====================
 
 ``sqw_op`` is the algorithm, which provides user with opportunity to modify signal and error values and
-perform multiple unary or binary operations in simultaneously transforming large ``sqw`` object. Its signature looks as follows:
+perform multiple unary or binary operations simultaneously while transforming large ``sqw`` object. Its signature looks as follows:
 
 .. code-block:: matlab
 
@@ -64,7 +65,7 @@ perform multiple unary or binary operations in simultaneously transforming large
     
 where:
 
-- ``win`` -- ``sqw`` file, cell array array of ``sqw`` objects or strings that provides filenames of ``sqw`` objects on disk serving as the source of ``sqw`` data to process using ``sqwop_func``
+- ``win`` -- ``sqw`` file, cell array array of ``sqw`` objects or strings that provides filenames of ``sqw`` objects on disk serving as the source of ``sqw`` data to process using ``sqw_op_func``
 - ``@sqw_op_func`` --  handle to a function which performs desired operation over sqw data.
 - ``pars`` --    cellarray of parameters used by ``sqw_op_func``. If ``sqw_op_func`` have no parameters, empty parentheses ``{}`` should be provided.
             
@@ -105,9 +106,9 @@ This is simple code, but if your objects are filebased, this will requests two s
    function output_sig_err = sqw_op_unary(in_page_op,varargin)
       % Apply two simple transformations of signal of an sqw object in one go.
       
-      data = in_page_op.data;     % get access to page of pixel data
-      data(8,:) = 2*data-1;       % change pixel data signal by multiplying it by 2 and extracting 1
-      output_sig_err = data(8:9,:); % combine signal and unchanged error into form, requested by algorithm
+      data = in_page_op.data;       % get access to page of pixel data
+      data(8,:) = 2*data(8,:)-1;    % change pixel data signal by multiplying it by 2 and extracting 1
+      output_sig_err = data(8:9,:); % extract signal and unchanged error into form, requested by algorithm
    end
 
 and apply ``sqw_op`` algorithm:
@@ -126,7 +127,7 @@ The sample background present in this case may be estimated by running Mantid re
    :align: center
    :width: 800px
 
-Left part of the image represents Mantid instrument view image. It is obvious that there is beam small beam leakage around beam stop window and strong powder lines around Bragg peaks. This is the background which one wants to remove. Right part of this image represents 2-dimensional image obtained from ``instrument_view_cut`` and we want to extract this image from whole sqw file containing magnetic signals.
+Left part of the image represents Mantid instrument view image. It is obvious that there is small beam leakage around beam stop window and strong powder lines around Bragg peaks. This is the background which one wants to remove. Right part of this image represents 2-dimensional image obtained from ``instrument_view_cut`` and we want to extract this image from whole sqw file containing magnetic signals.
 
 Slim-lined script which would produce such background removal is provided below:
 
@@ -183,7 +184,8 @@ The page-function with actually used to remove background in the code above is:
         % As this is special projection, it needs 5 rows of pixel data (needs run_id)
         % rather then the standard projection, which takes 4 rows.
         pix   = bg_data.proj.transform_pix_to_img(data(1:5,:)); % you may define your own
-        % complex transformation to convert pixels in Cry
+        % complex transformation to convert pixels from Crystal Cartesian coordinates to 
+        % image coordinates, but here you have your projection already defined to do that.
         
         % interpolate background signal on the pixels coordinates expressed 
         % in instrument coordinate system.
@@ -208,10 +210,13 @@ Modified image clearly shows substantial decrease in parasitic signal around ela
  
 Better background model is possible to remove more parasitic signal, though this task is fully in the hands of user.
 
+
+.. _sqw-op-bin-pixels-algorithm:
+
 ``sqw_op_bin_pixels`` algorithm
 ===============================
 
-Let's assume you are interested in magnetic signal which is present at relatively low :math:`\|Q\|` due to magnetic form factor and signal covers multiple Brillouin zones at low :math:`\|Q\|`. You want to accumulate magnetic signal in first Brillouin zone to increase statistics and consider everything which is beyond some specific :math:`\|Q\|` - value to be background to remove as signal there is negligibly small due to magnetic form factor, so you also want to move this signal to first Brillouin zone and extract background from magnetic signal. Figure below give example of such situation:
+Let's assume you are interested in magnetic signal which is present at relatively low :math:`\|Q\|` due to magnetic form factor and signal covers multiple Brillouin zones at low :math:`\|Q\|`. You want to accumulate magnetic signal in first Brillouin zone to increase statistics and consider everything which is beyond some specific :math:`\|Q\|` - value to be background to remove as signal there is negligibly small due to magnetic form factor, so you also want to move this signal to first Brillouin zone and extract background from the magnetic signal. Figure below give example of such situation:
 
 
 .. figure:: ../images/Fe_BZ_signal.png 
@@ -220,7 +225,7 @@ Let's assume you are interested in magnetic signal which is present at relativel
    :alt: Sample differential cross-section measured on MAPS
    
    Sample differential cross-section measured on MAPS and showing
-   magnetic signal within read-cycle surrounded area and background signal (phonons)
+   magnetic signal within red-cycle surrounded area and background signal (phonons)
    inside and outside of this area. Yellow box represents double-size Brillouin zone where 
    data moved using shift operation and its top right quadrant -- the area where data should
    be finally moved using folding and reflection.
@@ -257,6 +262,24 @@ where:
 - `pN_bin <Cutting_data_of_interest_from_SQW_files_and_objects.html#binning-arguments>`__ describe the histogram bins to capture the  data. In details they described in the `chapter about binning arguments  <Cutting_data_of_interest_from_SQW_files_and_objects.html#binning-arguments>`__
 - optional ``'-nopix'`` argument means that resulting object would be ``dnd`` object, i.e. object
   which does not contain pixels.
+  
+``@sqw_op_func`` for ``sqw_op_bin_pixels`` algorithm have form similar to the one used by :ref:`sqw_op algorithm
+<sqw-op-algorithm>`, except it should return full page of modified pixels data:
+
+.. code-block:: matlab
+
+   function output_data = sqw_op_func(in_page_op,parameters)
+      
+      data = in_page_op.data; % get page of pixel data expressed in Crystal Cartesian coordinate system
+      % Operations over signal and error as function of in_page_op, data and other parameters
+      ...
+      
+      % return results of operation as [9 x npix ] array of modified pixels data, where all
+      % values of the array may change.
+      output_data = modify_data(data,parameters{:});
+      
+   end
+  
 
 Slim-lined script to calculate background in the situation, described on the figure above looks like that:
 
@@ -361,8 +384,8 @@ the sample code.
    
 .. note::
 
-  ``sqw_ob_bin_pixels`` is the algorithm acting on full ``sqw`` object. As such, it is not particularly fast until it parallel implementation is available. The examples, provided here are done for whole ``sqw`` object, located on file, so are 2-dimensional cuts of full 4-dimensional filebacked object.
-  It is recommended to debug user functions on 2-dimensional cuts/object located in memory before running long calculations on full 4-dimensional object.
+  ``sqw_ob_bin_pixels`` is the algorithm acting on full ``sqw`` object. As such, it is not particularly fast until it parallel implementation is available. The examples, provided here are done for whole ``sqw`` object, located on file, so the pictures show 2-dimensional cuts of full 4-dimensional filebacked object.
+  It is recommended to debug user functions on 2-dimensional cuts/objects located in memory before running long calculations on full 4-dimensional object.
 
 
 ``sqw_op_bin_pixels`` algorithm with ``"-combine"`` option
@@ -385,7 +408,8 @@ The similarities and differences between these two algorithms are summarized in 
 |         |                          | operations                   |                                           |
 +---------+--------------------------+------------------------------+-------------------------------------------+
 |    2    | Multiple transformations |    Not allowed               | simple modifications to standard script   |
-|         | applied to single data   |                              |                                           |
+|         | applied to symmetrized   |                              |                                           |
+|         | data                     |                              |                                           |
 +---------+--------------------------+------------------------------+-------------------------------------------+
 |    3    | Include same pixels from |    No. Efficient exclusion   | request complex coding. Probably          |
 |         | multiple symmetry op.    |    algorithm                 | not very efficient but possible.          |
@@ -405,7 +429,7 @@ In more details the table above can be expanded as follows:
        with ``SymOp``. As the consequence, ``cut`` with ``SymOp`` will work with single ``sqw`` file, and cuts
        provided to ``sqw_ob_bin_pixels`` can be taken from multiple ``sqw`` files.
     2. Let's assume you transform data defined in range [-1:-3] into range [0:1] using folding operations
-       around axes passing through point 0 and 1. If you use ``cut`` with ``SymOp``, the data reflected from range [1:3] will be reflected into range [-2:1] and the data block [-2:0] will be dropped by cut ranges and the fact it has been reflected once. This is the consequence of using the current implementation of the algorithm, which eliminates double counting of the same data transformed multiple times using multiple
+       around axes passing through points 0 and 1. If you use ``cut`` with ``SymOp``, the data reflected from range [1:3] will be reflected into range [-2:1] and the data block [-2:0] will be dropped by cut ranges. reflected. This is the consequence of using the current implementation of the algorithm, which eliminates double counting of the same data transformed multiple times using multiple
        symmetry operations. If you need to keep these data, you need to use ``sqw_op_bin_pixels``
        with properly modified custom ``sqw_op_function``. 
     3. ``cut`` with ``SymOp`` carefully cares about error counting not to double-count the same pixels, 
@@ -414,8 +438,9 @@ In more details the table above can be expanded as follows:
        This may be done with some efforts from user (e.g. by calculating unique pixel id and comparing pixels usage)
        but this algorithm does not look very efficient.
     4. As user expects to write his own ``sqw_op_function`` he may use multiple transformations of his 
-       choice to modify combined data. ``cut`` with ``SymOp`` intended for performing well defined operation.
-    5. Summarizing all above, one can say that ``cut`` with ``SymOp`` for combining symmetry-related
+       choice to modify combined data. ``cut`` with ``SymOp`` intended for performing  operations performed by well defined ``SymOp`` classes.
+    5. Summarizing all above, one can say that ``cut`` with ``SymOp`` is intended for simple combining
+       of symmetry-related
        cuts, while ``sqw_op_bin_pixels`` gives user wider opportunities, allows combining much wider range
        of data but requests from user more experience with MATLAB programming and better knowledge of Horace
        internal structure.
@@ -464,7 +489,8 @@ Simplest form of the function, which allows combining multiple cuts into single 
     % into coordinate system, related to target projection
     for i=1:numel(proj_array)
         % input projections used for cut do not have lattice set up for them.
-        % They need lattice so let's set it up here.
+        % They need lattice to be fully defined and use projection methods so let's set it up here.
+        % may be taken out of loop for performance though it is fast anyway.
         proj_array(i).alatt = targ_proj.alatt;
         proj_array(i).angdeg = targ_proj.angdeg;
         % transform momentum transfer values from current page of data into
@@ -508,3 +534,20 @@ Image below shows the way to overlapping two cuts together and the result of suc
    Overlap two cuts demonstrated on the left image, display them (central image) and combine together using
    ``sqw_op_bin_pixels`` algorithm with combine function above.
 
+Simple script which allows to produce result presented on the right side of picture above (image (c) ) from the data on the left side of the image above using ``sqw_op_bin_pixels`` and :ref:`combine function above <move-all-to-proj-label>` looks as follows:
+
+.. code-block:: matlab
+    
+    source = sqw('source_file_name');  % define filebacked source sqw object
+    w2 = cut(line_proj,[],[],[-0.1,0.1],[-5,5],'-nopix');
+    plot(w2)    % plot image (a)
+    proj1 = line_proj([1,1,0],[-1,1,0]);
+    proj2 = line_proj([-1,1,0],[1,1,0]);    
+    cut_ranges = {[],[-0.1,0.1],[-0.1,0.1],[-10,5,360]};
+    cut1  = cut(source,proj1,cut_ranges{:});  % cut sqw object presented on image b1)
+    cut2  = cut(source,proj2,cut_ranges{:});  % cut sqw object presented on image b2)  
+    % combine cut1 and cut2 together producing final result.
+    wout  = sqw_op_bin_pixels({cut1,cut2},{[proj1,proj2]},proj1,cut_ranges{:},'-combine');
+    plot(wout); % plot image c)
+    
+    

@@ -1,22 +1,22 @@
+
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Horace Diagnostics &mdash; Horace  documentation</title>
-      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!--[if lt IE 9]>
-    <script src="../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
   
-        <script src="../_static/jquery.js?v=5d32c60e"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="../_static/doctools.js?v=888ff710"></script>
-        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -146,7 +146,8 @@ spotting, and analysis.</p>
 </pre></div>
 </div>
 <figure class="align-center">
-<a class="reference internal image-reference" href="../_images/DataDiagnostics_fig1.jpg"><img alt="../_images/DataDiagnostics_fig1.jpg" src="../_images/DataDiagnostics_fig1.jpg" style="width: 500px;" /></a>
+<a class="reference internal image-reference" href="../_images/DataDiagnostics_fig1.jpg"><img alt="../_images/DataDiagnostics_fig1.jpg" src="../_images/DataDiagnostics_fig1.jpg" style="width: 500px;" />
+</a>
 </figure>
 <p>This is not very exciting, but notice there is an intense streak at
 K=-3, E=8. Is this real, or a spurion? One way to find out is to use
@@ -184,7 +185,8 @@ data file are given in the plot title.</p>
 we’re worried about. But runs 89 and 90 (psi=25 and 26), 150
 (psi=26.5) and 209 (psi=25.5) do not have this feature.</p>
 <figure class="align-center">
-<a class="reference internal image-reference" href="../_images/DataDiagnostics_fig2.png"><img alt="../_images/DataDiagnostics_fig2.png" src="../_images/DataDiagnostics_fig2.png" style="width: 500px;" /></a>
+<a class="reference internal image-reference" href="../_images/DataDiagnostics_fig2.png"><img alt="../_images/DataDiagnostics_fig2.png" src="../_images/DataDiagnostics_fig2.png" style="width: 500px;" />
+</a>
 </figure>
 <p>This suggests that it is a spurion. We can test this by masking the
 data just from this run in our object:</p>
@@ -200,7 +202,8 @@ data just from this run in our object:</p>
 </div>
 <p>and this confirms that indeed it was a spurion.</p>
 <figure class="align-center">
-<a class="reference internal image-reference" href="../_images/DataDiagnostics_fig3.jpg"><img alt="../_images/DataDiagnostics_fig3.jpg" src="../_images/DataDiagnostics_fig3.jpg" style="width: 500px;" /></a>
+<a class="reference internal image-reference" href="../_images/DataDiagnostics_fig3.jpg"><img alt="../_images/DataDiagnostics_fig3.jpg" src="../_images/DataDiagnostics_fig3.jpg" style="width: 500px;" />
+</a>
 </figure>
 </section>
 <section id="understanding-data-from-a-single-orientation">
@@ -268,7 +271,8 @@ empty string.</p>
 </pre></div>
 </div>
 <figure class="align-center">
-<a class="reference internal image-reference" href="../_images/DataDiagnostics_fig4.jpg"><img alt="../_images/DataDiagnostics_fig4.jpg" src="../_images/DataDiagnostics_fig4.jpg" style="width: 500px;" /></a>
+<a class="reference internal image-reference" href="../_images/DataDiagnostics_fig4.jpg"><img alt="../_images/DataDiagnostics_fig4.jpg" src="../_images/DataDiagnostics_fig4.jpg" style="width: 500px;" />
+</a>
 </figure>
 </section>
 <section id="coordinates-calc">
@@ -287,7 +291,8 @@ we go up in energy</p>
 increase energy we increase L, and hence <span class="math notranslate nohighlight">\(\left|Q\right|\)</span>, which
 means the signal will be decreased due to the magnetic form factor.</p>
 <figure class="align-center">
-<a class="reference internal image-reference" href="../_images/DataDiagnostics_fig5.jpg"><img alt="../_images/DataDiagnostics_fig5.jpg" src="../_images/DataDiagnostics_fig5.jpg" style="width: 500px;" /></a>
+<a class="reference internal image-reference" href="../_images/DataDiagnostics_fig5.jpg"><img alt="../_images/DataDiagnostics_fig5.jpg" src="../_images/DataDiagnostics_fig5.jpg" style="width: 500px;" />
+</a>
 </figure>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="c">%Can see this alternatively by plotting |Q|</span>
 <span class="n">ccs_Q</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">coordinates_calc</span><span class="p">(</span><span class="n">ccs</span><span class="p">,</span><span class="s">&#39;Q&#39;</span><span class="p">);</span>
@@ -334,7 +339,8 @@ L changes as we increase energy (<code class="docutils literal notranslate"><spa
 is the 2nd root, and corresponds to an alternative value of L that
 could also contribute to the data here.</p>
 <figure class="align-center">
-<a class="reference internal image-reference" href="../_images/DataDiagnostics_fig6.jpg"><img alt="../_images/DataDiagnostics_fig6.jpg" src="../_images/DataDiagnostics_fig6.jpg" style="width: 500px;" /></a>
+<a class="reference internal image-reference" href="../_images/DataDiagnostics_fig6.jpg"><img alt="../_images/DataDiagnostics_fig6.jpg" src="../_images/DataDiagnostics_fig6.jpg" style="width: 500px;" />
+</a>
 </figure>
 </section>
 <section id="putting-it-all-together">
@@ -360,10 +366,12 @@ slices:</p>
 </pre></div>
 </div>
 <figure class="align-center">
-<a class="reference internal image-reference" href="../_images/DataDiagnostics_fig7.jpg"><img alt="../_images/DataDiagnostics_fig7.jpg" src="../_images/DataDiagnostics_fig7.jpg" style="width: 500px;" /></a>
+<a class="reference internal image-reference" href="../_images/DataDiagnostics_fig7.jpg"><img alt="../_images/DataDiagnostics_fig7.jpg" src="../_images/DataDiagnostics_fig7.jpg" style="width: 500px;" />
+</a>
 </figure>
 <figure class="align-center">
-<a class="reference internal image-reference" href="../_images/DataDiagnostics_fig8.jpg"><img alt="../_images/DataDiagnostics_fig8.jpg" src="../_images/DataDiagnostics_fig8.jpg" style="width: 500px;" /></a>
+<a class="reference internal image-reference" href="../_images/DataDiagnostics_fig8.jpg"><img alt="../_images/DataDiagnostics_fig8.jpg" src="../_images/DataDiagnostics_fig8.jpg" style="width: 500px;" />
+</a>
 </figure>
 <p>In the first of these slices, <code class="docutils literal notranslate"><span class="pre">ccs2</span></code>, we’ve changed the plot axes to be H
 and L. You can see that the detectors describe a curved path in the H,L
@@ -392,7 +400,8 @@ a problem, and then restrict the range of L to avoid this:</p>
 </pre></div>
 </div>
 <figure class="align-center">
-<a class="reference internal image-reference" href="../_images/DataDiagnostics_fig9.jpg"><img alt="../_images/DataDiagnostics_fig9.jpg" src="../_images/DataDiagnostics_fig9.jpg" style="width: 500px;" /></a>
+<a class="reference internal image-reference" href="../_images/DataDiagnostics_fig9.jpg"><img alt="../_images/DataDiagnostics_fig9.jpg" src="../_images/DataDiagnostics_fig9.jpg" style="width: 500px;" />
+</a>
 </figure>
 </section>
 </section>
@@ -500,8 +509,8 @@ a problem, and then restrict the range of L to avoid this:</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2006-2025, STFC RAL.
-      <span class="lastupdated">Last updated on Jul 15, 2025, 4:40:27 PM.
+    <p>&#169; Copyright 2006-2026, STFC RAL.
+      <span class="lastupdated">Last updated on Feb 4, 2026, 11:12:22 AM.
       </span></p>
   </div>
 
