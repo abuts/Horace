@@ -166,6 +166,7 @@ void inline copy_resiults_to_final_arrays(BinningArg* const bin_par_ptr, const S
 template <class SRC, class TRG>
 size_t bin_pixels(span<double>& npix, span<double>& s, span<double>& e, BinningArg* const bin_par_ptr)
 {
+    using Fn = std::function<void()>;
     // numbers of bins in the grid
     auto distribution_size = bin_par_ptr->n_grid_points();
 
@@ -198,11 +199,9 @@ size_t bin_pixels(span<double>& npix, span<double>& s, span<double>& e, BinningA
         init_min_max_range_calc(pix_ranges, pix_flds::PIX_WIDTH);
     }
     bool check_pix_selection = bin_par_ptr->check_pix_selection && (pix_coord_ptr != nullptr);
-    auto bin_mode = bin_par_ptr->binMode;
-
     long data_size = bin_par_ptr->n_data_points;
-    switch (bin_mode) {
-    case (opModes::npix_only): {
+
+    Fn processNpixOnly = [&] {
         for (long i = 0; i < data_size; i++) {
             // drop out coordinates outside of the binning range
             if (out_of_ranges<SRC>(coord_ptr, i, COORD_STRIDE, cut_range, qi))
@@ -213,9 +212,9 @@ size_t bin_pixels(span<double>& npix, span<double>& s, span<double>& e, BinningA
             size_t il = pix_position(qi, pax, cut_range, bin_step, bin_cell_idx_range, stride);
             npix[il]++;
         }
-        break;
-    }
-    case (opModes::sig_err): {
+        };
+
+    Fn processSigErr = [&] {
         for (long i = 0; i < data_size; i++) {
             // drop out coordinates outside of the binning range
             if (out_of_ranges<SRC>(coord_ptr, i, COORD_STRIDE, cut_range, qi))
@@ -230,9 +229,9 @@ size_t bin_pixels(span<double>& npix, span<double>& s, span<double>& e, BinningA
             add_pix_to_accumulators<SRC>(pix_coord_ptr, ip0, qi, pax, cut_range, bin_step, bin_cell_idx_range, stride,
                 npix, s, e);
         }
-        break;
-    }
-    case (opModes::sigerr_cell): {
+        };
+
+    Fn processSigerrCell = [&] {
         std::vector<double*> accum_ptr(3);
         accum_ptr[0] = s.data();
         accum_ptr[1] = e.data();
@@ -269,10 +268,9 @@ size_t bin_pixels(span<double>& npix, span<double>& s, span<double>& e, BinningA
                 acc_ptr[il] += data_ptr[i];
             }
         }
-        break;
-    }
-    case (opModes::sort_pix):
-    case (opModes::sort_and_uid): {
+        };
+
+    Fn processWithSorting = [&] {
         std::vector<mxInt64> pix_ok_bin_idx;
         pix_ok_bin_idx.swap(bin_par_ptr->pix_ok_bin_idx);
         std::vector<size_t> npix1;
@@ -340,9 +338,9 @@ size_t bin_pixels(span<double>& npix, span<double>& s, span<double>& e, BinningA
         bin_par_ptr->pix_ok_bin_idx.swap(pix_ok_bin_idx);
         bin_par_ptr->npix_bin_start.swap(bin_start);
         bin_par_ptr->npix1.swap(npix1);
-        break;
-    }
-    case (opModes::nosort): {
+        };
+
+    Fn processWithNoSorting = [&] {
         std::vector<mxInt64> pix_ok_bin_idx;
         pix_ok_bin_idx.swap(bin_par_ptr->pix_ok_bin_idx);
 
@@ -377,10 +375,9 @@ size_t bin_pixels(span<double>& npix, span<double>& s, span<double>& e, BinningA
             data_size, nPixel_retained, pix_ok_bin_idx);
         // swap memory of working arrays back to binning_arguments to retain it for the next call
         bin_par_ptr->pix_ok_bin_idx.swap(pix_ok_bin_idx);
-        break;
-    }
-    case (opModes::nosort_sel):
-    case (opModes::siger_selected): {
+        };
+
+    Fn processNosortSel = [&] {
         auto return_selected_only = bin_par_ptr->binMode == opModes::siger_selected;
         std::vector<mxInt64> pix_ok_bin_idx;
         if (!return_selected_only) {
@@ -421,21 +418,28 @@ size_t bin_pixels(span<double>& npix, span<double>& s, span<double>& e, BinningA
             }
         }
         if (return_selected_only) {
-            break;
+            return;
         }
         copy_resiults_to_final_arrays<SRC, TRG>(bin_par_ptr, pix_coord_ptr,
             data_size, nPixel_retained, pix_ok_bin_idx);
         // swap memory of working arrays back to binning_arguments to retain it for the next call
         bin_par_ptr->pix_ok_bin_idx.swap(pix_ok_bin_idx);
-        break;
-    }
-    default: {
-        std::stringstream buf;
-        buf << "Binning mode: " << (short)bin_mode << " is not yet implemented";
-        mexErrMsgIdAndTxt("HORACE:bin_pixels_c:not_implemented",
-            buf.str().c_str());
-    }
-    }
 
+        };
+
+    std::unordered_map<opModes, Fn> fTable = {
+        {opModes::npix_only,processNpixOnly},
+        {opModes::sig_err, processSigErr},
+        {opModes::sigerr_cell,processSigerrCell},
+        {opModes::sort_pix, processWithSorting},
+        {opModes::sort_and_uid, processWithSorting},
+        {opModes::nosort, processWithNoSorting},
+        {opModes::nosort_sel,processNosortSel},
+        {opModes::siger_selected,processNosortSel}
+    };
+
+    auto bin_mode = bin_par_ptr->binMode;
+
+    fTable.at(bin_mode)();
     return nPixel_retained;
 }
