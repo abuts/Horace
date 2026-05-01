@@ -166,7 +166,6 @@ void inline copy_resiults_to_final_arrays(BinningArg* const bin_par_ptr, const S
 template <class SRC, class TRG>
 size_t bin_pixels(span<double>& npix, span<double>& s, span<double>& e, BinningArg* const bin_par_ptr)
 {
-    using Fn = std::function<void()>;
     // numbers of bins in the grid
     auto distribution_size = bin_par_ptr->n_grid_points();
 
@@ -201,6 +200,9 @@ size_t bin_pixels(span<double>& npix, span<double>& s, span<double>& e, BinningA
     bool check_pix_selection = bin_par_ptr->check_pix_selection && (pix_coord_ptr != nullptr);
     long data_size = bin_par_ptr->n_data_points;
 
+    // Define sub-algorithms
+    using Fn = std::function<void()>;
+    //
     Fn processNpixOnly = [&] {
         for (long i = 0; i < data_size; i++) {
             // drop out coordinates outside of the binning range
@@ -439,7 +441,7 @@ size_t bin_pixels(span<double>& npix, span<double>& s, span<double>& e, BinningA
     };
 
     auto bin_mode = bin_par_ptr->binMode;
-
+    //execute appropriate sub-algorithm
     fTable.at(bin_mode)();
     return nPixel_retained;
 }
