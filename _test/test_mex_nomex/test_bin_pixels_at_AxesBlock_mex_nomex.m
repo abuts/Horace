@@ -59,6 +59,7 @@ classdef test_bin_pixels_at_AxesBlock_mex_nomex < TestCase
                 [t_nomex,t_mex] = fh();
                 mode_name = mode_name{1};
                 perf_res.(mode_name) = [t_nomex(:)';t_mex(:)'];
+                fprintf('\n');
             end
             obj.perf_results = perf_res;
             if isfile(obj.result_name)

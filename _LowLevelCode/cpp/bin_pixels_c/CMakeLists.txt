@@ -9,6 +9,7 @@ set(
     "bin_pixels.h"
     "BinningArg.h"
     "${CXX_SOURCE_DIR}/include/CommonCode.h"
+    "${CXX_SOURCE_DIR}/include/span.hpp"
     "${CXX_SOURCE_DIR}/include/MatlabCppClassHolder.hpp"
 )
 

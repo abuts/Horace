@@ -74,7 +74,7 @@ enum pix_flds
 
 // Copy pixels from source to target array
 template<class SRC,class TRG> 
-inline size_t copy_pixels(SRC const* const pixel_data, long source_pos, TRG * const pix_sorted_ptr, size_t targ_pos)
+inline size_t copy_pixels(span<const SRC> pixel_data, long source_pos, TRG * const pix_sorted_ptr, size_t targ_pos)
 {
     //
     targ_pos *= pix_flds::PIX_WIDTH; // each position in a grid cell corresponds to a pixel of the size PIX_WIDTH;
@@ -88,7 +88,7 @@ inline size_t copy_pixels(SRC const* const pixel_data, long source_pos, TRG * co
 };
 // Align and copy pixels from source to target array template <class SRC, class TRG>
 template <class SRC, class TRG>
-inline size_t align_and_copy_pixels(std::vector<double> &al_matr,SRC const* const pixel_data, long source_pos, TRG* const pix_sorted_ptr, size_t targ_pos)
+inline size_t align_and_copy_pixels(std::vector<double> &al_matr,span<const SRC> pixel_data, long source_pos, TRG *const pix_sorted_ptr, size_t targ_pos)
 {
     //
     targ_pos *= pix_flds::PIX_WIDTH; // each position in a grid cell corresponds to a pixel of the size PIX_WIDTH;
@@ -133,12 +133,12 @@ inline void init_min_max_range_calc(span<double>& pix_ranges, size_t PIX_STRIDE)
 
 // identify range of all pixel coordinates for given initial pixels position
 template <class SRC>
-void inline calc_pix_ranges(span<double>& pix_ranges, SRC const* const pix_data_ptr, size_t PIX_STRIDE, size_t i)
+void inline calc_pix_ranges(span<double>& pix_ranges, const span<SRC> &pix_data, size_t PIX_STRIDE, size_t i)
 {
     size_t ip0 = i * PIX_STRIDE;
     for (size_t j = 0; j < PIX_STRIDE; j++) {
-        pix_ranges[2 * j] = std::min(pix_ranges[2 * j], (double)pix_data_ptr[ip0 + j]);
-        pix_ranges[2 * j + 1] = std::max(pix_ranges[2 * j + 1], (double)pix_data_ptr[ip0 + j]);
+        pix_ranges[2 * j] = std::min(pix_ranges[2 * j], (double)pix_data[ip0 + j]);
+        pix_ranges[2 * j + 1] = std::max(pix_ranges[2 * j + 1], (double)pix_data[ip0 + j]);
     }
 };
 
