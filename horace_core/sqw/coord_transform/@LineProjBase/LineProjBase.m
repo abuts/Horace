@@ -196,21 +196,50 @@ classdef LineProjBase < aProjectionBase
                 axes,pix_cand,npix,s,e,varargin)
             varargout = cell(1,nargout); % allocate only requested numbr of parameters
 
-            % Mex code HERE WILL BE the CODE, doing the same as ACCUMULATE_CUT_C in HORACE-3.
-            % It is not currently used in Horace-4, but here its
-            % functionality will be expanded on the basis of bin_pixels
-            % (with additional transformation)
+            %
+            use_mex = config_store.instance().get_value('hor_config','use_mex');
+            %
+            if use_mex
+                nout = nargout;
+                varargout = cell(1,nout);
 
-            %use_mex = config_store.instance().get_value('hor_config','use_mex');
-            %if use_mex
-            [varargout{1:nargout}] = ...
-                bin_pixels@aProjectionBase(obj, ...
-                axes,pix_cand,npix,s,e,varargin{:});
-            % else
-            %     [npix,s,e,pix_ok,unique_runid,pix_indx,selected] = ...
-            %         bin_pixels@aProjectionBase(obj, ...
-            %         axes,pix_cand,npix,s,e,varargin{:});
-            % end
+                [ok,mess,force_double,return_selected,test_mex_inputs]=parse_char_options(varargin, ...
+                    {'-force_double', '-return_selected','-test_mex_inputs'});
+                if ~ok
+                    error('HORACE:AxesBlockBase:invalid_argument',mess)
+                end
+                argi = {npix,s,e,pix_cand}; % reformat input data into the form, requested by normalize_bin_input
+                % identify binning mode as function of number of input
+                % arguments
+                mode = bin_mode.from_narg(nargout-1,test_mex_inputs,return_selected,argi{:});
+                % convert different input forms into fully expanded common form
+                [npix,s,err,pix_cand,unique_runid]=...
+                    axes.normalize_bin_input([4,pix_cand.num_pixels],mode,argi{:});
+
+                [mode_to_bin_info,ndata,is_pix]=axes.prepare_mex_code_input(mode, ...
+                    [],pix_cand,unique_runid,force_double,test_mex_inputs);
+                % add LineProjBase-specific information to binning code
+                coord_transf = obj.transform_pix_to_img(pix_cand);
+                mode_to_bin_info.coord_in = coord_transf;
+                mode_to_bin_info.ndata = ndata;
+                mode_to_bin_info.is_pix = is_pix;
+
+                switch(nout)
+                    case 1
+                        varargout{1} = axes.bin_pixels_with_mex_code(coord_transf,mode_to_bin_info,...
+                            npix,s,err,pix_cand,[],[],[]);
+                    case {3,4,5,6,7}
+                        [varargout{1:nout}]=axes.bin_pixels_with_mex_code(coord_transf,mode_to_bin_info,...
+                            npix,s,err,pix_cand,[],[],[]);
+                    otherwise
+                        error('HORACE:aProjectionBase:invalid_argument',...
+                            'This function requests 1, 3, 4, 5, 6 or 7 output arguments');
+                end
+            else
+                [varargout{1:nargout}] = ...
+                    bin_pixels@aProjectionBase(obj, ...
+                    axes,pix_cand,npix,s,e,varargin{:});
+            end
         end
         %------------------------------------------------------------------
         % Particular implementation of aProjectionBase abstract interface

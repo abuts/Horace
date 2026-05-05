@@ -75,7 +75,7 @@ classdef AxesBlockBase < serializable
         p;
     end
     %
-    properties
+    properties(Dependent)
         %------------------------------------------------------------------
         % The range (in axes coordinate system), the binning is made and the
         % axes block describes.
@@ -96,6 +96,7 @@ classdef AxesBlockBase < serializable
         % hkl-dE coordinate system (in rlu-dE, hkl units, not rotated)
         offset
     end
+
     properties(Dependent) % Helper properties
         % number of bins for each non-unit dimension. This would be the
         % binning of the data arrays associated with the given AxesBlockBase
@@ -107,7 +108,7 @@ classdef AxesBlockBase < serializable
         % size(s)
         dims_as_ssize;
 
-        % boolean row, identifying if a single bin direction (dir)
+        % Boolean row, identifying if a single bin direction (dir)
         % (nbins_all_dims(dir)==1) is integration axis or a projection
         % axis. By default, single nbins_all_dims direction is
         % integration direction.
@@ -116,6 +117,7 @@ classdef AxesBlockBase < serializable
         % are treated as bin edges rather then bin centres.
         single_bin_defines_iax;
     end
+
     properties(Dependent,Hidden)
         % the step in each pax dimension in units of img_range units,
         % defined by img_range(pax) and nbins_all_dims(pax) properties
@@ -141,7 +143,7 @@ classdef AxesBlockBase < serializable
         %------------------------------------------------------------------
         full_filename % convenience property as fullfile(filepath, filename)
         % are often used
-        % Old name for img_range left for compartibility with old user code
+        % Old name for img_range left for compatibility with old user code
         img_db_range;
 
         %Old interface to img_scales
@@ -176,8 +178,8 @@ classdef AxesBlockBase < serializable
     end
     %----------------------------------------------------------------------
     methods(Static)
-        % retrieve data range from binning range provided as input. 
-        % see get_cut_range which performes opposite operation
+        % retrieve data range from binning range provided as input.
+        % see get_cut_range which performs opposite operation
         range = get_img_range_from_cut_range(varargin)
         % build new particular AxesBlockBase object from the binning
         % parameters, provided as input. If some input binning parameters
@@ -381,7 +383,7 @@ classdef AxesBlockBase < serializable
         function obj = set.dax(obj,val)
             if min(val(:))~=1
                 error('HORACE:AxesBlockBase:invalid_argument',...
-                    'Mininal dax value should refer to the first projection axes. Actually: pax = %s; dax = %s', ...
+                    'Minimal dax value should refer to the first projection axes. Actually: pax = %s; dax = %s', ...
                     mat2str(obj.pax),mat2str(val(:)'));
             end
             obj.dax_ = val(:)';
@@ -472,7 +474,7 @@ classdef AxesBlockBase < serializable
     %======================================================================
     % Integration, interpolation and binning
     %----------------------------------------------------------------------
-    methods
+    methods(Access = public)
         % return binning range of existing data object, so that cut without
         % parameters, performed within this range would return the same cut
         % as the original object. See static get_img_range_from_cut_range
@@ -501,7 +503,7 @@ classdef AxesBlockBase < serializable
             % Inputs:
             % obj   -- initialized instance of an AxesBlockBase class
             % Optional:
-            % axes  -- 4-element celarray, containig axes in all 4
+            % axes  -- 4-element celarray, containing axes in all 4
             %          directions. If this argument is present, the
             %          volume(s) are calculated for the grid, build from
             %          the axes provided as input.
@@ -528,7 +530,7 @@ classdef AxesBlockBase < serializable
         function bin_idx = bin_points(obj, pts)
             % Get the bin indices to which the points in pts would be binned
             % Inputs:
-            % obj   -- initalized instance of an AxesBlockBase class
+            % obj   -- initialized instance of an AxesBlockBase class
             % pts   -- dim X N array of numeric points to bin, where dim is the
             %            number of projection axes of the AxesBlockBase object
             if size(pts, 2) ~= numel(obj.p)
@@ -727,7 +729,7 @@ classdef AxesBlockBase < serializable
             % to bins. If it is not requested, pix_ok are returned
             % unsorted, expecting sorting procedure to be performed at
             % later stage.
-            % 
+            %
             %
             % If new calculations are started from empty accumulators
             % i.e.:
@@ -739,7 +741,7 @@ classdef AxesBlockBase < serializable
             % npix, s, and e arrays getting initialized into zero values.
             %
             % Start from some values in accumulating arrays npix, s, e
-            % continues accomulations from these values.
+            % continues accumulators from these values.
             %
 
             % keep unused argi parameter to tell parse_char_options to ignore
@@ -755,7 +757,7 @@ classdef AxesBlockBase < serializable
 
             % convert different input forms into fully expanded common form
             [npix,s,e,pix_cand,unique_runid,use_mex]=...
-                obj.normalize_bin_input(coord_transf,mode,argi{:});
+                obj.normalize_bin_input(size(coord_transf),mode,argi{:});
 
             % bin pixels
             varargout  = cell(1,nargout);
@@ -927,7 +929,8 @@ classdef AxesBlockBase < serializable
         [title_main, title_pax, title_iax, display_pax, display_iax,energy_axis] =...
             data_plot_titles(obj,dnd_obj)
     end
-    methods
+    %
+    methods(Access = public)
         function title_main = main_title(obj,title_main_pax,title_main_iax)
             %MAIN_TITLE method generates cellarray containing text to plot above
             % standard 1-3D image of sqw/dnd object containing axes block.
@@ -974,6 +977,87 @@ classdef AxesBlockBase < serializable
             end
             obj.proj_description_function_  = a_function_handle_to_proj_info;
         end
+        %==================================================================
+        function [npix,s,e,pix_cand,unique_runid,use_mex]=...
+                normalize_bin_input(obj,pix_coord_size,mode_to_bin,varargin)
+            % verify inputs of the bin_pixels function and convert various
+            % forms of the inputs of this function into a common form,
+            % where the missing inputs are returned as empty.
+            %
+            %Inputs:
+            % pix_coord_size  -- the size of array of pixels coordinates
+            %                    transformed into this AxesBlockBase
+            %                    coordinate system
+
+            % bin_mode         -- binning mode, requested by the
+            %                     calling function
+            % Optional:
+            % npix or nothing if mode == npix_only
+            % npix,s,e accumulators if mode is higher then sigerr_cell
+            % pix_cand_class
+            %           -- if mode is higher than sigerr_cell. It must be
+            %              present as a PixelData class instance,
+            %              containing information about pixels
+            % unique_runid -- if mode == sort_and_id or higher, input array of unique_runid-s
+            %                 calculated on the previous step.
+            force_3Dbinning = false;
+            if pix_coord_size(1) ==3  % Q(3D) binning only. Third axis is always missing
+                force_3Dbinning = true;
+            end
+            [npix,s,e,pix_cand,unique_runid,use_mex]=...
+                normalize_bin_input_(obj,...
+                force_3Dbinning,pix_coord_size,mode_to_bin,varargin{:});
+        end
+        function varargout = bin_pixels_with_mex_code(obj,coord,mode_to_bin,...
+                npix,s,err,pix_cand,varargin)
+            % wrapper around bin_pixels_with_mex_code_ made public to be
+            % used in projection binning
+            nout = nargout;
+            [varargout{1:nout}]= ...
+                bin_pixels_with_mex_code_(obj,coord,mode_to_bin,...
+                npix,s,err,pix_cand,varargin{:});
+        end
+        %
+        function [in_code_struct,ndata,is_pix,mode_to_bin] = prepare_mex_code_input(obj, ...
+                mode_to_bin,varargin)
+            %    mode_to_bin,coord,pix_cand,unique_runid,force_double,test_mex_inputs)
+            % Prepare structure-input for binning procedure which uses C++ mex code
+            %
+            % Inputs:
+            % obj         -- instance of AxesBlockBase binning code
+            % mode_to_bin -- particular binning mode as in bin_mode enum.
+            % coord       -- the 3D or 4D array of pixels coordinates transformed
+            %                into AxesBlockBase coordinate system
+            % pix_cand    -- input data to bin. Comes in different forms
+            %                and transformed into specific form acceptable
+            %                by mex code
+            % force_double -- if true, the routine changes type of pixels
+            %                 it gets on input, into double. if not, output
+            %                 pixels will keep their initial type.
+            % return_selected
+            %              -- if true sets pix_ok to return the indices of selected
+            %                 pixels for use with DnD cuts where fewer args are
+            %                 requested
+            % SPECIAL:
+            % test_mex_inputs
+            %              -- if ture, routine works in testing mode and all input
+            %                 parameters are reflected to output parameters.
+            %                 This mode used in unit testing to verify correct
+            %                 operations of mex code.
+            % Returns:
+            % in_code_struct
+            %             -- structure to be parsed by mex code at input.
+            %                see below the description of its fields.
+            % ndata       -- number which defines type of mex code output
+            % is_pix      -- if true, input privided in pixels form, false --
+            %                array or cellarray of input data
+            %
+            % NOTE: made public to be able to reuse and overload it in
+            % aProjectionBase
+            %
+            [in_code_struct,ndata,is_pix,mode_to_bin] = prepare_mex_code_input_(obj, ...
+                mode_to_bin,varargin{:});
+        end
     end
     %----------------------------------------------------------------------
     methods(Abstract,Access=protected)
@@ -1008,34 +1092,6 @@ classdef AxesBlockBase < serializable
                 obj.type_ = [obj.type_(:)','e'];
             end
         end
-        function [npix,s,e,pix_cand,unique_runid,use_mex]=...
-                normalize_bin_input(obj,pix_coord_transf,mode_to_bin,varargin)
-            % verify inputs of the bin_pixels function and convert various
-            % forms of the inputs of this function into a common form,
-            % where the missing inputs are returned as empty.
-            %
-            %Inputs:
-            % pix_coord_transf -- the array of pixels coordinates
-            %                     transformed into this AxesBlockBase
-            %                      coordinate system
-            % bin_mode         -- binning mode, requested by the
-            %                     calling function
-            % Optional:
-            % npix or nothing if mode == npix_only
-            % npix,s,e accumulators if mode is higher then sigerr_cell
-            % pix_cand  -- if mode is higher than sigerr_cell. It must be
-            %              present as a PixelData class instance,
-            %              containing information about pixels
-            % unique_runid -- if mode == sort_and_id or higher, input array of unique_runid-s
-            %                 calculated on the previous step.
-            force_3Dbinning = false;
-            if size(pix_coord_transf,1) ==3  % Q(3D) binning only. Third axis is always missing
-                force_3Dbinning = true;
-            end
-            [npix,s,e,pix_cand,unique_runid,use_mex]=...
-                normalize_bin_input_(obj,...
-                force_3Dbinning,pix_coord_transf,mode_to_bin,varargin{:});
-        end
         function obj = set_axis_bins(obj,ndims,p1,p2,p3,p4)
             % Calculates and sets plot and integration axes from binning information
             %
@@ -1061,6 +1117,7 @@ classdef AxesBlockBase < serializable
         end
 
     end
+    %
     methods(Static,Access = protected)
         function [is_axes,grid_size]= process_bin_volume_inputs(ax_instance,nodes_info,grid_size)
             % general routine used to process inputs for routne, used to calculate bin_volume
@@ -1128,7 +1185,7 @@ classdef AxesBlockBase < serializable
     end
     %----------------------------------------------------------------------
     % Serializable interface
-    methods
+    methods(Access = public)
         %
         function obj = check_combo_arg(obj)
             % verify interdependent variables and the validity of the
@@ -1143,6 +1200,7 @@ classdef AxesBlockBase < serializable
         end
         %
     end
+
     methods(Access=protected)
         function [inputs,obj] = convert_old_struct(obj,inputs,ver)
             % Update structure created from earlier class versions to the current

@@ -51,7 +51,6 @@ classdef test_bin_pixels_mex_nomex < TestCase
             assertEqual(e_1,e_8)
             assertEqual(pix_ok_1,pix_ok_8)
             assertEqual(unique_runid_1,unique_runid_8)
-            skipTest('Only pixel sorting is currently mexed')
         end
 
         function obj=test_bin_pixels_on_line_proj_mex_nomex(obj)
