@@ -216,25 +216,36 @@ classdef LineProjBase < aProjectionBase
                 [npix,s,err,pix_cand,unique_runid]=...
                     axes.normalize_bin_input([4,pix_cand.num_pixels],mode,argi{:});
 
-                [mode_to_bin_info,ndata,is_pix]=axes.prepare_mex_code_input(mode, ...
+                [bin_info,ndata,is_pix]=axes.prepare_mex_code_input(mode, ...
                     [],pix_cand,unique_runid,force_double,test_mex_inputs);
                 % add LineProjBase-specific information to binning code
                 coord_transf = obj.transform_pix_to_img(pix_cand);
-                mode_to_bin_info.coord_in = coord_transf;
-                mode_to_bin_info.ndata = ndata;
-                mode_to_bin_info.is_pix = is_pix;
-
-                switch(nout)
-                    case 1
-                        varargout{1} = axes.bin_pixels_with_mex_code(coord_transf,mode_to_bin_info,...
-                            npix,s,err,pix_cand,[],[],[]);
-                    case {3,4,5,6,7}
-                        [varargout{1:nout}]=axes.bin_pixels_with_mex_code(coord_transf,mode_to_bin_info,...
-                            npix,s,err,pix_cand,[],[],[]);
-                    otherwise
-                        error('HORACE:aProjectionBase:invalid_argument',...
-                            'This function requests 1, 3, 4, 5, 6 or 7 output arguments');
+                if obj.offset(4)>1.e-11
+                    [q_to_img,u_offset]=obj.get_pix_img_transformation(4,pix_cand);
+                else
+                    [q_to_img,u_offset]=obj.get_pix_img_transformation(3,pix_cand);
                 end
+                bin_info.q_to_img = q_to_img;
+                bin_info.u_offset = u_offset;
+                bin_info.coord_in = coord_transf;
+                bin_info.ndata = ndata;
+                bin_info.is_pix = is_pix;
+
+                [varargout{1:nout}]=axes.bin_pixels_with_mex_code(coord_transf,bin_info,...
+                    npix,s,err,pix_cand,[],[],[]);
+
+                % if test_mex_inputs
+                %     nout = nout-1;
+                % end
+                % switch(nout)
+                %     case 1
+                %         varargout{1} = axes.bin_pixels_with_mex_code(coord_transf,mode_to_bin_info,...
+                %             npix,s,err,pix_cand,[],[],[]);
+                %     case {3,4,5,6,7}
+                %     otherwise
+                %         error('HORACE:aProjectionBase:invalid_argument',...
+                %             'This function requests 1, 3, 4, 5, 6 or 7 output arguments');
+                % end
             else
                 [varargout{1:nargout}] = ...
                     bin_pixels@aProjectionBase(obj, ...

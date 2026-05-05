@@ -74,7 +74,6 @@ classdef test_bin_pixels_mex_nomex < TestCase
             [npix_c,s_c,e_c,pix_ok_c,unique_runid_c] = ...
                 data.proj.bin_pixels(data.axes,pix,[],[],[]);
 
-
             % verify results against each other.
             assertElementsAlmostEqual(npix_m,npix_c,'absolute',1.e-12);
             assertElementsAlmostEqual(s_m,s_c);

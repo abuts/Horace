@@ -68,6 +68,10 @@ in_code_struct = struct( ...
     'nbins_all_dims',nbins_all_dims_in, ... % dimensions of binning lattice
     'unique_runid', uint32(unique_runid), ... % unique run indices of pixels contributing into cut
     'force_double', force_double, ...       % make result double precision regardless of input data
+    'ignore_nan', config_store.instance().get_value('hor_config','ignore_nan'),...
+    'ignore_inf', config_store.instance().get_value('hor_config','ignore_inf'),...     
+    'q_to_img',[],...                       % transformation matrix used in projection binning        
+    'u_offset',[],...                       % offset used in projection binning
     'test_input_parsing',test_mex_inputs ...% Run mex code in test mode validating the way input have been parsed by mex code and doing no caclculations.
     );
 

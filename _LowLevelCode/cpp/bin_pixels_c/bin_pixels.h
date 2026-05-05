@@ -70,14 +70,16 @@ void inline copy_results_to_final_arrays(BinningArg* const bin_par_ptr, span<con
 
 // define the structure which contains variable common for all binning sub-algorithms
 template<class SRC, class TRG>
-struct common_bin_code {
+class common_bin_code {
+public:
     BinningArg * const bin_par_ptr;
-    size_t distribution_size;
+    const size_t distribution_size;
+
+    const size_t COORD_STRIDE;  // size of coordinates dimension (4 or 3 accoring to input coordinates)
+    const size_t PIX_STRIDE;    // size of pixel data dimension (9 according to input coordinates)
 
     span<SRC> coord;      // wrapper around input pixels coordinates (4xNpix or 3xNpix array of coordinates to bin)
     span<SRC> pix_coord;  // wrapper around whole input pixels array  (9xNpix array for Horace-3&4)
-    size_t COORD_STRIDE;  // size of coordinates dimension (4 or 3 accoring to input coordinates)
-    size_t PIX_STRIDE;    // size of pixel data dimension (9 according to input coordinates)
 
     // internal loop variables (firstprivate)
     size_t  nPixel_retained;    // counter for number of retained pixels
@@ -96,7 +98,7 @@ struct common_bin_code {
     long data_size;
 
     // check if the coordinates of pixel number i belong within the pixel ranges provided.
-    bool out_of_ranges(long i)
+    virtual bool out_of_ranges(long i)
     {
         size_t ic0 = i * COORD_STRIDE;
         for (size_t upix = 0; upix < COORD_STRIDE; upix++) {
@@ -138,15 +140,15 @@ struct common_bin_code {
     };
     // Constructor which defines all binning parameters
     common_bin_code(BinningArg* const bin_par_ptr):
-        bin_par_ptr(bin_par_ptr)
+        bin_par_ptr(bin_par_ptr),
+        distribution_size(bin_par_ptr->n_grid_points()),
+        COORD_STRIDE(bin_par_ptr->in_coord_width),
+        PIX_STRIDE(bin_par_ptr->in_pix_width)
     {
-        this->distribution_size = bin_par_ptr->n_grid_points();
+
         this->check_pix_selection = bin_par_ptr->check_pix_selection && (bin_par_ptr->all_pix_ptr != nullptr);
 
         this->data_size = bin_par_ptr->n_data_points;
-        this->COORD_STRIDE = bin_par_ptr->in_coord_width;
-        this->PIX_STRIDE = bin_par_ptr->in_pix_width;
-
 
         this->coord = span<SRC>(reinterpret_cast<SRC*>(mxGetPr(bin_par_ptr->coord_ptr)), data_size* COORD_STRIDE);
         if (check_pix_selection) {
@@ -171,7 +173,70 @@ struct common_bin_code {
             init_min_max_range_calc(pix_ranges, pix_flds::PIX_WIDTH);
         }
     };
+    virtual ~common_bin_code() = default;
 };
+
+template<class SRC, class TRG>
+class common_bin_code_with_transf : public common_bin_code<SRC,TRG> {
+public:
+    const bool diag_transf;       // if transformation matrix below is a diagonal matrix
+    span<double> transf_matrix; // if defined, contains 3x3 matrix to use for pixel transformation the pixels
+    const bool apply_offset;    // if offset has non-zero value and should be applied to data
+    span<double> u_offset;      // if defined, 1D array of offsets to extract from pixel coordinates before transforming them
+    const int  transf_matrix_width;  // 3 or 4 depending on transformation
+    const bool ignore_nan;
+    const bool ignore_inf;
+    bool ignore_something;
+    bool ignore_all;
+    common_bin_code_with_transf(BinningArg* const bin_par_ptr) :
+        common_bin_code<SRC,TRG>(bin_par_ptr),
+        diag_transf(bin_par_ptr->diag_transf),
+        apply_offset(bin_par_ptr->apply_offset),
+        transf_matrix_width(bin_par_ptr->transf_matrix_width),
+        ignore_nan(bin_par_ptr->ignore_nan),
+        ignore_inf(bin_par_ptr->ignore_inf)
+    {
+        transf_matrix = span<double>(bin_par_ptr->transf_matrix);
+        u_offset = span<double>(bin_par_ptr->u_offset);
+        ignore_something = ignore_nan || ignore_inf;
+        ignore_all       = ignore_nan && ignore_inf;
+    }
+
+    bool out_of_ranges(long i) override
+    {
+        size_t ic0 = i * this->PIX_STRIDE;
+        if (ignore_something)
+        {
+            if (ignore_all)
+            {
+                if (std::isinf(this->pix_coord[ic0 + pix_flds::iSign]) || std::isnan(this->pix_coord[ic0 + pix_flds::iSign]) ||
+                    std::isinf(this->pix_coord[ic0 + pix_flds::iErr]) || std::isnan(this->pix_coord[ic0 + pix_flds::iErr]))
+                    return true;
+            }
+            else if (ignore_nan)
+            {
+                if (std::isnan(this->pix_coord[ic0 + pix_flds::iSign]) || std::isnan(this->pix_coord[ic0 + pix_flds::iErr]))
+                    return true;
+            }
+            else if (ignore_inf)
+            {
+                if (std::isinf(this->pix_coord[ic0 + pix_flds::iSign]) || std::isinf(this->pix_coord[ic0 + pix_flds::iErr]))
+                    return true;
+            }
+        }
+
+        for (size_t upix = 0; upix < this->COORD_STRIDE; upix++) {
+            this->qi[upix] = double(this->pix_coord[ic0 + upix]);
+            if (this->qi[upix] < this->cut_range[2 * upix] || this->qi[upix] > this->cut_range[2 * upix + 1]) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+
+};
+
 
 template<class SRC, class TRG>
 struct processNpixOnly{
@@ -366,7 +431,7 @@ struct processWithNoSorting {
 };
 
 template<class SRC, class TRG>
-struct processWithNoSortCell{
+struct processWithNoSortSel{
 
     void operator()(common_bin_code<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
 
@@ -424,10 +489,15 @@ template<typename Cmd, typename SRC, typename TRG>
 void invoke(common_bin_code<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) {
     Cmd{}(ctx, npix, s, e);
 };
+template<typename Cmd, typename SRC, typename TRG>
+void transf_and_invoke(common_bin_code_with_transf<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) {
+    Cmd{}(ctx, npix, s, e);
+};
+
 
 // Define table which contains various binning sub-algorithms
 template<typename SRC, typename TRG>
-auto makeTable() {
+auto makeTable1() {
     using Fn = void(*)(common_bin_code<SRC, TRG>&,
         span<double>&,
         span<double>&,
@@ -441,17 +511,42 @@ auto makeTable() {
     t[static_cast<size_t>(opModes::sort_pix)]       = &invoke<processWithSorting<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::sort_and_uid)]   = &invoke<processWithSorting<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::nosort)]         = &invoke<processWithNoSorting<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::nosort_sel)]     = &invoke<processWithNoSortCell<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::siger_selected)] = &invoke<processWithNoSortCell<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::nosort_sel)]     = &invoke<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::siger_selected)] = &invoke<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
 
     return t;
 };
 
 template<typename SRC, typename TRG>
-const auto& fTable() {
-    static const auto table = makeTable<SRC, TRG>();
+auto makeTable2() {
+    using Fn = void(*)(common_bin_code_with_transf<SRC, TRG>&,
+        span<double>&,
+        span<double>&,
+        span<double>&);
+
+    std::array<Fn, static_cast<size_t>(opModes::N_OP_Modes)> t{};
+
+    t[static_cast<size_t>(opModes::trnsf_npix)] = &transf_and_invoke<processNpixOnly<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::trnsf_sig_err)] = &transf_and_invoke<processSigErr<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::trnsf_sort_pix)] = &transf_and_invoke<processWithSorting<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::trnsf_sort_and_uid)] = &transf_and_invoke<processWithSorting<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::trnsf_nosort)] = &transf_and_invoke<processWithNoSorting<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::trnsf_nosort_sel)] = &transf_and_invoke<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::trnsf_nosort_sel)] = &transf_and_invoke<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
+    return t;
+};
+
+template<typename SRC, typename TRG>
+const auto& fTable1() {
+    static const auto table = makeTable1<SRC, TRG>();
     return table;
-}
+};
+template<typename SRC, typename TRG>
+const auto& fTable2() {
+    static const auto table = makeTable2<SRC, TRG>();
+    return table;
+};
+
 
 /** Procedure calculates positions of the input pixels coordinates within specified
  *   image box and various other values related to distributions of pixels over the image
@@ -470,11 +565,25 @@ template <class SRC, class TRG>
 size_t bin_pixels(span<double>& npix, span<double>& s, span<double>& e, BinningArg* const bin_par_ptr)
 {
     // initialize common code for pixel binning
-    common_bin_code<SRC,TRG> ctx(bin_par_ptr);
-
     size_t bin_mode = static_cast<size_t>(bin_par_ptr->binMode);
-    //execute appropriate sub-algorithm
-    fTable<SRC,TRG>()[bin_mode](ctx, npix, s, e);
+    if (bin_par_ptr->transform_pixels) {
+        common_bin_code<SRC, TRG> ctx(bin_par_ptr);
+        //execute appropriate sub-algorithm
+        fTable1<SRC, TRG>()[bin_mode](ctx, npix, s, e);
+        return ctx.nPixel_retained;
+    }
+    else {
+        common_bin_code_with_transf<SRC, TRG> ctx(bin_par_ptr);
 
-    return ctx.nPixel_retained;
+        //execute appropriate sub-algorithm
+        fTable2<SRC, TRG>()[bin_mode](ctx, npix, s, e);
+        return ctx.nPixel_retained;
+
+    }
+
+
+
+
+
+
 }

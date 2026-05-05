@@ -58,8 +58,18 @@ enum opModes {
     //                   and what were rejected by binning operations
     siger_selected = 8, // the same as sig_err but return logical array of selected pixels instead of pix_ok array
     test_inputs = 9, // do not do calculations but just return parsed inputs for
-    //                  unit testing
-    N_OP_Modes = 10 // total number of modes code operates in. Provided for checks
+    //                  unit testing. 
+    // Additional modes, equal to above but pixels transformed inside
+    trnsf_npix    = 10,
+    dummy1        = 11,
+    trnsf_sig_err = 12,
+    dummy2_cell   = 13, // transform pixels do not work with cells
+    trnsf_sort_pix = 14,
+    trnsf_sort_and_uid = 15,
+    trnsf_nosort = 16,
+    trnsf_nosort_sel = 17,
+    trns_and_siger_sel = 18,
+    N_OP_Modes = 19 // total number of modes code operates in. Provided for checks
 };
 
 // define the map type to keep functions which set up output parameters in a structure, specific for given binning mode;
@@ -72,6 +82,18 @@ using OutHandlerMap = std::unordered_map<std::string, std::function<void(mxArray
  */
 class BinningArg {
 public:
+    // Properties,used by projection binning
+    bool transform_pixels;  // if binning is performed over pixel data to transform before binning operation,
+    // i.e. four properties below are defined and have to be applied before pixel data are 
+    bool diag_transf;       // if transformation matrix below is a diagonal matrix
+    std::vector<double> transf_matrix; // if defined, contains 3x3 matrix to use for pixel transformation the pixels
+    bool apply_offset;    // if offset has non-zero value and should be applied to data
+    std::vector<double> u_offset;      // if defined, 1D array of offsets to extract from pixel coordinates before transforming them
+    int  transf_matrix_width;    // 3 or 4 depending on transformation
+    bool ignore_nan;
+    bool ignore_inf;
+    //==========================================================================================
+    // Properties used by axes binning and projection binning 
     opModes binMode; // the operation mode, binning routine would operate
     InOutTransf InOutTypeTransf; // what input pixel types provided and output pixel types requested
     size_t n_dims; // number of DnD object dimensions. changes from 0 to 4 and differs from Matlab arrays dimensions (from 2 to 4)
@@ -144,6 +166,11 @@ protected:
     // register with parameters map all methods which accept input parameters from MATLAB
     void register_input_methods();
     // setters for all binning properties retrieved from MATLAB
+    void set_transf_matrix(mxArray const* const pField); // input transformation matrix used in line_proj binning
+    void set_u_offset(mxArray const* const pField); // input offset vector used in line_proj binning
+    void set_ignore_nan(mxArray const* const pField); // input offset vector used in line_proj binning
+    void set_ignore_inf(mxArray const* const pField); // input offset vector used in line_proj binning
+    //
     void set_coord_in(mxArray const* const pField); //   // Input pixels coordinates to bin. May be empty in modes where they are produced from pixels coordinates
     void set_binning_mode(mxArray const* const pField); // what parameters calculate during the binning
     void set_num_threads(mxArray const* const pField); // how many computational threads to deploy for calculations
