@@ -11,7 +11,6 @@ set(MEX_FUNCTIONS
     "GetMD5"
     "cpp_communicator"
     "serialiser"
-    "accumulate_cut_c"
     "bin_pixels_c"
     "calc_projections_c"
     "combine_sqw"
