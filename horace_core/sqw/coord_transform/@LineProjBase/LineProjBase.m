@@ -218,7 +218,7 @@ classdef LineProjBase < aProjectionBase
                 % axes binning bins coordinates and does not use pix_cand
                 % unldess pix data processing is expected. line_proj always
                 % use pixel data as input and calculates coordinates
-                % internally:
+                % internally, so we need to provide pix candidates to it
                 if isempty(pix_cand)
                     pix_cand = in_pix;
                 end

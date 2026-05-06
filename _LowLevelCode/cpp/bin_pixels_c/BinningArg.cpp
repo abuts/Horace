@@ -50,8 +50,8 @@ void BinningArg::set_u_offset(mxArray const* const pField) {
     }
     this->transform_pixels = true;
     auto pData = mxGetPr(pField);
-    bool apply_shift(false); // if matrix contains only diagonal elements
-    this->u_offset.resize(offset_length);
+    bool apply_shift(false); // if offset contains all zeros
+    this->u_offset.resize(4,0); // let's make offset always 4-element vector regardless its size
     constexpr float eps = std::numeric_limits<float>::epsilon();
     for (auto i = 0; i < offset_length; i++) {
         auto element = (double)(pData[i]);
@@ -130,8 +130,9 @@ void BinningArg::set_coord_in(mxArray const* const pField)
     this->in_coord_width = mxGetM(pField);
     auto n_data_points = mxGetN(pField);
     if (this->in_coord_width == 0 || n_data_points == 0) {
-        // if projection binning coord_in are empty
-        this->in_coord_width = 0;
+        // if projection binning coord_in are empty it is probably pixel transformation
+        // will deal with full 4-D pixels array
+        this->in_coord_width = 4;
         this->coord_ptr = pField; // pointer to empty array
         return;
     }

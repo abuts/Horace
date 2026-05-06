@@ -5,8 +5,9 @@ set(
 )
 
 set(
-    HDR_FILES
+    HDR_FILES    
     "bin_pixels.h"
+    "CommonBinCode.h"    
     "BinningArg.h"
     "${CXX_SOURCE_DIR}/include/CommonCode.h"
     "${CXX_SOURCE_DIR}/include/span.hpp"
