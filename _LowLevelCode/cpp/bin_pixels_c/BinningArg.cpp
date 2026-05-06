@@ -136,6 +136,7 @@ void BinningArg::set_coord_in(mxArray const* const pField)
         this->coord_ptr = pField; // pointer to empty array
         return;
     }
+    this->coord_ptr = pField; // pointer to empty array
     this->n_data_points = n_data_points;
 
     auto nDims = mxGetNumberOfDimensions(pField);
@@ -696,6 +697,13 @@ void BinningArg::parse_bin_inputs(mxArray const* pAllParStruct)
 
     // Identify what types of input-output transformation should be deployed
     // while binning pixels
+    if (!this->coord_ptr) {
+        std::stringstream buf;
+        buf << "Binning mode " << this->binMode << " requests defined input coordinates to bin but input coordinates pointer is empty";
+        mexErrMsgIdAndTxt("HORACE:bin_pixels_c:invalid_argument",
+            buf.str().c_str());
+
+    }
     auto coord_type = mxGetClassID(this->coord_ptr);
 
     // check if coord_type corresponds to pix type

@@ -78,8 +78,8 @@ public:
     const size_t COORD_STRIDE;  // size of coordinates dimension (4 or 3 accoring to input coordinates)
     const size_t PIX_STRIDE;    // size of pixel data dimension (9 according to input coordinates)
 
-    span<SRC> coord;      // wrapper around input pixels coordinates (4xNpix or 3xNpix array of coordinates to bin)
-    span<SRC> pix_coord;  // wrapper around whole input pixels array  (9xNpix array for Horace-3&4)
+    span<const SRC> coord;      // wrapper around input pixels coordinates (4xNpix or 3xNpix array of coordinates to bin)
+    span<const SRC> pix_coord;  // wrapper around whole input pixels array  (9xNpix array for Horace-3&4)
 
     // internal loop variables (firstprivate)
     size_t  nPixel_retained;    // counter for number of retained pixels

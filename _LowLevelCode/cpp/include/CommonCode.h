@@ -133,7 +133,7 @@ inline void init_min_max_range_calc(span<double>& pix_ranges, size_t PIX_STRIDE)
 
 // identify range of all pixel coordinates for given initial pixels position
 template <class SRC>
-void inline calc_pix_ranges(span<double>& pix_ranges, const span<SRC> &pix_data, size_t PIX_STRIDE, size_t i)
+void inline calc_pix_ranges(span<double>& pix_ranges, span<const SRC> &pix_data, size_t PIX_STRIDE, size_t i)
 {
     size_t ip0 = i * PIX_STRIDE;
     for (size_t j = 0; j < PIX_STRIDE; j++) {

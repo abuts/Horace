@@ -72,8 +72,9 @@ void sort_pixels_by_bins( TG * const pPixelSorted, size_t nPixelsSorted, double 
         const N* pCellInd = reinterpret_cast<const N*>(PixelIndexes[nblock]);
         if (pCellInd == nullptr)continue;
 
-        const ST* pPixData= reinterpret_cast<const ST *>(PixelData[nblock]);
+        auto pPixData= reinterpret_cast<const ST *>(PixelData[nblock]);
         if (pPixData == nullptr)continue;
+        auto pix_data = span<const ST>(pPixData, NPixels[nblock]);
 
         // sort pixels according to cells
         for (size_t j = 0; j < nBlockInd ; j++) {
@@ -81,9 +82,9 @@ void sort_pixels_by_bins( TG * const pPixelSorted, size_t nPixelsSorted, double 
             auto cell_pix_ind = ppInd[ind]++;       // pixel position within a cell
 
             if (calc_pix_range) {
-                calc_pix_ranges<ST>(pix_range, pPixData,pix_flds::PIX_WIDTH, j);
+                calc_pix_ranges<ST>(pix_range, pix_data,pix_flds::PIX_WIDTH, j);
             }
-            copy_pixels<ST, TG>(pPixData, j, pPixelSorted, cell_pix_ind); // copy all pixel data into the location requested
+            copy_pixels<ST, TG>(pix_data, j, pPixelSorted, cell_pix_ind); // copy all pixel data into the location requested
         }
     }
 

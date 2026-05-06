@@ -1,4 +1,4 @@
-classdef test_bin_pixels_mex_nomex < TestCase
+classdef test_bin_pixels_line_proj_mex_nomex < TestCase
     % Series of tests to check work of mex files against Matlab files
 
     properties
@@ -13,15 +13,15 @@ classdef test_bin_pixels_mex_nomex < TestCase
     end
 
     methods
-        function obj=test_bin_pixels_mex_nomex(varargin)
+        function obj=test_bin_pixels_line_proj_mex_nomex(varargin)
             if nargin>0
                 name=varargin{1};
             else
-                name = 'test_bin_pixels_mex_nomex';
+                name = 'test_bin_pixels_line_proj_mex_nomex';
             end
             obj = obj@TestCase(name);
 
-            obj.this_folder = fileparts(which('test_bin_pixels_mex_nomex.m'));
+            obj.this_folder = fileparts(which('test_bin_pixels_line_proj_mex_nomex.m'));
             obj.nDet=obj.nPolar*obj.nAzim;
 
             [~,n_errors] = check_horace_mex();

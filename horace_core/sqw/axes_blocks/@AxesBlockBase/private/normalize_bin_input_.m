@@ -109,7 +109,7 @@ else
             'Calculating signal and error requests providing full pixel information, and this information is missing')
     end
     pix_cand  = varargin{4};
-    if ~(isa(pix_cand,'PixelDataBase') || (iscell(pix_cand) && numel(pix_cand{1}) == size(pix_coord,2)))
+    if ~(isa(pix_cand,'PixelDataBase') || (iscell(pix_cand) && numel(pix_cand{1}) == pix_coord_size(2)))
         error('HORACE:AxesBlockBase:invalid_argument',...
             '7-th argument of the function must be instance of PixelData class or cell array thereof. It is: %s',...
             class(pix_coord));
