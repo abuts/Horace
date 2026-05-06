@@ -82,6 +82,298 @@ classdef test_bin_pixels_mex_nomex < TestCase
             assertEqualToTol(pix_ok_m,pix_ok_c);
             assertElementsAlmostEqual(unique_runid_m,double(unique_runid_c));
         end
+
+        function test_return_inputs_mex_mode6_nosort_2D(obj)
+            % bin pixels and sort pixels, input/output parameters
+            if obj.no_mex
+                skipTest('Can not test mex code to check binning against mex');
+            end
+            clObHor = set_temporary_config_options(hor_config, 'use_mex', true);
+
+            AB = AxesBlockBase_tester('nbins_all_dims',[10,1,1,40], ...
+                'img_range',[-1,-2,-3,-10;1,2,3,40]);
+            pix_id = [10,10,11,11,7, 5,5,5,10,10];
+            pix_coord = rand(9,10);
+            pix_coord(PixelDataBase.field_index('run_idx'),:) = pix_id;
+            pix = PixelDataMemory(pix_coord);
+
+            in_coord = [];
+            lp = line_proj([1,1,0],[0,0,1],'alatt',[1,2,3],'angdeg',[70,80,110],'offset',[1,1,0]);
+            [npix,s,e,pix_ok,unique_id,pix_idx,out_data] = lp.bin_pixels(AB,pix,[],[],[],'-test_mex_inputs');           
+
+            assertEqual(size(npix),[10,40]);
+            assertEqual(npix,zeros(10,40));
+            assertEqual(s,npix);
+            assertEqual(e,npix);
+            assertTrue(isempty(unique_id));
+            assertTrue(isa(unique_id,'uint32'));
+            assertTrue(isempty(pix_idx));
+            assertTrue(isa(pix_idx,'int64'));
+
+
+            assertEqual(pix_ok.data,out_data.pix_ok_data);
+            assertEqual(pix_ok.data,pix_coord);
+            assertEqual(pix_ok.data_range,out_data.pix_ok_data_range);
+            % range matrix have been allocated and probably contains zeros
+            % but this is not guaranteed.
+            assertEqual(size(out_data.pix_ok_data_range),[2,9]);
+
+            assertEqual(out_data.coord_in,in_coord);
+            assertEqual(out_data.binning_mode,bin_mode.nosort);
+            assertEqual(out_data.num_threads, ...
+                config_store.instance().get_value('parallel_config','threads'));
+            assertEqual(out_data.data_range,AB.img_range)
+            assertEqual(out_data.bins_all_dims,uint32(AB.nbins_all_dims));
+            assertTrue(isempty(out_data.unique_runid));
+            assertFalse(out_data.force_double);
+            assertTrue(out_data.test_input_parsing);
+            assertTrue(isempty(out_data.alignment_matr));
+            assertEqual(out_data.pix_candidates,pix.data);
+            assertTrue(out_data.check_pix_selection);
+            assertEqual(out_data.pix_img_idx,pix_idx);
+
+            [mat,off] = lp.get_pix_img_transformation(3);
+            assertEqual(out_data.u_offset,off(1:3)')
+            assertEqualToTol(out_data.q_to_img,mat,1.e-11);
+            
+        end
+
+        function test_return_inputs_mex_mode5_sort_and_unique_id_2D(obj)
+            % bin pixels and sort pixels, input/output parameters
+            if obj.no_mex
+                skipTest('Can not test mex code to check binning against mex');
+            end
+            clObHor = set_temporary_config_options(hor_config, 'use_mex', true);
+
+            AB = AxesBlockBase_tester('nbins_all_dims',[10,1,1,40], ...
+                'img_range',[-1,-2,-3,-10;1,2,3,40]);
+            pix_id = [10,10,11,11,7, 5,5,5,10,10];
+            pix_coord = rand(9,10);
+            pix_coord(PixelDataBase.field_index('run_idx'),:) = pix_id;
+            pix = PixelDataMemory(pix_coord);
+
+            in_coord = [];
+            lp = line_proj([1,1,0],[0,0,1],'alatt',[1,2,3],'angdeg',[70,80,110],'offset',[1,1,0]);
+            [npix,s,e,pix_ok,unique_id,out_data] = lp.bin_pixels(AB,pix,[],[],[],'-test_mex_inputs');
+
+
+            assertEqual(size(npix),[10,40]);
+            assertEqual(npix,zeros(10,40));
+            assertEqual(s,npix);
+            assertEqual(e,npix);
+            assertTrue(isempty(unique_id));
+            assertTrue(isa(unique_id,'uint32'));
+
+
+            assertEqual(pix_ok.data,out_data.pix_ok_data);
+            assertEqual(pix_ok.data,pix_coord);
+            assertEqual(pix_ok.data_range,out_data.pix_ok_data_range);
+            % range matrix have been allocated and probably contains zeros
+            % but this is not guaranteed.
+            assertEqual(size(out_data.pix_ok_data_range),[2,9]);
+
+            assertEqual(out_data.coord_in,in_coord);
+            assertEqual(out_data.binning_mode,bin_mode.sort_and_uid);
+            assertEqual(out_data.num_threads, ...
+                config_store.instance().get_value('parallel_config','threads'));
+            assertEqual(out_data.data_range,AB.img_range)
+            assertEqual(out_data.bins_all_dims,uint32(AB.nbins_all_dims));
+            assertTrue(isempty(out_data.unique_runid));
+            assertFalse(out_data.force_double);
+            assertTrue(out_data.test_input_parsing);
+            assertTrue(isempty(out_data.alignment_matr));
+            assertEqual(out_data.pix_candidates,pix.data);
+            assertTrue(out_data.check_pix_selection);
+
+            [mat,off] = lp.get_pix_img_transformation(3);
+            assertEqual(out_data.u_offset,off(1:3)')
+            assertEqualToTol(out_data.q_to_img,mat,1.e-11);
+        end
+
+        function test_return_inputs_mex_mode4_2D_sort_pix(obj)
+            % bin pixels and sort pixels, input/output parameters
+            if obj.no_mex
+                skipTest('Can not test mex code to check binning against mex');
+            end
+            clObHor = set_temporary_config_options(hor_config, 'use_mex', true);
+
+            AB = AxesBlockBase_tester('nbins_all_dims',[10,1,1,40], ...
+                'img_range',[-1,-2,-3,-10;1,2,3,40]);
+            pix_coord = rand(9,10);
+            pix = PixelDataMemory(pix_coord);
+
+            in_coord = [];
+            lp = line_proj([1,1,0],[0,0,1],'alatt',[1,2,3],'angdeg',[70,80,110],'offset',[1,1,0]);
+            [npix,s,e,pix_ok,out_data] = lp.bin_pixels(AB,pix,[],[],[],'-test_mex_inputs');
+
+
+            assertEqual(size(npix),[10,40]);
+            assertEqual(npix,zeros(10,40));
+            assertEqual(s,npix);
+            assertEqual(e,npix);
+
+            assertEqual(pix_ok.data,out_data.pix_ok_data);
+            assertEqual(pix_ok.data,pix_coord);
+            assertEqual(pix_ok.data_range,out_data.pix_ok_data_range);
+            % range matrix have been allocated and probably contains zeros
+            % but this is not guaranteed.
+            assertEqual(size(out_data.pix_ok_data_range),[2,9]);
+
+            assertEqual(out_data.coord_in,in_coord);
+            assertEqual(out_data.binning_mode,bin_mode.sort_pix);
+            assertEqual(out_data.num_threads, ...
+                config_store.instance().get_value('parallel_config','threads'));
+            assertEqual(out_data.data_range,AB.img_range)
+            assertEqual(out_data.bins_all_dims,uint32(AB.nbins_all_dims));
+            assertTrue(isempty(out_data.unique_runid));
+            assertFalse(out_data.force_double);
+            assertTrue(out_data.test_input_parsing);
+            assertTrue(isempty(out_data.alignment_matr));
+            assertEqual(out_data.pix_candidates,pix.data);
+            assertTrue(out_data.check_pix_selection);
+
+            [mat,off] = lp.get_pix_img_transformation(3);
+            assertEqual(out_data.u_offset,off(1:3)')
+            assertEqualToTol(out_data.q_to_img,mat,1.e-11);
+        end
+
+        function test_return_inputs_mex_mode2_sig_err_2D(obj)
+            % bin pixels no pixel sorting, input/output parameters
+            if obj.no_mex
+                skipTest('Can not test mex code to check binning against mex');
+            end
+            clObHor = set_temporary_config_options(hor_config, 'use_mex', true);
+
+
+            AB = AxesBlockBase_tester('nbins_all_dims',[10,20,30,40], ...
+                'img_range',[-1,-2,-3,-10;1,2,3,40]);
+            pix_coord = rand(9,10);
+            pix = PixelDataMemory(pix_coord);
+
+            in_coord = [];
+            lp = line_proj([1,1,0],[0,0,1],'alatt',[1,2,3],'angdeg',[70,80,110],'offset',[1,1,0]);
+            [npix,s,e,out_data] = lp.bin_pixels(AB,pix,[],[],[],'-test_mex_inputs');
+
+            assertEqual(size(npix),[10,20,30,40]);
+            assertEqual(npix,zeros(10,20,30,40));
+            assertEqual(s,npix);
+            assertEqual(e,npix);
+
+            assertEqual(out_data.coord_in,in_coord);
+            assertEqual(out_data.binning_mode,bin_mode.sig_err);
+            assertEqual(out_data.num_threads, ...
+                config_store.instance().get_value('parallel_config','threads'));
+            assertEqual(out_data.data_range,AB.img_range)
+            assertEqual(out_data.bins_all_dims,uint32(AB.nbins_all_dims));
+            assertTrue(isempty(out_data.unique_runid));
+            assertFalse(out_data.force_double);
+            assertTrue(out_data.test_input_parsing);
+            assertTrue(isempty(out_data.alignment_matr));
+            assertEqual(out_data.pix_candidates,pix.data);
+            assertTrue(out_data.check_pix_selection);
+
+            [mat,off] = lp.get_pix_img_transformation(3);
+            assertEqual(out_data.u_offset,off(1:3)')
+            assertEqualToTol(out_data.q_to_img,mat,1.e-11);
+
+        end
+
+        function test_return_inputs_line_proj_mex_mode0(obj)
+            % bin pixels and sort pixels, input/output parameters
+            if obj.no_mex
+                skipTest('Can not test mex code to check binning against mex');
+            end
+            clObHor = set_temporary_config_options(hor_config, 'use_mex', true);
+
+            AB = AxesBlockBase_tester('nbins_all_dims',[10,1,1,40], ...
+                'img_range',[-1,-2,-3,-10;1,2,3,40]);
+            pix_id = [10,10,11,11,7, 5,5,5,10,10];
+            pix_coord = rand(9,10);
+            pix_coord(PixelDataBase.field_index('run_idx'),:) = pix_id;
+            pix = PixelDataMemory(pix_coord);
+
+            in_coord = [];
+            lp = line_proj([1,1,0],[0,0,1],'alatt',[1,2,3],'angdeg',[70,80,110],'offset',[1,1,0]);
+            [npix,out_data] = lp.bin_pixels(AB,pix,[],[],[],'-test_mex_inputs');
+
+            assertEqual(size(npix),[10,40]);
+            assertEqual(npix,zeros(10,40));
+            %
+            assertEqual(out_data.coord_in,in_coord);
+            assertEqual(out_data.binning_mode,bin_mode.npix_only);
+            assertEqual(out_data.num_threads, ...
+                config_store.instance().get_value('parallel_config','threads'));
+            assertEqual(out_data.data_range,AB.img_range)
+            assertEqual(out_data.bins_all_dims,uint32(AB.nbins_all_dims));
+            assertTrue(isempty(out_data.unique_runid));
+            assertFalse(out_data.force_double);
+            assertTrue(out_data.test_input_parsing);
+            assertTrue(isempty(out_data.alignment_matr));
+            assertEqual(out_data.pix_candidates,pix.data);
+            assertTrue(out_data.check_pix_selection);
+
+
+            [mat,off] = lp.get_pix_img_transformation(3);
+            assertEqual(out_data.u_offset,off(1:3)')
+            assertEqualToTol(out_data.q_to_img,mat,1.e-11);
+        end
+
+        function test_return_inputs_line_proj_mex_mode7_nosort_and_selected(obj)
+            % bin pixels and sort pixels, input/output parameters
+            if obj.no_mex
+                skipTest('Can not test mex code to check binning against mex');
+            end
+            clObHor = set_temporary_config_options(hor_config, 'use_mex', true);
+
+            AB = AxesBlockBase_tester('nbins_all_dims',[10,1,1,40], ...
+                'img_range',[-1,-2,-3,-10;1,2,3,40]);
+            pix_id = [10,10,11,11,7, 5,5,5,10,10];
+            pix_coord = rand(9,10);
+            pix_coord(PixelDataBase.field_index('run_idx'),:) = pix_id;
+            pix = PixelDataMemory(pix_coord);
+
+            in_coord = [];
+            lp = line_proj('alatt',2.38,'angdeg',90);
+            [npix,s,e,pix_ok,unique_id,pix_idx,is_selected,out_data] = lp.bin_pixels(AB,pix,[],[],[],'-test_mex_inputs');
+
+            assertEqual(size(npix),[10,40]);
+            assertEqual(npix,zeros(10,40));
+            assertEqual(s,npix);
+            assertEqual(e,npix);
+            assertTrue(isempty(unique_id));
+            assertTrue(isa(unique_id,'uint32'));
+            assertTrue(isempty(pix_idx));
+            assertTrue(isa(pix_idx,'int64'));
+            assertTrue(isempty(is_selected));
+            assertTrue(isa(is_selected,'logical'));
+
+            assertEqual(pix_ok.data,out_data.pix_ok_data);
+            assertEqual(pix_ok.data,pix_coord);
+            assertEqual(pix_ok.data_range,out_data.pix_ok_data_range);
+            % range matrix have been allocated and probably contains zeros
+            % but this is not guaranteed.
+            assertEqual(size(out_data.pix_ok_data_range),[2,9]);
+
+            assertEqual(out_data.coord_in,in_coord);
+            assertEqual(out_data.binning_mode,bin_mode.nosort_sel);
+            assertEqual(out_data.num_threads, ...
+                config_store.instance().get_value('parallel_config','threads'));
+            assertEqual(out_data.data_range,AB.img_range)
+            assertEqual(out_data.bins_all_dims,uint32(AB.nbins_all_dims));
+            assertTrue(isempty(out_data.unique_runid));
+            assertFalse(out_data.force_double);
+            assertTrue(out_data.test_input_parsing);
+            assertTrue(isempty(out_data.alignment_matr));
+            assertEqual(out_data.pix_candidates,pix.data);
+            assertTrue(out_data.check_pix_selection);
+            assertEqual(out_data.pix_img_idx,pix_idx);
+            assertEqual(out_data.is_pix_selected,is_selected);
+            assertEqual(out_data.u_offset,[0,0,0])
+            bm = lp.bmatrix();
+            trel = 1/bm(1);
+            assertEqualToTol(out_data.q_to_img,[trel ,trel ,trel ],1.e-14);
+        end
+
     end
     methods(Access=protected)
         function  rd = calc_fake_data(obj)

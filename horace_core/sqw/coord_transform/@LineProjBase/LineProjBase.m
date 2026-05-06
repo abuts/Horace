@@ -193,7 +193,7 @@ classdef LineProjBase < aProjectionBase
     % TRANSFORMATIONS:
     methods
         function varargout = bin_pixels(obj, ...
-                axes,pix_cand,npix,s,e,varargin)
+                axes,in_pix,npix,s,e,varargin)
             varargout = cell(1,nargout); % allocate only requested numbr of parameters
 
             %
@@ -208,18 +208,27 @@ classdef LineProjBase < aProjectionBase
                 if ~ok
                     error('HORACE:AxesBlockBase:invalid_argument',mess)
                 end
-                argi = {npix,s,e,pix_cand}; % reformat input data into the form, requested by normalize_bin_input
+                argi = {npix,s,e,in_pix}; % reformat input data into the form, requested by normalize_bin_input
                 % identify binning mode as function of number of input
                 % arguments
                 mode = bin_mode.from_narg(nargout-1,test_mex_inputs,return_selected,argi{:});
                 % convert different input forms into fully expanded common form
                 [npix,s,err,pix_cand,unique_runid]=...
-                    axes.normalize_bin_input([4,pix_cand.num_pixels],mode,argi{:});
+                    axes.normalize_bin_input([4,in_pix.num_pixels],mode,argi{:});
+                % axes binning bins coordinates and does not use pix_cand
+                % unldess pix data processing is expected. line_proj always
+                % use pixel data as input and calculates coordinates
+                % internally:
+                if isempty(pix_cand)
+                    pix_cand = in_pix;
+                end
 
                 [bin_info,ndata,is_pix]=axes.prepare_mex_code_input(mode, ...
                     [],pix_cand,unique_runid,force_double,test_mex_inputs);
                 % add LineProjBase-specific information to binning code
-                coord_transf = obj.transform_pix_to_img(pix_cand);
+                %coord_transf = obj.transform_pix_to_img(pix_cand);
+                coord_transf = []; % transformed coordinates are calculated within the
+                % mex-code on-the fly.
                 if obj.offset(4)>1.e-11
                     [q_to_img,u_offset]=obj.get_pix_img_transformation(4,pix_cand);
                 else
@@ -232,7 +241,7 @@ classdef LineProjBase < aProjectionBase
                 bin_info.is_pix = is_pix;
 
                 [varargout{1:nout}]=axes.bin_pixels_with_mex_code(coord_transf,bin_info,...
-                    npix,s,err,pix_cand,[],[],[]);
+                    npix,s,err,pix_cand,unique_runid,force_double,test_mex_inputs);
 
                 % if test_mex_inputs
                 %     nout = nout-1;
@@ -249,7 +258,7 @@ classdef LineProjBase < aProjectionBase
             else
                 [varargout{1:nargout}] = ...
                     bin_pixels@aProjectionBase(obj, ...
-                    axes,pix_cand,npix,s,e,varargin{:});
+                    axes,in_pix,npix,s,e,varargin{:});
             end
         end
         %------------------------------------------------------------------

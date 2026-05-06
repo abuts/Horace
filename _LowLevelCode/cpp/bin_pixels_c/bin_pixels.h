@@ -179,7 +179,7 @@ public:
 template<class SRC, class TRG>
 class common_bin_code_with_transf : public common_bin_code<SRC,TRG> {
 public:
-    const bool diag_transf;       // if transformation matrix below is a diagonal matrix
+    const bool diag_transf;     // if transformation matrix below is a diagonal matrix
     span<double> transf_matrix; // if defined, contains 3x3 matrix to use for pixel transformation the pixels
     const bool apply_offset;    // if offset has non-zero value and should be applied to data
     span<double> u_offset;      // if defined, 1D array of offsets to extract from pixel coordinates before transforming them
@@ -497,7 +497,7 @@ void transf_and_invoke(common_bin_code_with_transf<SRC, TRG>& ctx, span<double>&
 
 // Define table which contains various binning sub-algorithms
 template<typename SRC, typename TRG>
-auto makeTable1() {
+auto makeBinTable() {
     using Fn = void(*)(common_bin_code<SRC, TRG>&,
         span<double>&,
         span<double>&,
@@ -518,7 +518,7 @@ auto makeTable1() {
 };
 
 template<typename SRC, typename TRG>
-auto makeTable2() {
+auto makeTransfAndBinTable() {
     using Fn = void(*)(common_bin_code_with_transf<SRC, TRG>&,
         span<double>&,
         span<double>&,
@@ -526,24 +526,24 @@ auto makeTable2() {
 
     std::array<Fn, static_cast<size_t>(opModes::N_OP_Modes)> t{};
 
-    t[static_cast<size_t>(opModes::trnsf_npix)] = &transf_and_invoke<processNpixOnly<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::trnsf_sig_err)] = &transf_and_invoke<processSigErr<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::trnsf_sort_pix)] = &transf_and_invoke<processWithSorting<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::trnsf_sort_and_uid)] = &transf_and_invoke<processWithSorting<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::trnsf_nosort)] = &transf_and_invoke<processWithNoSorting<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::trnsf_nosort_sel)] = &transf_and_invoke<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::trnsf_nosort_sel)] = &transf_and_invoke<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::npix_only)] = &transf_and_invoke<processNpixOnly<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::sig_err)] = &transf_and_invoke<processSigErr<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::sort_pix)] = &transf_and_invoke<processWithSorting<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::sort_and_uid)] = &transf_and_invoke<processWithSorting<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::nosort)] = &transf_and_invoke<processWithNoSorting<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::nosort_sel)] = &transf_and_invoke<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::siger_selected)] = &transf_and_invoke<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
     return t;
 };
 
 template<typename SRC, typename TRG>
-const auto& fTable1() {
-    static const auto table = makeTable1<SRC, TRG>();
+const auto& fBinTable() {
+    static const auto table = makeBinTable<SRC, TRG>();
     return table;
 };
 template<typename SRC, typename TRG>
-const auto& fTable2() {
-    static const auto table = makeTable2<SRC, TRG>();
+const auto& fTransfAndBinTable() {
+    static const auto table = makeTransfAndBinTable<SRC, TRG>();
     return table;
 };
 
@@ -567,17 +567,17 @@ size_t bin_pixels(span<double>& npix, span<double>& s, span<double>& e, BinningA
     // initialize common code for pixel binning
     size_t bin_mode = static_cast<size_t>(bin_par_ptr->binMode);
     if (bin_par_ptr->transform_pixels) {
-        common_bin_code<SRC, TRG> ctx(bin_par_ptr);
+        common_bin_code<SRC, TRG> binCtx(bin_par_ptr);
         //execute appropriate sub-algorithm
-        fTable1<SRC, TRG>()[bin_mode](ctx, npix, s, e);
-        return ctx.nPixel_retained;
+        fBinTable<SRC, TRG>()[bin_mode](binCtx, npix, s, e);
+        return binCtx.nPixel_retained;
     }
     else {
-        common_bin_code_with_transf<SRC, TRG> ctx(bin_par_ptr);
+        common_bin_code_with_transf<SRC, TRG> transfCtx(bin_par_ptr);
 
         //execute appropriate sub-algorithm
-        fTable2<SRC, TRG>()[bin_mode](ctx, npix, s, e);
-        return ctx.nPixel_retained;
+        fTransfAndBinTable<SRC, TRG>()[bin_mode](transfCtx, npix, s, e);
+        return transfCtx.nPixel_retained;
 
     }
 

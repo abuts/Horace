@@ -61,7 +61,7 @@ extern bool ioFlush(void);
 enum pix_flds
 {
     u1 = 0, //      -|
-    u2 = 1, //       |  Coordinates of pixel in the pixel projection axes
+    u2 = 1, //       |  Coordinates of pixel in the pixel projection axes. A constants within code rely on this set-up
     u3 = 2, //       |
     u4 = 3, //      -|
     irun = 4, //        Run index in the header block from which pixel came

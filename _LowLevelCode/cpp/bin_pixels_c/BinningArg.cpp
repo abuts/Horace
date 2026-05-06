@@ -88,6 +88,7 @@ void BinningArg::set_transf_matrix(mxArray const* const pField) {
             }
         }
     }
+    this->diag_transf = diagonal;
     if (diagonal) {
         this->transf_matrix.resize(3);
         for (auto i = 0; i < 3; i++)
@@ -131,6 +132,7 @@ void BinningArg::set_coord_in(mxArray const* const pField)
     if (this->in_coord_width == 0 || n_data_points == 0) {
         // if projection binning coord_in are empty
         this->in_coord_width = 0;
+        this->coord_ptr = pField; // pointer to empty array
         return;
     }
     this->n_data_points = n_data_points;
@@ -143,7 +145,6 @@ void BinningArg::set_coord_in(mxArray const* const pField)
         mexErrMsgIdAndTxt("HORACE:bin_pixels_c:invalid_argument",
             buf.str().c_str());
     }
-    this->coord_ptr = pField;
     if (this->in_coord_width < 3 || this->in_coord_width > 4) {
         std::stringstream buf;
         buf << "input pixel coordinates to bin have to be represented by a matrix with at least 3 and not more then 4 rows\n";
@@ -621,14 +622,6 @@ void BinningArg::register_output_methods()
     this->out_handlers[opModes::nosort] = &Mode6ParList;
     this->out_handlers[opModes::nosort_sel] = &Mode7ParList;
     this->out_handlers[opModes::siger_selected] = &Mode8ParList;
-    // Additional modes used with projection
-    this->out_handlers[opModes::trnsf_npix] = &Mode0ParList;
-    this->out_handlers[opModes::trnsf_sig_err] = &Mode0ParList;
-    this->out_handlers[opModes::trnsf_sort_pix] = &Mode4ParList;
-    this->out_handlers[opModes::trnsf_sort_and_uid] = &Mode5ParList;
-    this->out_handlers[opModes::trnsf_nosort] = &Mode6ParList;
-    this->out_handlers[opModes::trnsf_nosort_sel] = &Mode7ParList;
-    this->out_handlers[opModes::trns_and_siger_sel] = &Mode8ParList;
 
 };
 /**  Parse input binning arguments and set new BinningArg from MATLAB input arguments
@@ -676,13 +669,11 @@ void BinningArg::parse_bin_inputs(mxArray const* pAllParStruct)
                 buf.str().c_str());
         }
     }
-
-    // if input pixels are transformed by routine (proj binning), in_coord to bin will be empty
-    if (this->transform_pixels) {
-        // set up in_coord_width according to the parameters of pixels transformation.
-        this->in_coord_width = this->transf_matrix_width;
-        // check consistency between u_offset and transformation matrix
+    if (this->in_coord_width == 0 && this->transform_pixels) {
+        this->in_coord_width = 4; // coordinate's part of input pixel array 
+        // containing coordinares and everything else is transformed. 
     }
+
     // check if binning parameters corresponds to pixels coordinates width and adjust
     // binning if pixel_coordinates are smaller.
     if (this->nbins_all_dims.size() > this->in_coord_width) {
@@ -892,10 +883,18 @@ void BinningArg::return_test_inputs(mxArray* plhs[], int nlhs)
         }
         else {
             auto n_rows = this->transf_matrix_width;
-            tr_matr = mxCreateDoubleMatrix(n_rows, n_rows, mxREAL);
-            auto dataPtr = mxGetPr(tr_matr);
-            for (size_t i = 0; i < n_rows * n_rows; i++) {
+            if (this->diag_transf) {
+                tr_matr = mxCreateDoubleMatrix(1, n_rows, mxREAL);
+                auto dataPtr = mxGetPr(tr_matr);
+                for (size_t i = 0; i < n_rows; i++) {
+                    dataPtr[i] = this->transf_matrix[i];
+                }
+            }else{
+                tr_matr = mxCreateDoubleMatrix(n_rows, n_rows, mxREAL);
+                auto dataPtr = mxGetPr(tr_matr);
+                for (size_t i = 0; i < n_rows * n_rows; i++) {
                 dataPtr[i] = this->transf_matrix[i];
+            }
             }
         }
         mxSetCell(pFieldValue, fld_idx, tr_matr);

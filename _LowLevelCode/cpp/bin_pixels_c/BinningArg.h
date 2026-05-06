@@ -59,17 +59,7 @@ enum opModes {
     siger_selected = 8, // the same as sig_err but return logical array of selected pixels instead of pix_ok array
     test_inputs = 9, // do not do calculations but just return parsed inputs for
     //                  unit testing. 
-    // Additional modes, equal to above but pixels transformed inside
-    trnsf_npix    = 10,
-    dummy1        = 11,
-    trnsf_sig_err = 12,
-    dummy2_cell   = 13, // transform pixels do not work with cells
-    trnsf_sort_pix = 14,
-    trnsf_sort_and_uid = 15,
-    trnsf_nosort = 16,
-    trnsf_nosort_sel = 17,
-    trns_and_siger_sel = 18,
-    N_OP_Modes = 19 // total number of modes code operates in. Provided for checks
+    N_OP_Modes = 10 // total number of modes code operates in. Provided for checks
 };
 
 // define the map type to keep functions which set up output parameters in a structure, specific for given binning mode;
