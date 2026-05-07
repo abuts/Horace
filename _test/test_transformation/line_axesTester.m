@@ -10,7 +10,7 @@ classdef line_axesTester < line_axes
                 get_bin_inputs(obj,coord_transf,mode_to_bin,varargin)
             
             [npix,s,e,pix_candidates,argi]=...
-                obj.normalize_bin_input(coord_transf,mode_to_bin,varargin{:});
+                obj.normalize_bin_input(size(coord_transf),mode_to_bin,varargin{:});
         end
     end
 end
