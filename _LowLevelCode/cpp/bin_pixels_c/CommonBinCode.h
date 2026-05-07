@@ -101,9 +101,9 @@ public:
     virtual bool out_of_ranges(long i)
     {
         size_t ic0 = i * COORD_STRIDE;
-        for (size_t upix = 0; upix < COORD_STRIDE; upix++) {
-            qi[upix] = double(coord[ic0 + upix]);
-            if (qi[upix] < cut_range[2 * upix] || qi[upix] > cut_range[2 * upix + 1]) {
+        for (size_t upixn = 0; upixn < COORD_STRIDE; upixn++) {
+            qi[upixn] = double(coord[ic0 + upixn]);
+            if (qi[upixn] < cut_range[2 * upixn] || qi[upixn] > cut_range[2 * upixn + 1]) {
                 return true;
             }
         }
@@ -224,35 +224,39 @@ public:
                     return true;
             }
         }
-
-        for (size_t upix = 0; upix < this->COORD_STRIDE; upix++) {
-            double q_shifted(0);
-            if (this->apply_offset) {
-                q_shifted = (double)this->pix_coord[ic0 + upix] - this->u_offset[upix];
+        std::vector<double> q_shifted(this->COORD_STRIDE);
+        if (this->apply_offset) {
+            for (size_t upixn = 0; upixn < this->COORD_STRIDE; upixn++) {
+                q_shifted[upixn] = (double)this->pix_coord[ic0 + upixn] - this->u_offset[upixn];
             }
-            else {
-                q_shifted = (double)this->pix_coord[ic0 + upix];
+        }
+        else {
+            for (size_t upixn = 0; upixn < this->COORD_STRIDE; upixn++) {
+                q_shifted[upixn] = (double)this->pix_coord[ic0 + upixn];
             }
+        }
 
+        for (size_t upixn = 0; upixn < this->COORD_STRIDE; upixn++) {
             double accum(0);
-            if (upix < this->transf_matrix_width) {
+            auto trmw = this->transf_matrix_width;
+            if (upixn < trmw) {
                 if (this->diag_transf) {
-                    accum = this->transf_matrix[upix] * q_shifted;
+                    accum = this->transf_matrix[upixn] * q_shifted[upixn];
                 }
                 else {
-                    for (size_t j = 0; j < this->transf_matrix_width; j++) {
-                        accum += this->transf_matrix[j * this->transf_matrix_width + upix] * double(q_shifted);
+                    for (size_t j = 0; j < trmw; j++) {
+                        accum += this->transf_matrix[j * trmw + upixn] * q_shifted[j];
                     }
                 }
             }
             else {
-                accum = q_shifted;
+                accum = q_shifted[upixn];
             }
             // drop transformed out-of range pixels.
-            if (accum < this->cut_range[2 * upix] || accum > this->cut_range[2 * upix + 1]) {
+            if (accum < this->cut_range[2 * upixn] || accum > this->cut_range[2 * upixn + 1]) {
                 return true;
             }
-            this->qi[upix] = accum;
+            this->qi[upixn] = accum;
         }
         return false;
     };

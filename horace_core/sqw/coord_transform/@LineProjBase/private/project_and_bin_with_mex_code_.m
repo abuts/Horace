@@ -19,12 +19,16 @@ function varargout =project_and_bin_with_mex_code_(obj, ...
 nout = nargout;
 varargout = cell(1,nout);
 
-[ok,mess,force_double,return_selected,test_mex_inputs]=parse_char_options(varargin, ...
+[ok,mess,force_double,return_selected,test_mex_inputs,argi]=parse_char_options(varargin, ...
     {'-force_double', '-return_selected','-test_mex_inputs'});
 if ~ok
     error('HORACE:AxesBlockBase:invalid_argument',mess)
 end
-argi = {npix,s,e,in_pix}; % reformat input data into the form, requested by normalize_bin_input
+if isempty(argi)
+    argi = {npix,s,e,in_pix}; % reformat input data into the form, requested by normalize_bin_input
+else
+    argi = [{npix},{s},{e},{in_pix},argi{:}];
+end
 % identify binning mode as function of number of input
 % arguments
 mode = bin_mode.from_narg(nargout-1,test_mex_inputs,return_selected,argi{:});
