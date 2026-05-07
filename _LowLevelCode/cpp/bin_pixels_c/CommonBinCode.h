@@ -150,9 +150,9 @@ public:
 
         this->data_size = bin_par_ptr->n_data_points;
 
-        this->coord = span<SRC>(reinterpret_cast<SRC*>(mxGetPr(bin_par_ptr->coord_ptr)), data_size * COORD_STRIDE);
+        this->coord = span<const SRC>(reinterpret_cast<SRC*>(mxGetPr(bin_par_ptr->coord_ptr)), data_size * COORD_STRIDE);
         if (check_pix_selection) {
-            this->pix_coord = span<SRC>(reinterpret_cast<SRC*>(mxGetPr(bin_par_ptr->all_pix_ptr)), data_size * PIX_STRIDE);
+            this->pix_coord = span<const SRC>(reinterpret_cast<SRC*>(mxGetPr(bin_par_ptr->all_pix_ptr)), data_size * PIX_STRIDE);
         }
 
         // internal loop variables (firstprivate)
