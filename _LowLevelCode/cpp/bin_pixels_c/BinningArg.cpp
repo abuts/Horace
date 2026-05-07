@@ -723,9 +723,9 @@ void BinningArg::parse_bin_inputs(mxArray const* pAllParStruct)
         }
     }
     else if (pix_type != mxUNKNOWN_CLASS) {
-        // This will be different in mode when coordinates are calculated from pixels
-        // but this mode is not implemented yet
-        if (coord_type != pix_type) {
+        if (this->transform_pixels) {
+            coord_type = pix_type; // coordinates are not used
+        }else if (coord_type != pix_type) {
             std::stringstream buf;
             buf << "Coordinates array type: " << coord_type << " must be equal to pixels array type: " << pix_type << "\n";
             buf << "Actually they are different";
