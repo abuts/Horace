@@ -7,13 +7,14 @@ classdef performance_bin_pixels_mex_nomex
         perf_tests_list
         result_name
         perf_results;
+        n_threads;
     end
 
     methods
         function obj=performance_bin_pixels_mex_nomex(varargin)
 
             obj.this_folder = fileparts(which('performance_bin_pixels_mex_nomex.m'));
-
+            obj.n_threads = 8;
             [~,n_errors] = check_horace_mex();
             obj.no_mex = n_errors > 0;
             test_names = {...
@@ -64,9 +65,9 @@ classdef performance_bin_pixels_mex_nomex
             for i=1:numel(meth_names)
                 mode_name = split(meth_names{i});
                 fh = obj.perf_tests_list(meth_names{i});
-                [t_nomex,t_mex] = fh();
+                [t_nomex,t_mex,t_omp] = fh();
                 mode_name = mode_name{1};
-                perf_res.(mode_name) = [t_nomex(:)';t_mex(:)'];
+                perf_res.(mode_name) = [t_nomex(:)';t_mex(:)';t_omp];
                 fprintf('\n');
             end
             obj.perf_results = perf_res;
@@ -697,7 +698,6 @@ classdef performance_bin_pixels_mex_nomex
                 fprintf('.')
 
                 config_store.instance.set_value('hor_config','use_mex',true);
-
                 t1 = tic();
                 [npix_mex,s_mex,e_mex] = AB.bin_pixels(coord,npix_mex,s_mex,e_mex,{sig,err});
                 t_mex(i) = toc(t1);
@@ -720,6 +720,7 @@ classdef performance_bin_pixels_mex_nomex
             end
 
             clObHor = set_temporary_config_options(hor_config, 'use_mex', false);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1);            
 
             n_repeats = 10;
 
@@ -727,6 +728,7 @@ classdef performance_bin_pixels_mex_nomex
 
             npix_nomex = []; s_nomex = []; e_nomex=[];
             npix_mex   = []; s_mex   = []; e_mex=[];
+            npix_omp   = []; s_omp   = []; e_omp=[];
 
             disp("*** Proj mex/nomex performance mode2 (bin pixels + sig_err):")
             t_nomex = zeros(1,n_repeats);
@@ -742,18 +744,26 @@ classdef performance_bin_pixels_mex_nomex
 
                 fprintf('.')
                 config_store.instance.set_value('hor_config','use_mex',true);
+                config_store.instance.set_value('parallel_config','threads',1);                
                 t1=tic();
                 [npix_mex,s_mex,e_mex] = lp.bin_pixels(AB,pix,npix_mex,s_mex,e_mex);
                 t_mex(i)=toc(t1);
 
+                config_store.instance.set_value('parallel_config','threads',obj.n_threads);
+                t1 = tic();
+                [npix_omp,s_omp,e_omp] = lp.bin_pixels(AB,pix,npix_omp,s_omp,e_omp);
+                t_omp(i) = toc(t1);
+
                 assertEqual(npix_nomex,npix_mex)
+                assertEqual(npix_nomex,npix_omp)
                 assertEqualToTol(s_nomex,s_mex,'tol',[1e-9 1e-9])
+                assertEqualToTol(s_nomex,s_omp,'tol',[1e-9 1e-9])
                 assertEqualToTol(e_nomex,e_mex,'tol',[1e-9 1e-9])
+                assertEqualToTol(e_nomex,e_omp,'tol',[1e-9 1e-9])
 
                 pix.coordinates = rand(4,n_points);
             end
-
-            obj.disp_perf_results(t_nomex,t_mex,t_omp)
+            obj.disp_perf_results(t_nomex,t_mex,t_omp);
         end
 
         function [t_nomex,t_mex,t_omp] = performance_mex_nomex_mode2_npix_and_sigerr(obj)
@@ -765,12 +775,14 @@ classdef performance_bin_pixels_mex_nomex
             % finished and temporary mex/nomex values will be set within
             % the loop.
             clObHor = set_temporary_config_options(hor_config, 'use_mex', false);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1);            
             %
             [AB,n_points]=obj.prepare_clean_bin_data();
 
             n_repeats = 10;
             npix_nomex = []; s_nomex = [];e_nomex=[];
             npix_mex   = []; s_mex = [];  e_mex=[];
+            npix_omp   = []; s_omp   = []; e_omp=[];            
 
             t_nomex = zeros(1,n_repeats);
             t_mex  = zeros(1,n_repeats);
@@ -789,16 +801,24 @@ classdef performance_bin_pixels_mex_nomex
                 fprintf('.')
 
                 config_store.instance.set_value('hor_config','use_mex',true);
-
+                config_store.instance.set_value('parallel_config','threads',1);                
                 t1 = tic();
                 [npix_mex,s_mex,e_mex] = AB.bin_pixels(coord,npix_mex,s_mex,e_mex,pix);
                 t_mex(i) = toc(t1);
 
+                config_store.instance.set_value('parallel_config','threads',obj.n_threads);
+                t1 = tic();
+                [npix_omp,s_omp,e_omp] = AB.bin_pixels(coord,npix_omp,s_omp,e_omp,pix);
+                t_omp(i) = toc(t1);
+
                 assertEqual(npix_nomex,npix_mex)
-                assertEqualToTol(s_nomex,s_mex,'tol',[1.e-9,1.e-9])
-                assertEqualToTol(e_nomex,e_mex,'tol',[1.e-9,1.e-9])
+                assertEqual(npix_nomex,npix_omp)
+                assertEqualToTol(s_nomex,s_mex,'tol',[1e-9 1e-9])
+                assertEqualToTol(s_nomex,s_omp,'tol',[1e-9 1e-9])
+                assertEqualToTol(e_nomex,e_mex,'tol',[1e-9 1e-9])
+                assertEqualToTol(e_nomex,e_omp,'tol',[1e-9 1e-9])
             end
-            obj.disp_perf_results(t_nomex,t_mex,t_omp)
+            obj.disp_perf_results(t_nomex,t_mex,t_omp);
             % REFERENCE Data ndw2671
             %*** Mex/nomex performance mode2 (bin pixelsbin pixels + sig_err):
             %*** time of first step,    nomex:  3.4(sec)  mex: 0.68(sec); Acceleration :    5
@@ -836,12 +856,12 @@ classdef performance_bin_pixels_mex_nomex
                 fprintf('.')
 
                 config_store.instance.set_value('hor_config','use_mex',true);
-
+                config_store.instance.set_value('parallel_config','threads',1);                
                 t1 = tic();
                 npix_mex = lp.bin_pixels(AB,pix,npix_mex,[],[]);
                 t_mex(i) = toc(t1);
 
-                config_store.instance.set_value('parallel_config','threads',8);
+                config_store.instance.set_value('parallel_config','threads',obj.n_threads);
                 t1 = tic();
                 npix_omp = lp.bin_pixels(AB,pix,npix_omp,[],[]);
                 t_omp(i) = toc(t1);
@@ -850,7 +870,7 @@ classdef performance_bin_pixels_mex_nomex
                 assertEqual(npix_nomex,npix_mex)
                 assertEqual(npix_nomex,npix_omp)
             end
-            obj.disp_perf_results(t_nomex,t_mex,t_omp)
+            obj.disp_perf_results(t_nomex,t_mex,t_omp);
             % REFERENCE Data ndw2671
             %*** Proj mex/nomex performance mode4 (bin and sort pixels applying alignment):
             %*** time of first step,    nomex:  2.1(sec)  mex:  1.1(sec); Acceleration :    2
@@ -895,7 +915,7 @@ classdef performance_bin_pixels_mex_nomex
                 npix_mex = AB.bin_pixels(in_coord,npix_mex);
                 t_mex(i) = toc(t1);
 
-                config_store.instance.set_value('parallel_config','threads',8);
+                config_store.instance.set_value('parallel_config','threads',obj.n_threads);
                 t1 = tic();
                 npix_omp = AB.bin_pixels(in_coord,npix_omp);
                 t_omp(i) = toc(t1);
@@ -938,17 +958,17 @@ classdef performance_bin_pixels_mex_nomex
             lp = line_proj([1,1,0],[0,0,1],'alatt',[1,2,3],'angdeg',[70,80,110],'offset',[0,0,0]);
         end
 
-        function [tav_nom,tav_mex] = disp_perf_results(t_nomex,t_mex,t_omp)
+        function [tav_nom,tav_mex,tav_omp] = disp_perf_results(t_nomex,t_mex,t_omp)
             n_repeats = numel(t_nomex);
             tav_mex = sum(t_mex)/n_repeats;
             tav_nom = sum(t_nomex)/n_repeats;
             tav_omp = sum(t_omp)/n_repeats;
             fprintf( ...
-                '\n*** first step:    nomex: %4.2g(sec)  mex: %4.2g(sec);  omp: %4.2g(sec); Acc : %4.2g/%4.2g\n', ...
-                t_nomex(1),t_mex(1),t_omp(1),t_nomex(1)/t_mex(1),t_nomex(1)/t_omp(1));
+                '\n*** first step:    nomex: %4.2g(sec)  mex: %4.2g(sec);  omp: %4.2g(sec); Acc : %4.2g/%4.2g/%4.2g\n', ...
+                t_nomex(1),t_mex(1),t_omp(1),t_nomex(1)/t_mex(1),t_nomex(1)/t_omp(1),t_mex(1)/t_omp(1));
             fprintf( ...
-                '*** Avrg per step, nomex: %4.2g(sec)  mex: %4.2g(sec);  omp: %4.2g(sec); Acc : %4.2g/%4.2g\n', ...
-                tav_nom,tav_mex,tav_omp,tav_nom/tav_mex,tav_nom/tav_omp);
+                '*** Avrg per step: nomex: %4.2g(sec)  mex: %4.2g(sec);  omp: %4.2g(sec); Acc : %4.2g/%4.2g/%4.2g\n', ...
+                tav_nom,tav_mex,tav_omp,tav_nom/tav_mex,tav_nom/tav_omp,tav_mex/tav_omp);
         end
     end
 end

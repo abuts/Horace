@@ -137,6 +137,21 @@ public:
 
         return il;
     };
+    // calculate pixel contribution into image.
+    size_t add_pix_to_tls_accum(const std::vector<double>& qu, size_t pix_in_pix_pos,
+        std::vector<bin_accum> &acc)
+    {
+        // calculate location of pixel within the image grid
+        auto il = this->pix_position(qu);
+        // calculate npix accumulators
+        acc[il].npix++;
+        // calculate signal and error accumulators
+        acc[il].s += (double)pix_coord[pix_in_pix_pos + pix_flds::iSign];
+        acc[il].e += (double)pix_coord[pix_in_pix_pos + pix_flds::iErr];
+
+        return il;
+    };
+
     // Constructor which defines all binning parameters
     CommonBinCode(BinningArg* const bin_par_ptr) :
         bin_par_ptr(bin_par_ptr),

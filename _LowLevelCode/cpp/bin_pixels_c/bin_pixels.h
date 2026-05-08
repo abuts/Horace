@@ -1,85 +1,8 @@
 #pragma once
 #include "CommonBinCode.h"
-
-template<class SRC, class TRG>
-struct processNpixOnly {
-    void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
-        std::vector<double> qu(ctx.COORD_STRIDE);
-        for (long i = 0; i < ctx.data_size; i++) {
-            // drop out coordinates outside of the binning range
-            if (ctx.out_of_ranges(i, qu))
-                continue;
-            ctx.nPixel_retained++;
-
-            // calculate location of pixel within the image grid
-            size_t il = ctx.pix_position(qu);
-            npix[il]++;
-        }
-
-    }
-};
-
-template<class SRC, class TRG>
-struct processNpixOnlyWithOMP {
-    void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
-
-        auto num_pix = ctx.nPixel_retained;
-        auto distribution_size = ctx.distribution_size;
-        auto num_OMP_threads = ctx.bin_par_ptr->num_threads;
-        std::vector<std::vector<size_t>> npix1_tls(
-            num_OMP_threads,
-            std::vector<size_t>(distribution_size, 0)
-        );
-        omp_set_num_threads(num_OMP_threads);
-
-        std::vector<double> qu(ctx.COORD_STRIDE);
-#pragma omp parallel     \
-        firstprivate(qu)
-        {
-#pragma omp for schedule(static) reduction(+:num_pix)
-            for (long i = 0; i < ctx.data_size; i++) {
-                // drop out coordinates outside of the binning range
-                if (ctx.out_of_ranges(i, qu))
-                    continue;
-                num_pix++;
-
-                // calculate location of pixel within the image grid
-                size_t il = ctx.pix_position(qu);
-                auto n_thread = omp_get_thread_num();
-                npix1_tls[n_thread][il]++;
-            }
-#pragma omp barrier
-#pragma omp for schedule(static)
-            for (long i = 0; i < distribution_size; i++) {
-                for (int n_thread = 0; n_thread < num_OMP_threads; n_thread++) {
-                    npix[i] += npix1_tls[n_thread][i];
-                }
-            }
-            ctx.nPixel_retained = num_pix;
-        } // end parallel
-    };
-};
-
-
-template<class SRC, class TRG>
-struct processSigErr {
-    void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
-        std::vector<double> qu(ctx.COORD_STRIDE);
-        for (long i = 0; i < ctx.data_size; i++) {
-            // drop out coordinates outside of the binning range
-            if (ctx.out_of_ranges(i, qu))
-                continue;
-            // drop out already selected pixels, if requested
-            size_t ip0 = i * ctx.PIX_STRIDE;
-            if (ctx.check_pix_selection && ctx.pix_coord[ip0 + pix_flds::idet] < 0)
-                continue;
-            ctx.nPixel_retained++;
-
-            // calculate location of pixel within the image grid and add values of this pixels to the accumulators
-            ctx.add_pix_to_accumulators(qu, ip0, npix, s, e);
-        }
-    }
-};
+// templates for various binning modes:
+#include "processNpixOnly.h"
+#include "processSigErr.h"
 
 template<class SRC, class TRG>
 struct processSigerrCell {
@@ -323,9 +246,9 @@ auto makeBinTable() {
     t[static_cast<size_t>(opModes::nosort_sel)] = &invoke<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::siger_selected)] = &invoke<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
 
-    t[static_cast<size_t>(opModes::npix_only)+ n_modes] = &invoke<struct processNpixOnlyWithOMP<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::npix_only)+ n_modes] = &invoke<processNpixOnlyWithOMP<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::sig_err) + n_modes] = &invoke<processSigErrWithOMP<SRC, TRG>, SRC, TRG>;
     // stubs for the future
-    t[static_cast<size_t>(opModes::sig_err) + n_modes] = &invoke<processSigErr<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::sigerr_cell) + n_modes] = &invoke<processSigerrCell<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::sort_pix) + n_modes] = &invoke<processWithSorting<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::sort_and_uid) + n_modes] = &invoke<processWithSorting<SRC, TRG>, SRC, TRG>;
@@ -355,9 +278,9 @@ auto makeTransfAndBinTable() {
     t[static_cast<size_t>(opModes::siger_selected)] = &invoke_and_transf<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
 
     t[static_cast<size_t>(opModes::npix_only)+ n_modes] = 
-        &invoke_and_transf<struct processNpixOnlyWithOMP<SRC, TRG>, SRC, TRG>;
+        &invoke_and_transf<processNpixOnlyWithOMP<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::sig_err) + n_modes] = &invoke_and_transf<processSigErrWithOMP<SRC, TRG>, SRC, TRG>;
     // stubs for the future
-    t[static_cast<size_t>(opModes::sig_err) + n_modes] = &invoke_and_transf<processSigErr<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::sort_pix) + n_modes] = &invoke_and_transf<processWithSorting<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::sort_and_uid) + n_modes] = &invoke_and_transf<processWithSorting<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::nosort) + n_modes] = &invoke_and_transf<processWithNoSorting<SRC, TRG>, SRC, TRG>;

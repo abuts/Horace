@@ -7,7 +7,9 @@ set(
 set(
     HDR_FILES    
     "bin_pixels.h"
-    "CommonBinCode.h"    
+    "CommonBinCode.h"
+    "processNpixOnly.h"
+    "processSigErr.h"    
     "BinningArg.h"
     "${CXX_SOURCE_DIR}/include/CommonCode.h"
     "${CXX_SOURCE_DIR}/include/span.hpp"

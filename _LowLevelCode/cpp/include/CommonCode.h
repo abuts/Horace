@@ -201,130 +201,27 @@ T getMatlabScalar(const mxArray* pPar, const char* const fieldName) {
     return static_cast<T>(*mxGetPr(pPar));
 };
 
+struct bin_accum{
+    double npix;
+    double s;
+    double e;
+    bin_accum(size_t val) :
+        npix(val),s(val),e(val)
+    {}
+};
 
-
-class omp_storage
-    /** Class to manage dynamical storage used in OMP loops
-    with various sources depending on the size of the storage and
-    number of OMP threads  */
-
-{
-public:
-    /* if memory allocated for multithreaded execution */
-    bool is_mutlithreaded;
-    /* pointers to the places, where thread data are stored
-    depending on condition, this are either final destination or
-    place on heap or on stack */
-    double* pSignal, * pError, * pNpix;
-
-    omp_storage(int num_OMP_Threads, size_t distribution_size, double* s, double* e, double* npix) :
-        distr_size(distribution_size), data_size(0), num_threads(num_OMP_Threads), largeMemory(NULL)
-    {
-        this->init_storage(num_OMP_Threads, distribution_size, s, e, npix);
-    };
-    /* Initialize OMP storage
-      *@param num_OMP_Threads   -- number of OMP threads to use
-      *@param distribution_size -- linear size of the distribution (Product of all dimensions)
-      *@param s     -- array of pixels signals (size of distribution_size)
-      *@param e     -- array of pixels errors (size of distribution_size)
-      *@param npix  -- array of number of pixels in each cell (size of distribution_size)
-    */
-    void init_storage(int num_OMP_Threads, size_t distribution_size, double* s, double* e, double* npix) {
-        num_threads = num_OMP_Threads;
-        size_t new_data_size = 3 * num_threads * distribution_size;
-        distr_size = distribution_size;
-
-        if (num_threads > 1) {
-            is_mutlithreaded = true;
-            bool allocate_memory = true;
-            if (largeMemory) {
-                if (new_data_size == data_size) {
-                    allocate_memory = false;
-                }
-                else {
-                    allocate_memory = true;
-                    if (se_vec_stor.size() == 0) {
-                        mxFree(largeMemory);
-                        largeMemory = NULL;
-                    }
-                    else {
-                        se_vec_stor.resize(0);
-                    }
-                }
-            }
-            if (allocate_memory) {
-                // allocate storage for particular threads
-                try {
-                    se_vec_stor.assign(new_data_size, 0.);
-                    largeMemory = &se_vec_stor[0];
-                }
-                catch (...) // no space on stack try heap,
-                {
-                    largeMemory = (double*)mxCalloc(new_data_size, sizeof(double));
-                    if (!largeMemory)throw("Can not allocate memory for processing data on threads. Decrease number of threads");
-                    for (size_t i = 0; i < new_data_size; i++) {
-                        largeMemory[i] = 0;
-                    }
-
-                }
-            }
-            else { // Nullify existing memory
-                for (size_t i = 0; i < new_data_size; i++) {
-                    largeMemory[i] = 0;
-                }
-            }
-            pSignal = largeMemory;
-            pError = largeMemory + num_threads * distribution_size;
-            pNpix = pError + num_threads * distribution_size;
-
-        }
-        else {
-            is_mutlithreaded = false;
-            pSignal = s;
-            pError = e;
-            pNpix = npix;
-            num_threads = 1;
-        }
-        data_size = new_data_size;
-
-
-
+template<class T>
+void init_tls_storage(size_t num_OMP_threads, size_t distribution_size,std::vector<std::vector<T> > &tls_storage) {
+    try {
+        tls_storage.resize(num_OMP_threads,
+            std::vector<T>(distribution_size, 0)
+        );
     }
-
-    void add_signal(const double& signal, const double& error, int n_thread, size_t index)
-    {
-        /*  signal_stor[n_thread][il] += ;
-        stor.error_stor[n_thread][il] += ;
-        stor.ind_stor[n_thread][il]++; */
-
-        size_t ind = n_thread * distr_size + index;
-        pSignal[ind] += signal;
-        pError[ind] += error;
-        pNpix[ind] += 1;
+    catch (...) {
+        std::stringstream buf;
+        buf << "Can not allocate TLS for size: " << distribution_size << " distribution.\nDecrease number of threads or perform serial calculations";
+        mexErrMsgIdAndTxt("HORACE:bin_pixels_c:runtime_error",
+            buf.str().c_str());
     }
-
-    void combine_storage(double* const s, double* const e, double* const npix, long i) {
-        for (int ns = 0; ns < num_threads; ns++) {
-            size_t ind = ns * distr_size + i;
-            s[i] += pSignal[ind];
-            e[i] += pError[ind];
-            npix[i] += pNpix[ind];
-        }
-    }
-
-    ~omp_storage() {
-        if (largeMemory && se_vec_stor.size() == 0) {
-            mxFree(largeMemory);
-            largeMemory = NULL;
-        }
-    }
-
-private:
-    size_t distr_size;
-    size_t data_size;
-    int    num_threads;
-
-    std::vector<double > se_vec_stor;
-    double* largeMemory;
 
 };

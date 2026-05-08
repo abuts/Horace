@@ -781,10 +781,12 @@ void BinningArg::parse_changed_bin_inputs(mxArray const* pAllParStruct)
     case (opModes::nosort):
     case (opModes::nosort_sel): {
         this->set_unique_runid(mxGetField(pAllParStruct, 0, "unique_runid"));
+        [[fallthrough]];
     }
     default:
-        if (!bin_proj_pixels)
+        if (!bin_proj_pixels) {
             this->set_coord_in(mxGetField(pAllParStruct, 0, "coord_in"));
+        }
         this->set_all_pix(mxGetField(pAllParStruct, 0, "pix_candidates"));
         // unique_runid, if provided, will be initialized in accumulators
         break;
