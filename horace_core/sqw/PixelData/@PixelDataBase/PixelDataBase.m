@@ -464,6 +464,20 @@ classdef (InferiorClasses = {?DnDBase,?IX_dataset,?sigvar},Abstract) ...
             end
             obj.data_range_(:,idx) = obj.EMPTY_RANGE(:,idx);
         end
+        function obj = set_raw_alignment(obj,al_mat)
+            % set alignment matrix only, not changing pixels in memory
+            % based case.
+            % 
+            % set_alignment_martix in memory based case does not actually
+            % sets alignment matrix but realign pixels. 
+            % This method allows to set matrix without changing pixels,
+            % which is useful for tests
+            
+            % set non-unary alignment matrix and invalidate pixel averages
+            % if alignment changes. If matrix is unary, it 
+            obj = obj.set_alignment(al_mat,@invalidate_range);
+            
+        end
         %
         function is = is_range_valid(obj,fld)
             % check if the range for the appropriate fields, provided as

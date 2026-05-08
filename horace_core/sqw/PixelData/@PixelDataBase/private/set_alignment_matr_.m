@@ -20,15 +20,7 @@ function  [obj,alignment_changed] = set_alignment_matr_(obj,val,pix_proc_functio
 %
 prev_matr      = obj.alignment_matr_;
 if isempty(val)
-    difr = eye(3) - prev_matr;
-    if max(abs(difr(:))) > 1.e-8
-        alignment_changed = true;
-    else
-        alignment_changed = false;
-    end
-    obj.alignment_matr_ = eye(3);
-    obj.is_corrected_   = false;
-    return;
+   val = eye(3);
 end
 if ~isnumeric(val)
     error('HORACE:PixelDataBase:invalid_argument', ...

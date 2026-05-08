@@ -474,7 +474,7 @@ classdef performance_bin_pixels_mex_nomex
 
                 % set alignment matrix but do not apply alignment.
                 % (Simulate filebased pixels)
-                pix.alignment_matr = al_matr;
+                pix = pix.set_raw_alignment(al_matr);
 
                 config_store.instance.set_value('hor_config','use_mex',false);
                 t1 = tic();

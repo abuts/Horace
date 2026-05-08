@@ -133,6 +133,47 @@ classdef test_bin_pixels_line_proj_mex_nomex < TestCase
             assertEqualToTol(pix_ok_nom,pix_ok_mex,'tol',[1.e-12,1.e-12])
         end
         
+        function test_bin_pixels_with_offset_mex_nomex(obj)
+            if obj.no_mex
+                skipTest('Can not test mex code to check binning against mex');
+            end
+            % this will recover existing configuration after test have been
+            % finished and temporary mex/nomex values will be set within
+            % the loop.
+            clObHor = set_temporary_config_options(hor_config, 'use_mex', false,'log_level',-1);
+            %
+            AB = line_axes('nbins_all_dims',[50,1,50,1], ...
+                'img_range', [...
+                -1,-0.5,-1, .0; ...
+                 0  , 1, 1,0.8]);
+            n_points = 200;
+
+            pix_coord = rand(9,n_points);
+
+            pix = PixelDataMemory(pix_coord);
+            lp = line_proj([1,1,0],[0,0,1],'alatt',[2,2,2],'angdeg',[70,80,110],'offset',[1,1,0]);
+
+            npix_nomex = []; s_nomex = [];e_nomex=[];uniqId_nom = [];
+            npix_mex   = []; s_mex = [];  e_mex=[];uniqId_mex = [];
+
+            config_store.instance.set_value('hor_config','use_mex',false);
+            [npix_nomex,s_nomex,e_nomex,pix_ok_nom,uniqId_nom] =...
+                lp.bin_pixels(AB,pix,npix_nomex,s_nomex,e_nomex,uniqId_nom);
+
+            config_store.instance.set_value('hor_config','use_mex',true);
+            [npix_mex,s_mex,e_mex,pix_ok_mex,uniqId_mex] = ...
+                lp.bin_pixels(AB,pix,npix_mex,s_mex,e_mex,uniqId_mex);
+
+            assertEqual(uint32(uniqId_nom),uniqId_mex);
+
+            assertEqual(npix_nomex,npix_mex)
+            assertEqualToTol(s_nomex,s_mex,'tol',[1.e-12,1.e-12])
+            assertEqualToTol(e_nomex,e_mex,'tol',[1.e-12,1.e-12])
+            assertEqualToTol(pix_ok_nom,pix_ok_mex,'tol',[1.e-12,1.e-12])
+        end
+
+
+        
         function test_bin_pixels_with_unique_id_mex_nomex(obj)
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
