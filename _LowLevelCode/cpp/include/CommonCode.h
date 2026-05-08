@@ -107,16 +107,6 @@ inline size_t align_and_copy_pixels(std::vector<double> &al_matr,span<const SRC>
     }
     return targ_pos;
 };
-/*
-void vec_to_mat_multiply() {
-    // Multiply: result[j] = sum over i of vec[i] * A[i][j]
-    for (size_t j = 0; j < M; ++j) {
-        for (size_t i = 0; i < N; ++i) {
-            result[j] += vec[i] * mat[i * M + j]; // A[i][j] = mat[i * M + j]
-        }
-    }
-}
-*/
 
 /* Initialize pixel ranges for calculating correct range.
  *  This means assigning to min/max holders values which are completely invalid, namely

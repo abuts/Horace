@@ -85,7 +85,6 @@ public:
     size_t  nPixel_retained;    // counter for number of retained pixels
     size_t  nCellOccupied;      // counter for number of occupied cells
 
-    std::vector<double> qi;     // holder for single pixel coordinates
     span<double> cut_range;     // 2x4 or 2x3 array, containing ranges to drom pixels off
     span<double> bin_step;      // 1x n-dimensions array defining inverse sizes of image cells 
     span<size_t> pax;           // numbers of axes (dimensions) to bin
@@ -98,7 +97,7 @@ public:
     long data_size;
 
     // check if the coordinates of pixel number i belong within the pixel ranges provided.
-    virtual bool out_of_ranges(long i)
+    virtual bool out_of_ranges(long i,std::vector<double> &qi)
     {
         size_t ic0 = i * COORD_STRIDE;
         for (size_t upixn = 0; upixn < COORD_STRIDE; upixn++) {
@@ -111,7 +110,7 @@ public:
     };
 
     // identify the linear positon of pixel within the grid.
-    size_t pix_position()
+    size_t pix_position(const std::vector<double> &qi)
     {
         size_t il(0);
         for (size_t j = 0; j < pax.size(); j++) {
@@ -125,11 +124,11 @@ public:
     };
 
     // calculate pixel contribution into image.
-    size_t add_pix_to_accumulators(size_t pix_in_pix_pos,
+    size_t add_pix_to_accumulators(const std::vector<double> &qu,size_t pix_in_pix_pos,
         span<double>& npix, span<double>& s, span<double>& e)
     {
         // calculate location of pixel within the image grid
-        auto il = this->pix_position();
+        auto il = this->pix_position(qu);
         // calculate npix accumulators
         npix[il]++;
         // calculate signal and error accumulators
@@ -159,7 +158,6 @@ public:
         this->nPixel_retained = 0;
         this->nCellOccupied = 0;
 
-        this->qi.resize(COORD_STRIDE);
         this->cut_range = span<double>(bin_par_ptr->data_range);
         this->bin_step = span<double>(bin_par_ptr->bin_step);
         this->pax = span<size_t>(bin_par_ptr->pax); // projection axis
@@ -202,7 +200,7 @@ public:
         ignore_all = ignore_nan && ignore_inf;
     }
 
-    bool out_of_ranges(long i) override
+    bool out_of_ranges(long i,std::vector<double> &qu) override
     {
         size_t ic0 = i * this->PIX_STRIDE;
         if (ignore_something)
@@ -256,7 +254,7 @@ public:
             if (accum < this->cut_range[2 * upixn] || accum > this->cut_range[2 * upixn + 1]) {
                 return true;
             }
-            this->qi[upixn] = accum;
+            qu[upixn] = accum;
         }
         return false;
     };

@@ -4,14 +4,15 @@
 template<class SRC, class TRG>
 struct processNpixOnly {
     void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
+        std::vector<double> qu(ctx.COORD_STRIDE);
         for (long i = 0; i < ctx.data_size; i++) {
             // drop out coordinates outside of the binning range
-            if (ctx.out_of_ranges(i))
+            if (ctx.out_of_ranges(i, qu))
                 continue;
             ctx.nPixel_retained++;
 
             // calculate location of pixel within the image grid
-            size_t il = ctx.pix_position();
+            size_t il = ctx.pix_position(qu);
             npix[il]++;
         }
 
@@ -21,9 +22,10 @@ struct processNpixOnly {
 template<class SRC, class TRG>
 struct processSigErr {
     void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
+        std::vector<double> qu(ctx.COORD_STRIDE);
         for (long i = 0; i < ctx.data_size; i++) {
             // drop out coordinates outside of the binning range
-            if (ctx.out_of_ranges(i))
+            if (ctx.out_of_ranges(i,qu))
                 continue;
             // drop out already selected pixels, if requested
             size_t ip0 = i * ctx.PIX_STRIDE;
@@ -32,7 +34,7 @@ struct processSigErr {
             ctx.nPixel_retained++;
 
             // calculate location of pixel within the image grid and add values of this pixels to the accumulators
-            ctx.add_pix_to_accumulators(ip0, npix, s, e);
+            ctx.add_pix_to_accumulators(qu,ip0, npix, s, e);
         }
     }
 };
@@ -54,15 +56,15 @@ struct processSigerrCell {
             const mxArray* cell_array_ptr = mxGetCell(ctx.bin_par_ptr->all_pix_ptr, i);
             cell_data_ptr[i] = mxGetPr(cell_array_ptr);
         }
-
+        std::vector<double> qu(ctx.COORD_STRIDE);
         for (long i = 0; i < ctx.data_size; i++) {
             // drop out coordinates outside of the binning range
-            if (ctx.out_of_ranges(i))
+            if (ctx.out_of_ranges(i, qu))
                 continue;
             ctx.nPixel_retained++;
 
             // calculate location of pixel within the image grid
-            size_t il = ctx.pix_position();
+            size_t il = ctx.pix_position(qu);
 
             if (npix_acc_separate) {
                 // calculate npix accumulators separately if their value is not provided as input
@@ -86,9 +88,10 @@ struct processWithSorting {
         pix_ok_bin_idx.swap(ctx.bin_par_ptr->pix_ok_bin_idx);
         std::vector<size_t> npix1;
         npix1.swap(ctx.bin_par_ptr->npix1);
+        std::vector<double> qu(ctx.COORD_STRIDE);
         for (long i = 0; i < ctx.data_size; i++) {
             // drop out coordinates outside of the binning range
-            if (ctx.out_of_ranges(i))
+            if (ctx.out_of_ranges(i,qu))
                 continue;
             // drop out already selected pixels, if requested
             size_t ip0 = i * ctx.PIX_STRIDE;
@@ -99,7 +102,7 @@ struct processWithSorting {
             // calculate location of pixel within the image grid and add values of this pixels to the accumulators
             // It is almost like add_pixels_to_accumulators but npix1 instead of npix and types of these arrays are different
             // calculate location of pixel within the image grid
-            size_t il = ctx.pix_position();
+            size_t il = ctx.pix_position(qu);
             // calculate npix accumulators for single page of pixels
             npix1[il]++;
             // calculate signal and error accumulators
@@ -159,10 +162,10 @@ struct processWithNoSorting {
     void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
         std::vector<mxInt64> pix_ok_bin_idx;
         pix_ok_bin_idx.swap(ctx.bin_par_ptr->pix_ok_bin_idx);
-
+        std::vector<double> qu(ctx.COORD_STRIDE);
         for (long i = 0; i < ctx.data_size; i++) {
             // drop out coordinates outside of the binning range
-            if (ctx.out_of_ranges(i))
+            if (ctx.out_of_ranges(i,qu))
                 continue;
 
             // drop out already selected pixels, if requested
@@ -172,7 +175,7 @@ struct processWithNoSorting {
             ctx.nPixel_retained++;
 
             // calculate location of pixel within the image grid and add values of this pixels to the accumulators
-            auto il = ctx.add_pix_to_accumulators(ip0, npix, s, e);
+            auto il = ctx.add_pix_to_accumulators(qu,ip0, npix, s, e);
 
             // store indices of contributing pixels
             pix_ok_bin_idx[i] = il;
@@ -209,10 +212,10 @@ struct processWithNoSortSel {
         span<mxLogical> is_pix_selected;
         ctx.bin_par_ptr->is_pix_selected_ptr = allocate_pix_memory<mxLogical>(1, ctx.data_size, is_pix_selected_ptr);
         is_pix_selected = span<mxLogical>(is_pix_selected_ptr, ctx.data_size);
-
+        std::vector<double> qu(ctx.COORD_STRIDE);
         for (long i = 0; i < ctx.data_size; i++) {
             // drop out coordinates outside of the binning range
-            if (ctx.out_of_ranges(i)) {
+            if (ctx.out_of_ranges(i,qu)) {
                 is_pix_selected[i] = false;
                 continue;
             }
@@ -230,7 +233,7 @@ struct processWithNoSortSel {
             ctx.nPixel_retained++;
 
             // calculate location of pixel within the image grid and add values of this pixels to the accumulators
-            auto il = ctx.add_pix_to_accumulators(ip0, npix, s, e);
+            auto il = ctx.add_pix_to_accumulators(qu,ip0, npix, s, e);
             if (!return_selected_only) {
                 pix_ok_bin_idx[i] = il;
                 // calculate pix ranges
