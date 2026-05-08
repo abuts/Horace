@@ -235,15 +235,15 @@ public:
                 q_shifted[upixn] = (double)this->pix_coord[ic0 + upixn];
             }
         }
-
+        double accum(0);
+        auto trmw = this->transf_matrix_width;
         for (size_t upixn = 0; upixn < this->COORD_STRIDE; upixn++) {
-            double accum(0);
-            auto trmw = this->transf_matrix_width;
             if (upixn < trmw) {
                 if (this->diag_transf) {
                     accum = this->transf_matrix[upixn] * q_shifted[upixn];
                 }
                 else {
+                    accum = 0;
                     for (size_t j = 0; j < trmw; j++) {
                         accum += this->transf_matrix[j * trmw + upixn] * q_shifted[j];
                     }

@@ -536,6 +536,27 @@ classdef test_cut < TestCase
             assertExceptionThrown(f, 'HORACE:cut:invalid_argument');
         end
 
+
+        function test_cut_nopix_to_file_mex_nomex(obj)
+            outfile1 = fullfile(tmp_dir, 'tmp_outfile_nomex.sqw');
+            outfile2 = fullfile(tmp_dir, 'tmp_outfile_mex.sqw');            
+            cleanup1 = onCleanup(@() clean_up_file(outfile1));
+            cleanup2 = onCleanup(@() clean_up_file(outfile2));            
+            clWarn = set_temporary_warning('off','HORACE:old_file_format','SQW_FILE:old_version');
+            clConf = set_temporary_config_options(hor_config,'use_mex',false);
+        
+            cut(obj.sqw_file, obj.ref_params{:}, outfile1, '-nopix')
+            assertTrue(logical(exist(outfile1, 'file')));            
+            config_store.instance().set_value('hor_config','use_mex',true);
+            cut(obj.sqw_file, obj.ref_params{:}, outfile2, '-nopix')
+
+            nom_obj = read_dnd(outfile1);
+            mex_obj = read_dnd(outfile2);            
+
+            assertEqualToTol(nom_obj, mex_obj, ...
+                'ignore_str', true,'abstol',2.e-7);
+        end
+
         function test_cut_nopix_to_file(obj)
             outfile = fullfile(tmp_dir, 'tmp_outfile.sqw');
             cleanup = onCleanup(@() clean_up_file(outfile));

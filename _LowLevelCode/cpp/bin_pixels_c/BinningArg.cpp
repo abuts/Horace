@@ -59,6 +59,7 @@ void BinningArg::set_u_offset(mxArray const* const pField) {
             apply_shift = true;
         this->u_offset[i] = element;
     }
+    this->apply_offset = apply_shift;
 }
 // set transformation matrix used in aProjection.bin_pixels mode
 void BinningArg::set_transf_matrix(mxArray const* const pField) {
