@@ -79,7 +79,7 @@ classdef performance_bin_pixels_mex_nomex
         end
         %==================================================================
         %==================================================================
-        function [t_nomex,t_mex] = performance_proj_mex_nomex_mode7_nosort_idx_sel(obj)
+        function [t_nomex,t_mex,t_omp] = performance_proj_mex_nomex_mode7_nosort_idx_sel(obj)
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
             end
@@ -97,6 +97,7 @@ classdef performance_bin_pixels_mex_nomex
 
             t_nomex = zeros(1,n_repeats);
             t_mex  = zeros(1,n_repeats);
+            t_omp  = zeros(1,n_repeats);
             disp("*** Proj performance mode7 (bin pixels + unique runid + return idx + selected):")
             for i= 1:n_repeats
                 fprintf('.')
@@ -129,13 +130,13 @@ classdef performance_bin_pixels_mex_nomex
                 pix.run_idx  =  500+floor(100*rand(1,n_points));
 
             end
-            obj.disp_perf_results(t_nomex,t_mex);
+            obj.disp_perf_results(t_nomex,t_mex,t_omp)
             % REFERENCE DATA: ndw2671
             %*** time of first step,    nomex:  2.1(sec)  mex:  1.1(sec); Acceleration :    2
             %*** Average time per step, nomex:  2.1(sec)  mex:    1(sec); Acceleration :    2
         end
 
-        function [t_nomex,t_mex] = performance_mex_nomex_mode7_nosort_idx_sel(obj)
+        function [t_nomex,t_mex,t_omp] = performance_mex_nomex_mode7_nosort_idx_sel(obj)
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
             end
@@ -152,6 +153,7 @@ classdef performance_bin_pixels_mex_nomex
 
             t_nomex = zeros(1,n_repeats);
             t_mex  = zeros(1,n_repeats);
+            t_omp  = zeros(1,n_repeats);
             disp("*** Mex/nomex performance mode7 (bin pixels + unique runid + return idx + selected):")
             for i= 1:n_repeats
                 fprintf('.')
@@ -182,14 +184,14 @@ classdef performance_bin_pixels_mex_nomex
                 assertEqualToTol(e_nomex,e_mex,'tol',[1.e-12,1.e-12])
                 assertEqualToTol(pix_ok_nom,pix_ok_mex,'tol',[1.e-12,1.e-12])
             end
-            obj.disp_perf_results(t_nomex,t_mex);
+            obj.disp_perf_results(t_nomex,t_mex,t_omp)
             % REFERENCE DATA: ndw2671
             %*** Mex/nomex performance mode7 (bin pixels + unique runid + return idx + selected):
             %*** time of first step,    nomex:  3.1(sec)  mex:  1.2(sec); Acceleration :  2.5
             %*** Average time per step, nomex:  3.1(sec)  mex:  1.3(sec); Acceleration :  2.3
         end
         %------------------------------------------------------------------
-        function [t_nomex,t_mex] = performance_proj_mex_nomex_mode6_nosort_idx(obj)
+        function [t_nomex,t_mex,t_omp] = performance_proj_mex_nomex_mode6_nosort_idx(obj)
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
             end
@@ -236,12 +238,12 @@ classdef performance_bin_pixels_mex_nomex
                 pix.coordinates = rand(4,n_points);
                 pix.run_idx  =  500+floor(100*rand(1,n_points));
             end
-            obj.disp_perf_results(t_nomex,t_mex);
+            obj.disp_perf_results(t_nomex,t_mex,t_omp)
             % REFERENCE DATA: ndw2671
             %*** time of first step,    nomex:  1.9(sec)  mex:  1.1(sec); Acceleration :  1.8
             %*** Average time per step, nomex:  1.9(sec)  mex:  1.1(sec); Acceleration :  1.8
         end
-        function [t_nomex,t_mex] = performance_mex_nomex_mode6_nosort_idx(obj)
+        function [t_nomex,t_mex,t_omp] = performance_mex_nomex_mode6_nosort_idx(obj)
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
             end
@@ -258,6 +260,7 @@ classdef performance_bin_pixels_mex_nomex
 
             t_nomex = zeros(1,n_repeats);
             t_mex  = zeros(1,n_repeats);
+            t_omp  = zeros(1,n_repeats);
             disp("*** Mex/nomex performance mode6 (bin pixels + unique runid + return idx):")
             for i= 1:n_repeats
                 fprintf('.')
@@ -287,14 +290,14 @@ classdef performance_bin_pixels_mex_nomex
                 assertEqualToTol(e_nomex,e_mex,'tol',[1.e-12,1.e-12])
                 assertEqualToTol(pix_ok_nom,pix_ok_mex,'tol',[1.e-12,1.e-12])
             end
-            obj.disp_perf_results(t_nomex,t_mex);
+            obj.disp_perf_results(t_nomex,t_mex,t_omp)
             % REFERENCE DATA: ndw2671
             %*** Mex/nomex performance mode6 (bin pixels + unique runid + return idx):
             %*** time of first step,    nomex:  3.8(sec)  mex:  1.3(sec); Acceleration :  2.6-3
             %*** Average time per step, nomex:  3.3(sec)  mex:  1.4(sec); Acceleration :  2.4
         end
         %------------------------------------------------------------------
-        function [t_nomex,t_mex] = performance_proj_mex_nomex_mode5_sort_and_uid(obj)
+        function [t_nomex,t_mex,t_omp] = performance_proj_mex_nomex_mode5_sort_and_uid(obj)
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
             end
@@ -312,6 +315,7 @@ classdef performance_bin_pixels_mex_nomex
 
             t_nomex = zeros(1,n_repeats);
             t_mex  = zeros(1,n_repeats);
+            t_omp  = zeros(1,n_repeats);
             disp("*** Proj mex/nomex performance mode5 (bin and sort pixels + unique runid):")
             for i= 1:n_repeats
                 fprintf('.')
@@ -342,13 +346,13 @@ classdef performance_bin_pixels_mex_nomex
                 pix.coordinates = rand(4,n_points);
                 pix.run_idx  =  500+floor(100*rand(1,n_points));
             end
-            obj.disp_perf_results(t_nomex,t_mex);
+            obj.disp_perf_results(t_nomex,t_mex,t_omp)
             % REFEFENCE Data NDW2671
             %*** Proj mex/nomex performance mode5 (bin and sort pixels + unique runid):
             %*** time of first step,    nomex:  2.3(sec)  mex:  1.1(sec); Acceleration :  2.1
             %*** Average time per step, nomex:  2.4(sec)  mex:    1(sec); Acceleration :  2.3
         end
-        function [t_nomex,t_mex] = performance_mex_nomex_mode5_sort_and_uid(obj)
+        function [t_nomex,t_mex,t_omp] = performance_mex_nomex_mode5_sort_and_uid(obj)
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
             end
@@ -365,6 +369,7 @@ classdef performance_bin_pixels_mex_nomex
 
             t_nomex = zeros(1,n_repeats);
             t_mex  = zeros(1,n_repeats);
+            t_omp  = zeros(1,n_repeats);
             disp("*** Mex/nomex performance mode5 (bin and sort pixels + unique runid):")
             for i= 1:n_repeats
                 fprintf('.')
@@ -393,14 +398,14 @@ classdef performance_bin_pixels_mex_nomex
                 assertEqualToTol(e_nomex,e_mex,'tol',[1.e-12,1.e-12])
                 assertEqualToTol(pix_ok_nom,pix_ok_mex,'tol',[1.e-12,1.e-12])
             end
-            obj.disp_perf_results(t_nomex,t_mex);
+            obj.disp_perf_results(t_nomex,t_mex,t_omp)
             % REFEFENCE Data NDW2671
             %*** Mex/nomex performance mode5 (bin and sort pixels + unique runid):
             %*** time of first step,    nomex:  5.8(sec)  mex:  2.1(sec); Acceleration :  2.7
             %*** Average time per step, nomex:  5.7(sec)  mex:  2.1(sec); Acceleration :  2.7
         end
         %------------------------------------------------------------------
-        function [t_nomex,t_mex] = performance_mex_mode4_for_profile_sort_pix(obj)
+        function [t_nomex,t_mex,t_omp] = performance_mex_mode4_for_profile_sort_pix(obj)
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
             end
@@ -417,6 +422,7 @@ classdef performance_bin_pixels_mex_nomex
 
             t_nomex = zeros(1,n_repeats);
             t_mex  = zeros(1,n_repeats);
+            t_omp  = zeros(1,n_repeats);
             pix = PixelDataMemory();
             disp("*** Mex performance mode4 (profile bin and sort pixels):")
             for i= 1:n_repeats
@@ -439,7 +445,7 @@ classdef performance_bin_pixels_mex_nomex
 
 
             end
-            obj.disp_perf_results(t_nomex,t_mex);
+            obj.disp_perf_results(t_nomex,t_mex,t_omp)
             % tav_mex = sum(t_mex)/n_repeats;
             % fprintf( ...
             %     '\n*** time of first step : %4.2g(sec)  av time per step: %4.2g(sec)\n', ...
@@ -449,7 +455,7 @@ classdef performance_bin_pixels_mex_nomex
             %*** time of first step :  1.9(sec)  av time per step:  1.8(sec)
         end
         %------------------------------------------------------------------
-        function [t_nomex,t_mex] = performance_proj_mex_nomex_mode4_and_align(obj)
+        function [t_nomex,t_mex,t_omp] = performance_proj_mex_nomex_mode4_and_align(obj)
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
             end
@@ -468,6 +474,7 @@ classdef performance_bin_pixels_mex_nomex
 
             t_nomex = zeros(1,n_repeats);
             t_mex  = zeros(1,n_repeats);
+            t_omp  = zeros(1,n_repeats);
             disp("*** Proj mex/nomex performance mode4 (bin and sort pixels applying alignment):")
             for i= 1:n_repeats
                 fprintf('.')
@@ -499,14 +506,14 @@ classdef performance_bin_pixels_mex_nomex
 
                 pix.coordinates = rand(4,n_points);
             end
-            obj.disp_perf_results(t_nomex,t_mex);
+            obj.disp_perf_results(t_nomex,t_mex,t_omp)
             % REFERENCE Data ndw2671
             %*** Proj mex/nomex performance mode4 (sort pixels):
             %*** time of first step,    nomex:  2.3(sec)  mex:  1.1(sec); Acceleration :  2.1
             %*** Average time per step, nomex:  2.2(sec)  mex:  1.1(sec); Acceleration :  2.1
 
         end
-        function [t_nomex,t_mex] = performance_mex_nomex_mode4_and_align(obj)
+        function [t_nomex,t_mex,t_omp] = performance_mex_nomex_mode4_and_align(obj)
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
             end
@@ -525,6 +532,7 @@ classdef performance_bin_pixels_mex_nomex
 
             t_nomex = zeros(1,n_repeats);
             t_mex  = zeros(1,n_repeats);
+            t_omp  = zeros(1,n_repeats);
             disp("*** Mex/nomex performance mode4 (bin and sort pixels applying alignment):")
             for i= 1:n_repeats
                 fprintf('.')
@@ -552,14 +560,14 @@ classdef performance_bin_pixels_mex_nomex
                 assertEqualToTol(e_nomex,e_mex,'tol',[1.e-12,1.e-12])
                 assertEqualToTol(pix_ok_nom,pix_ok_mex,'tol',[1.e-12,1.e-12])
             end
-            obj.disp_perf_results(t_nomex,t_mex);
+            obj.disp_perf_results(t_nomex,t_mex,t_omp)
             % REFERENCE Data ndw2671
             %*** Mex/nomex performance mode4 (bin and sort pixels applying alignment):
             %*** time of first step,    nomex:  5.9(sec)  mex:  1.7(sec); Acceleration :  3.4
             %*** Average time per step, nomex:  6.1(sec)  mex:  1.9(sec); Acceleration :  3.2
         end
         %------------------------------------------------------------------
-        function [t_nomex,t_mex] = performance_proj_mex_nomex_mode4(obj)
+        function [t_nomex,t_mex,t_omp] = performance_proj_mex_nomex_mode4(obj)
 
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
@@ -577,6 +585,7 @@ classdef performance_bin_pixels_mex_nomex
             disp("*** Proj mex/nomex performance mode4 (sort pixels):")
             t_nomex = zeros(1,n_repeats);
             t_mex  = zeros(1,n_repeats);
+            t_omp  = zeros(1,n_repeats);
             for i=1:n_repeats
                 fprintf('.')
 
@@ -601,13 +610,13 @@ classdef performance_bin_pixels_mex_nomex
                 pix.coordinates = rand(4,n_points);
             end
 
-            obj.disp_perf_results(t_nomex,t_mex);
+            obj.disp_perf_results(t_nomex,t_mex,t_omp)
             % REFERENCE Data ndw2671
             %*** Proj mex/nomex performance mode2 (bin pixels + sig_err):
             %*** time of first step,    nomex:  1.9(sec)  mex:  0.8(sec); Acceleration :  2.4
             %*** Average time per step, nomex:  1.9(sec)  mex: 0.84(sec); Acceleration :  2.3
         end
-        function [t_nomex,t_mex] = performance_mex_nomex_mode4(obj)
+        function [t_nomex,t_mex,t_omp] = performance_mex_nomex_mode4(obj)
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
             end
@@ -624,6 +633,7 @@ classdef performance_bin_pixels_mex_nomex
 
             t_nomex = zeros(1,n_repeats);
             t_mex  = zeros(1,n_repeats);
+            t_omp  = zeros(1,n_repeats);
             disp("*** Mex/nomex performance mode4 (bin and sort pixels):")
             for i= 1:n_repeats
                 fprintf('.')
@@ -648,14 +658,14 @@ classdef performance_bin_pixels_mex_nomex
                 assertEqualToTol(e_nomex,e_mex,'tol',[1.e-12,1.e-12])
                 assertEqualToTol(pix_ok_nom,pix_ok_mex,'tol',[1.e-12,1.e-12])
             end
-            obj.disp_perf_results(t_nomex,t_mex);
+            obj.disp_perf_results(t_nomex,t_mex,t_omp)
             % REFERENCE Data ndw2671
             %*** Mex/nomex performance mode4 (bin and sort pixels):
             %*** time of first step,    nomex:  5.4(sec)  mex:  1.7(sec); Acceleration :  3.1
             %*** Average time per step, nomex:  5.4(sec)  mex:  1.8(sec); Acceleration :    3
         end
         %------------------------------------------------------------------
-        function [t_nomex,t_mex] = performance_mex_nomex_mode3_sigerr_cell(obj)
+        function [t_nomex,t_mex,t_omp] = performance_mex_nomex_mode3_sigerr_cell(obj)
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
             end
@@ -672,6 +682,7 @@ classdef performance_bin_pixels_mex_nomex
 
             t_nomex = zeros(1,n_repeats);
             t_mex  = zeros(1,n_repeats);
+            t_omp  = zeros(1,n_repeats);
             disp("*** Mex/nomex performance mode3 (binning cellarrays of data over coordinate frame):")
             for i= 1:n_repeats
                 fprintf('.')
@@ -695,14 +706,14 @@ classdef performance_bin_pixels_mex_nomex
                 assertEqualToTol(s_nomex,s_mex,'tol',[1.e-9,1.e-9])
                 assertEqualToTol(e_nomex,e_mex,'tol',[1.e-9,1.e-9])
             end
-            obj.disp_perf_results(t_nomex,t_mex);
+            obj.disp_perf_results(t_nomex,t_mex,t_omp)
             % REFERENCE Data ndw2671
             %*** Mex/nomex performance mode3 (binning cellarrays of data over coordinate frame):
             %*** time of first step,    nomex:  2.2(sec)  mex:  0.7(sec); Acceleration :  3.2
             %*** Average time per step, nomex:  2.2(sec)  mex: 0.69(sec); Acceleration :  3.3
         end
         %------------------------------------------------------------------
-        function [t_nomex,t_mex] = performance_proj_mex_nomex_mode2_npix_and_sigerr(obj)
+        function [t_nomex,t_mex,t_omp] = performance_proj_mex_nomex_mode2_npix_and_sigerr(obj)
 
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
@@ -720,6 +731,7 @@ classdef performance_bin_pixels_mex_nomex
             disp("*** Proj mex/nomex performance mode2 (bin pixels + sig_err):")
             t_nomex = zeros(1,n_repeats);
             t_mex  = zeros(1,n_repeats);
+            t_omp  = zeros(1,n_repeats);
             for i=1:n_repeats
                 fprintf('.')
 
@@ -741,10 +753,10 @@ classdef performance_bin_pixels_mex_nomex
                 pix.coordinates = rand(4,n_points);
             end
 
-            obj.disp_perf_results(t_nomex,t_mex);
+            obj.disp_perf_results(t_nomex,t_mex,t_omp)
         end
 
-        function [t_nomex,t_mex] = performance_mex_nomex_mode2_npix_and_sigerr(obj)
+        function [t_nomex,t_mex,t_omp] = performance_mex_nomex_mode2_npix_and_sigerr(obj)
 
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
@@ -762,6 +774,7 @@ classdef performance_bin_pixels_mex_nomex
 
             t_nomex = zeros(1,n_repeats);
             t_mex  = zeros(1,n_repeats);
+            t_omp  = zeros(1,n_repeats);
             disp("*** Mex/nomex performance mode2 (bin pixels + sig_err):")
             for i= 1:n_repeats
                 fprintf('.')
@@ -785,20 +798,21 @@ classdef performance_bin_pixels_mex_nomex
                 assertEqualToTol(s_nomex,s_mex,'tol',[1.e-9,1.e-9])
                 assertEqualToTol(e_nomex,e_mex,'tol',[1.e-9,1.e-9])
             end
-            obj.disp_perf_results(t_nomex,t_mex);
+            obj.disp_perf_results(t_nomex,t_mex,t_omp)
             % REFERENCE Data ndw2671
             %*** Mex/nomex performance mode2 (bin pixelsbin pixels + sig_err):
             %*** time of first step,    nomex:  3.4(sec)  mex: 0.68(sec); Acceleration :    5
             %*** Average time per step, nomex:  3.4(sec)  mex: 0.71(sec); Acceleration :  4.8
         end
         %------------------------------------------------------------------
-        function [t_nomex,t_mex] = performance_proj_mex_nomex_mode0(obj)
+        function [t_nomex,t_mex,t_omp] = performance_proj_mex_nomex_mode0(obj)
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
             end
             % this will recover existing configuration after test have been
             % finished
             clObHor = set_temporary_config_options(hor_config, 'use_mex', false);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1);
             %
 
             n_repeats = 10;
@@ -807,9 +821,11 @@ classdef performance_bin_pixels_mex_nomex
 
             npix_nomex = [];
             npix_mex   = [];
+            npix_omp   = [];
 
             t_nomex = zeros(1,n_repeats);
             t_mex  = zeros(1,n_repeats);
+            t_omp  = zeros(1,n_repeats);
             disp("*** Proj mex/nomex performance mode0 (bin coord, calc npix):")
             for i= 1:n_repeats
                 fprintf('.')
@@ -824,32 +840,45 @@ classdef performance_bin_pixels_mex_nomex
                 t1 = tic();
                 npix_mex = lp.bin_pixels(AB,pix,npix_mex,[],[]);
                 t_mex(i) = toc(t1);
+
+                config_store.instance.set_value('parallel_config','threads',8);
+                t1 = tic();
+                npix_omp = lp.bin_pixels(AB,pix,npix_omp,[],[]);
+                t_omp(i) = toc(t1);
+
                 pix.coordinates = rand(4,n_points);
                 assertEqual(npix_nomex,npix_mex)
+                assertEqual(npix_nomex,npix_omp)
             end
-            obj.disp_perf_results(t_nomex,t_mex);
+            obj.disp_perf_results(t_nomex,t_mex,t_omp)
             % REFERENCE Data ndw2671
             %*** Proj mex/nomex performance mode4 (bin and sort pixels applying alignment):
             %*** time of first step,    nomex:  2.1(sec)  mex:  1.1(sec); Acceleration :    2
             %*** Average time per step, nomex:  2.1(sec)  mex:    1(sec); Acceleration :  2.1
+            % REFERENCE Data ndlt1737
+            %*** first step:    nomex:  2.9(sec)  mex:  2.3(sec);  omp: 0.46(sec); Acc :  1.3/ 6.4
+            %*** Avrg per step, nomex:  2.4(sec)  mex: 0.65(sec);  omp: 0.47(sec); Acc :  3.7/ 5.1
         end
 
-        function [t_nomex,t_mex] = performance_mex_nomex_mode0(obj)
+        function [t_nomex,t_mex,t_omp] = performance_mex_nomex_mode0(obj)
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
             end
             % this will recover existing configuration after test have been
             % finished
             clObHor = set_temporary_config_options(hor_config, 'use_mex', false);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1);
             %
             [AB,n_points]=obj.prepare_clean_bin_data();
 
             n_repeats = 10;
             npix_nomex = [];
             npix_mex   = [];
+            npix_omp   = [];
 
             t_nomex = zeros(1,n_repeats);
             t_mex  = zeros(1,n_repeats);
+            t_omp  = zeros(1,n_repeats);
             disp("*** Mex/nomex performance mode0 (bin coord, calc npix):")
             for i= 1:n_repeats
                 fprintf('.')
@@ -866,13 +895,23 @@ classdef performance_bin_pixels_mex_nomex
                 npix_mex = AB.bin_pixels(in_coord,npix_mex);
                 t_mex(i) = toc(t1);
 
+                config_store.instance.set_value('parallel_config','threads',8);
+                t1 = tic();
+                npix_omp = AB.bin_pixels(in_coord,npix_omp);
+                t_omp(i) = toc(t1);
+
                 assertEqual(npix_nomex,npix_mex)
+                assertEqual(npix_nomex,npix_omp)
             end
-            obj.disp_perf_results(t_nomex,t_mex);
+            obj.disp_perf_results(t_nomex,t_mex,t_omp);
             % REFERENCE Data ndw2671
             %*** Mex/nomex performance mode0 (bin coord, calc npix):
             %*** time of first step,    nomex:  1.4(sec)  mex: 0.61(sec); Acceleration :  2.3
             %*** Average time per step, nomex:  1.4(sec)  mex: 0.62(sec); Acceleration :  2.2
+            % REFERENCE Data ndlt1737
+            %*** first step:    nomex: 0.52(sec)  mex: 0.22(sec);  omp: 0.049(sec); Acc :  2.4/  10
+            %*** Avrg per step, nomex: 0.54(sec)  mex: 0.067(sec);  omp: 0.05(sec); Acc :  8.1/  11
+
         end
 
     end
@@ -889,7 +928,7 @@ classdef performance_bin_pixels_mex_nomex
         function [lp,ab,pix,n_points]=prepare_lp_bin_data()
             ab = line_axes('nbins_all_dims',[50,1,50,1], ...
                 'img_range',[0,0,0,0;1,0.8,1,0.8]);
-            n_points = 20000000;
+            n_points = 50000000;
             pix_id = 10;
             pix_coord = rand(9,n_points);
             pix_coord(PixelDataBase.field_index('run_idx'),:) = pix_id;
@@ -899,16 +938,17 @@ classdef performance_bin_pixels_mex_nomex
             lp = line_proj([1,1,0],[0,0,1],'alatt',[1,2,3],'angdeg',[70,80,110],'offset',[0,0,0]);
         end
 
-        function [tav_nom,tav_mex] = disp_perf_results(t_nomex,t_mex)
+        function [tav_nom,tav_mex] = disp_perf_results(t_nomex,t_mex,t_omp)
             n_repeats = numel(t_nomex);
             tav_mex = sum(t_mex)/n_repeats;
             tav_nom = sum(t_nomex)/n_repeats;
+            tav_omp = sum(t_omp)/n_repeats;
             fprintf( ...
-                '\n*** time of first step,    nomex: %4.2g(sec)  mex: %4.2g(sec); Acceleration : %4.2g\n', ...
-                t_nomex(1),t_mex(1),t_nomex(1)/t_mex(1));
+                '\n*** first step:    nomex: %4.2g(sec)  mex: %4.2g(sec);  omp: %4.2g(sec); Acc : %4.2g/%4.2g\n', ...
+                t_nomex(1),t_mex(1),t_omp(1),t_nomex(1)/t_mex(1),t_nomex(1)/t_omp(1));
             fprintf( ...
-                '*** Average time per step, nomex: %4.2g(sec)  mex: %4.2g(sec); Acceleration : %4.2g\n', ...
-                tav_nom,tav_mex,tav_nom/tav_mex);
+                '*** Avrg per step, nomex: %4.2g(sec)  mex: %4.2g(sec);  omp: %4.2g(sec); Acc : %4.2g/%4.2g\n', ...
+                tav_nom,tav_mex,tav_omp,tav_nom/tav_mex,tav_nom/tav_omp);
         end
     end
 end

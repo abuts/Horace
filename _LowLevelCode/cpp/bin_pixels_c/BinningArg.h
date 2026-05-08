@@ -58,7 +58,7 @@ enum opModes {
     //                   and what were rejected by binning operations
     siger_selected = 8, // the same as sig_err but return logical array of selected pixels instead of pix_ok array
     test_inputs = 9, // do not do calculations but just return parsed inputs for
-    //                  unit testing. 
+    //                  unit testing.
     N_OP_Modes = 10 // total number of modes code operates in. Provided for checks
 };
 
