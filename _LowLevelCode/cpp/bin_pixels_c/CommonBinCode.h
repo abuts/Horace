@@ -3,71 +3,6 @@
 #include <array>
 #include <algorithm>
 
-/** identifies 1D index of the image cell where the particular pixel belongs to
-* Inputs:
-* qi       -- 1-dimensional vector of pixel coordinates to process
-* pax      -- 1-to-4 elements vector of pixel indices accounted in binning. Indicates
-*             numbers of pixel coordinates from qi array to include in the binning.
-*             I.e. if pax.size()==1 only one coordinates needs to be binned or if
-*             pax.size()==4, all four qi coordinates have to be binned in 4-dimensional array
-* cut_range -- 6 or 8-elements array defining ranges allowed for pixels. The same as cut_range
-*              provided in out_of_range routine above.
-* bin_step  -- 6 or 8-elements array defining bin step sizes e.g. (cut_range(2*n+1)-cut_range(2*n))/bin_cell_idx_range(n)
-*              where n is the number of pixel coordinate to bin.
-* bin_cell_idx_range
-*           -- number of bins in each binned direction.
-* stride    -- 1-to-4 element's vector which describes 1-D allocation of multidimensional array,
-*              i.e. change of linear index per change of 1-4 dimensional index by 1 in each direction.
-*             E.g.:
-*              if one have 1D array, stride has 1 element and contains 1.
-*              For 2-dimensional array of size 9x10, stride == [1,9]
-*              For 3-dimensional array of size 9x10x11, stride == [1,9,9*10]
-*              For 4-dimensional array of size 9x10x11x12, stride == [1,9,9*10,9*10*11]
-* Returns:
-* index of pixel in input multidimensional array.
-*/
-// copy selected pixels from original array to the target array, containing only selected pixels
-// pixels are not sorted and array of indices which correspond to pixels positions according
-// to image is returned instead
-template <class SRC, class TRG>
-void inline copy_results_to_final_arrays(BinningArg* const bin_par_ptr, span<const SRC> pix_coord,
-    size_t data_size, size_t nPixel_retained, std::vector<mxInt64>& pix_ok_bin_idx)
-{
-    // allocate memory for pixels to retain.
-    TRG* selected_pix_ptr(nullptr); // pointer to the actual data position.
-    bin_par_ptr->pix_ok_ptr = allocate_pix_memory<TRG>(pix_flds::PIX_WIDTH, nPixel_retained, selected_pix_ptr);
-    // allocated memory for pixel indices
-    mxInt64* pix_img_idx_ptr(nullptr);
-    bin_par_ptr->pix_img_idx_ptr = allocate_pix_memory<mxInt64>(nPixel_retained, 1, pix_img_idx_ptr);
-    span<mxInt64> pix_img_idx(pix_img_idx_ptr, nPixel_retained);
-
-    bool align_result = bin_par_ptr->alignment_matrix.size() == 9;
-
-    // actually move pixels and copy indices to the target array
-    size_t targ_pix_pos(0);
-    size_t targ_pix_array_pos(0);
-    for (size_t i = 0; i < data_size; i++) {
-        if (pix_ok_bin_idx[i] < 0) // drop pixels with have not been included above
-            continue;
-
-        size_t il = (size_t)pix_ok_bin_idx[i]; // number of image cell pixel should go to
-        pix_img_idx[targ_pix_pos] = il + 1; // MATLB indices start from 1 and these -- from 0
-
-        if (align_result) {
-            // align q-coordinates and copy all other pixel data into the location requested
-            targ_pix_array_pos = align_and_copy_pixels<SRC, TRG>(bin_par_ptr->alignment_matrix, pix_coord, i, selected_pix_ptr, targ_pix_pos);
-        }
-        else {
-            // copy all pixel data into the location requested
-            targ_pix_array_pos = copy_pixels<SRC, TRG>(pix_coord, i, selected_pix_ptr, targ_pix_pos);
-        }
-        // search for unique run_id;
-        bin_par_ptr->unique_runID.insert(uint32_t(selected_pix_ptr[targ_pix_array_pos + pix_flds::irun]));
-
-        targ_pix_pos++; // move to the next pixel position within the target array
-    }
-};
-
 // define the structure which contains variable common for all binning sub-algorithms
 template<class SRC, class TRG>
 class CommonBinCode {
@@ -97,7 +32,7 @@ public:
     long data_size;
 
     // check if the coordinates of pixel number i belong within the pixel ranges provided.
-    virtual bool out_of_ranges(long i,std::vector<double> &qi)
+    virtual bool out_of_ranges(long i, std::vector<double>& qi)
     {
         size_t ic0 = i * COORD_STRIDE;
         for (size_t upixn = 0; upixn < COORD_STRIDE; upixn++) {
@@ -109,8 +44,31 @@ public:
         return false;
     };
 
-    // identify the linear positon of pixel within the grid.
-    size_t pix_position(const std::vector<double> &qi)
+    /** Identifies the linear positon of pixel within the grid i.e.
+    * 1D index of the image cell where the particular pixel belongs to
+    * Used variables:
+    * qi       -- 1-dimensional vector of pixel coordinates to process
+    * pax      -- 1-to-4 elements vector of pixel indices accounted in binning. Indicates
+    *             numbers of pixel coordinates from qi array to include in the binning.
+    *             I.e. if pax.size()==1 only one coordinates needs to be binned or if
+    *             pax.size()==4, all four qi coordinates have to be binned in 4-dimensional array
+    * cut_range -- 6 or 8-elements array defining ranges allowed for pixels. The same as cut_range
+    *              provided in out_of_range routine above.
+    * bin_step  -- 6 or 8-elements array defining bin step sizes e.g. (cut_range(2*n+1)-cut_range(2*n))/bin_cell_idx_range(n)
+    *              where n is the number of pixel coordinate to bin.
+    * bin_cell_idx_range
+    *           -- number of bins in each binned direction.
+    * stride    -- 1-to-4 element's vector which describes 1-D allocation of multidimensional array,
+    *              i.e. change of linear index per change of 1-4 dimensional index by 1 in each direction.
+    *             E.g.:
+    *              if one have 1D array, stride has 1 element and contains 1.
+    *              For 2-dimensional array of size 9x10, stride == [1,9]
+    *              For 3-dimensional array of size 9x10x11, stride == [1,9,9*10]
+    *              For 4-dimensional array of size 9x10x11x12, stride == [1,9,9*10,9*10*11]
+    * Returns:
+    * index of pixel in input multidimensional array.
+    */
+    size_t pix_position(const std::vector<double>& qi)
     {
         size_t il(0);
         for (size_t j = 0; j < pax.size(); j++) {
@@ -124,7 +82,7 @@ public:
     };
 
     // calculate pixel contribution into image.
-    size_t add_pix_to_accumulators(const std::vector<double> &qu,size_t pix_in_pix_pos,
+    size_t add_pix_to_accumulators(const std::vector<double>& qu, size_t pix_in_pix_pos,
         span<double>& npix, span<double>& s, span<double>& e)
     {
         // calculate location of pixel within the image grid
@@ -137,9 +95,10 @@ public:
 
         return il;
     };
-    // calculate pixel contribution into image.
+    // calculate pixel contribution into image presented in the form of special 
+    // structure (sub-image).
     size_t add_pix_to_tls_accum(const std::vector<double>& qu, size_t pix_in_pix_pos,
-        std::vector<bin_accum> &acc)
+        std::vector<bin_accum>& acc)
     {
         // calculate location of pixel within the image grid
         auto il = this->pix_position(qu);
@@ -215,7 +174,7 @@ public:
         ignore_all = ignore_nan && ignore_inf;
     }
 
-    bool out_of_ranges(long i,std::vector<double> &qu) override
+    bool out_of_ranges(long i, std::vector<double>& qu) override
     {
         size_t ic0 = i * this->PIX_STRIDE;
         if (ignore_something)

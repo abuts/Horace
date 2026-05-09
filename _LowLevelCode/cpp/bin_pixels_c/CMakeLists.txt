@@ -5,12 +5,16 @@ set(
 )
 
 set(
-    HDR_FILES    
+    HDR_FILES
     "bin_pixels.h"
+    "BinningArg.h"   
+    "copy_results_to_final_arrays.h"    
     "CommonBinCode.h"
     "processNpixOnly.h"
-    "processSigErr.h"    
-    "BinningArg.h"
+    "processSigErr.h"
+    "processWithSorting.h"
+    "processWithNoSorting.h"
+    "processWithNoSortSel.h"
     "${CXX_SOURCE_DIR}/include/CommonCode.h"
     "${CXX_SOURCE_DIR}/include/span.hpp"
     "${CXX_SOURCE_DIR}/include/MatlabCppClassHolder.hpp"

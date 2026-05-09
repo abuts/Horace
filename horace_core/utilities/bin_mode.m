@@ -2,7 +2,7 @@ classdef bin_mode < uint32
     % Enumeration class describes various bin modes AxesBlockBase.bin_pixels
     % algorithm. The numbering and names selected to coinside with C++ mex
     % routine, except N_OP_Modes, which is MATLAB's agreement
-    enumeration 
+    enumeration
         npix_only    (0) % calculate npix array binning input coordinates over range provided
         invalid_mode (1) % this mode is not supported by binning routine
         sig_err      (2) % calculate npix, signal and error
@@ -17,7 +17,7 @@ classdef bin_mode < uint32
         N_OP_Modes   (10) % total number of modes code operates in. Provided for checks
     end
     methods(Static)
-        function mode = from_narg(num_arguments,test_inputs,sigerr_and_selected,varargin)
+        function mode = from_narg(num_arguments,test_inputs,sigerr_and_selected,nosort,varargin)
             % retrieve binning mode from number of arguments, requested to
             % process and format of some input arguments or their absence.
 
@@ -49,9 +49,12 @@ classdef bin_mode < uint32
             if mode == bin_mode.sig_err && ~isempty(varargin) && iscell(varargin{end}) % mode sig_err and sigerr_cell have equal number of outputs
                 mode = bin_mode.sigerr_cell; % and differ by type of input
             end
-            if ~ismember(uint32(mode),[0,2,3,4,5,6,7])
+            if mode == bin_mode.sort_and_uid && nosort % sort and uid and nosort have the same number of outputs.
+                mode = bin_mode.nosort;
+            end
+            if ~ismember(uint32(mode),[0,2,3,4,5,6,7,8])
                 error('HORACE:bin_mode:invalid_argument',...
-                    'Binning modes return 1,3,4,5,6 or 7 output arguments. Provided: %d ', ...
+                    'Binning modes return 1,3,4,5,6 7 or 8 output arguments. Provided: %d ', ...
                     num_arguments+1);
             end
         end

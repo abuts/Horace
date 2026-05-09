@@ -3,6 +3,9 @@
 // templates for various binning modes:
 #include "processNpixOnly.h"
 #include "processSigErr.h"
+#include "processWithSorting.h"
+#include "processWithNoSorting.h"
+#include "processWithNoSortSel.h"
 
 template<class SRC, class TRG>
 struct processSigerrCell {
@@ -46,176 +49,6 @@ struct processSigerrCell {
     }
 };
 
-template<class SRC, class TRG>
-struct processWithSorting {
-    void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
-        std::vector<mxInt64> pix_ok_bin_idx;
-        pix_ok_bin_idx.swap(ctx.bin_par_ptr->pix_ok_bin_idx);
-        std::vector<size_t> npix1;
-        npix1.swap(ctx.bin_par_ptr->npix1);
-        std::vector<double> qu(ctx.COORD_STRIDE);
-        for (long i = 0; i < ctx.data_size; i++) {
-            // drop out coordinates outside of the binning range
-            if (ctx.out_of_ranges(i, qu))
-                continue;
-            // drop out already selected pixels, if requested
-            size_t ip0 = i * ctx.PIX_STRIDE;
-            if (ctx.check_pix_selection && ctx.pix_coord[ip0 + pix_flds::idet] < 0)
-                continue;
-            ctx.nPixel_retained++;
-
-            // calculate location of pixel within the image grid and add values of this pixels to the accumulators
-            // It is almost like add_pixels_to_accumulators but npix1 instead of npix and types of these arrays are different
-            // calculate location of pixel within the image grid
-            size_t il = ctx.pix_position(qu);
-            // calculate npix accumulators for single page of pixels
-            npix1[il]++;
-            // calculate signal and error accumulators
-            // calculate signal and error accumulators taken from current pixel
-            s[il] += (double)ctx.pix_coord[ip0 + pix_flds::iSign];
-            e[il] += (double)ctx.pix_coord[ip0 + pix_flds::iErr];
-            // store indices of contributing pixels
-            pix_ok_bin_idx[i] = il;
-            // calculate pix ranges
-            calc_pix_ranges<SRC>(ctx.pix_ranges, ctx.pix_coord, ctx.PIX_STRIDE, i);
-        }
-        // allocate memory for pixels to retain contributing pixels.
-        TRG* sorted_pix_ptr(nullptr); // pointer to the actual data position.
-        ctx.bin_par_ptr->pix_ok_ptr = allocate_pix_memory<TRG>(pix_flds::PIX_WIDTH, ctx.nPixel_retained, sorted_pix_ptr);
-        // calculate ranges of cells to place pixels
-        std::vector<size_t> bin_start;
-        bin_start.swap(ctx.bin_par_ptr->npix_bin_start);
-        bin_start[0] = 0;
-        npix[0] += npix1[0];
-        if (ctx.distribution_size > 1) {
-            for (size_t i = 1; i < ctx.distribution_size; i++) {
-                bin_start[i] = bin_start[i - 1] + npix1[i - 1]; // range of cell to place pixels
-                npix[i] += npix1[i]; // increase multi-call accumulators
-            }
-        }
-        bool align_result = ctx.bin_par_ptr->alignment_matrix.size() == 9;
-        size_t targ_pix_pos(0);
-        bool keep_unique_id = ctx.bin_par_ptr->binMode == opModes::sort_and_uid;
-        // actually sort pixels and copy selected pixels into proper locations within the target array
-        for (size_t i = 0; i < ctx.data_size; i++) {
-            if (pix_ok_bin_idx[i] < 0) // drop pixels with have not been included above
-                continue;
-
-            size_t il = (size_t)pix_ok_bin_idx[i]; // number of cell pixel should go to
-            auto cell_pix_ind = bin_start[il]++; // pixel position within the array defined by cell
-            if (align_result) {
-                // align q-coordinates and copy all other pixel data into the location requested
-                targ_pix_pos = align_and_copy_pixels<SRC, TRG>(ctx.bin_par_ptr->alignment_matrix, ctx.pix_coord, i, sorted_pix_ptr, cell_pix_ind);
-            }
-            else {
-                targ_pix_pos = copy_pixels<SRC, TRG>(ctx.pix_coord, i, sorted_pix_ptr, cell_pix_ind); // copy all pixel data into the location requested
-            }
-            if (keep_unique_id) {
-                ctx.bin_par_ptr->unique_runID.insert(uint32_t(sorted_pix_ptr[targ_pix_pos + pix_flds::irun]));
-            }
-        }
-        // swap memory of working arrays back to binning_arguments to retain it for the next call
-        ctx.bin_par_ptr->pix_ok_bin_idx.swap(pix_ok_bin_idx);
-        ctx.bin_par_ptr->npix_bin_start.swap(bin_start);
-        ctx.bin_par_ptr->npix1.swap(npix1);
-    }
-};
-
-template<class SRC, class TRG>
-struct processWithNoSorting {
-
-    void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
-        std::vector<mxInt64> pix_ok_bin_idx;
-        pix_ok_bin_idx.swap(ctx.bin_par_ptr->pix_ok_bin_idx);
-        std::vector<double> qu(ctx.COORD_STRIDE);
-        for (long i = 0; i < ctx.data_size; i++) {
-            // drop out coordinates outside of the binning range
-            if (ctx.out_of_ranges(i, qu))
-                continue;
-
-            // drop out already selected pixels, if requested
-            size_t ip0 = i * ctx.PIX_STRIDE;
-            if (ctx.check_pix_selection && ctx.pix_coord[ip0 + pix_flds::idet] < 0)
-                continue;
-            ctx.nPixel_retained++;
-
-            // calculate location of pixel within the image grid and add values of this pixels to the accumulators
-            auto il = ctx.add_pix_to_accumulators(qu, ip0, npix, s, e);
-
-            // store indices of contributing pixels
-            pix_ok_bin_idx[i] = il;
-            // calculate pix ranges
-            calc_pix_ranges<SRC>(ctx.pix_ranges, ctx.pix_coord, ctx.PIX_STRIDE, i);
-        }
-        // allocate memory for pixels to retain.
-        TRG* selected_pix_ptr(nullptr); // pointer to the actual data position.
-        ctx.bin_par_ptr->pix_ok_ptr = allocate_pix_memory<TRG>(pix_flds::PIX_WIDTH, ctx.nPixel_retained, selected_pix_ptr);
-        // allocated memory for pixel indices
-        mxInt64* pix_img_idx_ptr(nullptr);
-        ctx.bin_par_ptr->pix_img_idx_ptr = allocate_pix_memory<mxInt64>(ctx.nPixel_retained, 1, pix_img_idx_ptr);
-        span<mxInt64> pix_img_idx(pix_img_idx_ptr, ctx.nPixel_retained);
-        copy_results_to_final_arrays<SRC, TRG>(ctx.bin_par_ptr, ctx.pix_coord,
-            ctx.data_size, ctx.nPixel_retained, pix_ok_bin_idx);
-        // swap memory of working arrays back to binning_arguments to retain it for the next call
-        ctx.bin_par_ptr->pix_ok_bin_idx.swap(pix_ok_bin_idx);
-    }
-};
-
-template<class SRC, class TRG>
-struct processWithNoSortSel {
-
-    void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
-
-        auto return_selected_only = ctx.bin_par_ptr->binMode == opModes::siger_selected;
-        std::vector<mxInt64> pix_ok_bin_idx;
-        if (!return_selected_only) {
-            pix_ok_bin_idx.swap(ctx.bin_par_ptr->pix_ok_bin_idx);
-        }
-
-        // Allocate memory for logical array of selected pixels
-        mxLogical* is_pix_selected_ptr(nullptr);
-        span<mxLogical> is_pix_selected;
-        ctx.bin_par_ptr->is_pix_selected_ptr = allocate_pix_memory<mxLogical>(1, ctx.data_size, is_pix_selected_ptr);
-        is_pix_selected = span<mxLogical>(is_pix_selected_ptr, ctx.data_size);
-        std::vector<double> qu(ctx.COORD_STRIDE);
-        for (long i = 0; i < ctx.data_size; i++) {
-            // drop out coordinates outside of the binning range
-            if (ctx.out_of_ranges(i, qu)) {
-                is_pix_selected[i] = false;
-                continue;
-            }
-            else {
-                is_pix_selected[i] = true;
-            }
-
-            // drop out already selected pixels, if requested
-            size_t ip0 = i * ctx.PIX_STRIDE;
-            if (ctx.check_pix_selection && ctx.pix_coord[ip0 + pix_flds::idet] < 0) {
-                is_pix_selected[i] = false;
-                continue;
-            }
-
-            ctx.nPixel_retained++;
-
-            // calculate location of pixel within the image grid and add values of this pixels to the accumulators
-            auto il = ctx.add_pix_to_accumulators(qu, ip0, npix, s, e);
-            if (!return_selected_only) {
-                pix_ok_bin_idx[i] = il;
-                // calculate pix ranges
-                calc_pix_ranges<SRC>(ctx.pix_ranges, ctx.pix_coord, ctx.PIX_STRIDE, i);
-            }
-        }
-        if (return_selected_only) {
-            return;
-        }
-        copy_results_to_final_arrays<SRC, TRG>(ctx.bin_par_ptr, ctx.pix_coord,
-            ctx.data_size, ctx.nPixel_retained, pix_ok_bin_idx);
-        // swap memory of working arrays back to binning_arguments to retain it for the next call
-        ctx.bin_par_ptr->pix_ok_bin_idx.swap(pix_ok_bin_idx);
-
-    }
-};
-
 template<typename Cmd, typename SRC, typename TRG>
 void invoke(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) {
     Cmd{}(ctx, npix, s, e);
@@ -235,7 +68,7 @@ auto makeBinTable() {
         span<double>&);
 
     const static size_t n_modes = static_cast<size_t>(opModes::N_OP_Modes);
-    std::array<Fn, 2*n_modes> t{};
+    std::array<Fn, 2 * n_modes> t{};
 
     t[static_cast<size_t>(opModes::npix_only)] = &invoke<processNpixOnly<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::sig_err)] = &invoke<processSigErr<SRC, TRG>, SRC, TRG>;
@@ -245,14 +78,15 @@ auto makeBinTable() {
     t[static_cast<size_t>(opModes::nosort)] = &invoke<processWithNoSorting<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::nosort_sel)] = &invoke<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::siger_selected)] = &invoke<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
-
-    t[static_cast<size_t>(opModes::npix_only)+ n_modes] = &invoke<processNpixOnlyWithOMP<SRC, TRG>, SRC, TRG>;
+    // OMP calculations
+    t[static_cast<size_t>(opModes::npix_only) + n_modes] = &invoke<processNpixOnlyWithOMP<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::sig_err) + n_modes] = &invoke<processSigErrWithOMP<SRC, TRG>, SRC, TRG>;
-    // stubs for the future
+
     t[static_cast<size_t>(opModes::sigerr_cell) + n_modes] = &invoke<processSigerrCell<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::sort_pix) + n_modes] = &invoke<processWithSorting<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::sort_and_uid) + n_modes] = &invoke<processWithSorting<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::nosort) + n_modes] = &invoke<processWithNoSorting<SRC, TRG>, SRC, TRG>;
+
+    t[static_cast<size_t>(opModes::nosort) + n_modes] = &invoke<processWithNoSortingWithOMP<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::nosort_sel) + n_modes] = &invoke<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::siger_selected) + n_modes] = &invoke<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
 
@@ -267,7 +101,7 @@ auto makeTransfAndBinTable() {
         span<double>&);
 
     const static size_t n_modes = static_cast<size_t>(opModes::N_OP_Modes);
-    std::array<Fn, 2*n_modes> t{};
+    std::array<Fn, 2 * n_modes> t{};
 
     t[static_cast<size_t>(opModes::npix_only)] = &invoke_and_transf<processNpixOnly<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::sig_err)] = &invoke_and_transf<processSigErr<SRC, TRG>, SRC, TRG>;
@@ -276,14 +110,13 @@ auto makeTransfAndBinTable() {
     t[static_cast<size_t>(opModes::nosort)] = &invoke_and_transf<processWithNoSorting<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::nosort_sel)] = &invoke_and_transf<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::siger_selected)] = &invoke_and_transf<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
-
-    t[static_cast<size_t>(opModes::npix_only)+ n_modes] = 
+    // OMP calculations
+    t[static_cast<size_t>(opModes::npix_only) + n_modes] = \
         &invoke_and_transf<processNpixOnlyWithOMP<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::sig_err) + n_modes] = &invoke_and_transf<processSigErrWithOMP<SRC, TRG>, SRC, TRG>;
-    // stubs for the future
     t[static_cast<size_t>(opModes::sort_pix) + n_modes] = &invoke_and_transf<processWithSorting<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::sort_and_uid) + n_modes] = &invoke_and_transf<processWithSorting<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::nosort) + n_modes] = &invoke_and_transf<processWithNoSorting<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::nosort) + n_modes] = &invoke_and_transf<processWithNoSortingWithOMP<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::nosort_sel) + n_modes] = &invoke_and_transf<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::siger_selected) + n_modes] = &invoke_and_transf<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
 

@@ -746,14 +746,14 @@ classdef AxesBlockBase < serializable
 
             % keep unused argi parameter to tell parse_char_options to ignore
             % unknown options
-            [ok,mess,force_double,return_selected,test_mex_inputs,argi]=parse_char_options(varargin, ...
-                {'-force_double', '-return_selected','-test_mex_inputs'});
+            [ok,mess,force_double,return_selected,test_mex_inputs,nosort,argi]=parse_char_options(varargin, ...
+                {'-force_double', '-return_selected','-test_mex_inputs','-nosort'});
             if ~ok
                 error('HORACE:AxesBlockBase:invalid_argument',mess)
             end
             % identify binning mode as function of number of input
             % arguments
-            mode = bin_mode.from_narg(nargout-1,test_mex_inputs,return_selected,argi{:});
+            mode = bin_mode.from_narg(nargout-1,test_mex_inputs,return_selected,nosort,argi{:});
 
             % convert different input forms into fully expanded common form
             [npix,s,e,pix_cand,unique_runid,use_mex]=...

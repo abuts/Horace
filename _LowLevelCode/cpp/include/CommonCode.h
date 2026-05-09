@@ -74,7 +74,7 @@ enum pix_flds
 
 // Copy pixels from source to target array
 template<class SRC,class TRG> 
-inline size_t copy_pixels(span<const SRC> pixel_data, long source_pos, TRG * const pix_sorted_ptr, size_t targ_pos)
+inline size_t copy_pixels(span<const SRC> pixel_data, long source_pos, span<TRG> pix_sorted, size_t targ_pos)
 {
     //
     targ_pos *= pix_flds::PIX_WIDTH; // each position in a grid cell corresponds to a pixel of the size PIX_WIDTH;
@@ -82,13 +82,13 @@ inline size_t copy_pixels(span<const SRC> pixel_data, long source_pos, TRG * con
     source_pos *= pix_flds::PIX_WIDTH;
 
     for (size_t i = 0; i < pix_flds::PIX_WIDTH; i++) {
-        pix_sorted_ptr[targ_pos + i] = static_cast<TRG>(pixel_data[source_pos + i]);
+        pix_sorted[targ_pos + i] = static_cast<TRG>(pixel_data[source_pos + i]);
     }
     return targ_pos;
 };
 // Align and copy pixels from source to target array template <class SRC, class TRG>
 template <class SRC, class TRG>
-inline size_t align_and_copy_pixels(std::vector<double> &al_matr,span<const SRC> pixel_data, long source_pos, TRG *const pix_sorted_ptr, size_t targ_pos)
+inline size_t align_and_copy_pixels(std::vector<double> &al_matr,span<const SRC> pixel_data, long source_pos, span<TRG> pix_sorted, size_t targ_pos)
 {
     //
     targ_pos *= pix_flds::PIX_WIDTH; // each position in a grid cell corresponds to a pixel of the size PIX_WIDTH;
@@ -99,11 +99,11 @@ inline size_t align_and_copy_pixels(std::vector<double> &al_matr,span<const SRC>
         for (size_t j = 0; j < 3; j++) {
             accum += double((pixel_data[source_pos + j])) * al_matr[j*3+i];
         }
-        pix_sorted_ptr[targ_pos + i] = static_cast<TRG>(accum);
+        pix_sorted[targ_pos + i] = static_cast<TRG>(accum);
     }
 
     for (size_t i = 3; i < pix_flds::PIX_WIDTH; i++) {
-        pix_sorted_ptr[targ_pos + i] = static_cast<TRG>(pixel_data[source_pos + i]);
+        pix_sorted[targ_pos + i] = static_cast<TRG>(pixel_data[source_pos + i]);
     }
     return targ_pos;
 };
@@ -123,20 +123,30 @@ inline void init_min_max_range_calc(span<double>& pix_ranges, size_t PIX_STRIDE)
 
 // identify range of all pixel coordinates for given initial pixels position
 template <class SRC>
-void inline calc_pix_ranges(span<double>& pix_ranges, span<const SRC> &pix_data, size_t PIX_STRIDE, size_t i)
+void inline calc_pix_ranges(span<double>& pix_ranges, span<const SRC> &pix_data,size_t ip0,size_t PIX_STRIDE)
 {
-    size_t ip0 = i * PIX_STRIDE;
     for (size_t j = 0; j < PIX_STRIDE; j++) {
         pix_ranges[2 * j] = std::min(pix_ranges[2 * j], (double)pix_data[ip0 + j]);
         pix_ranges[2 * j + 1] = std::max(pix_ranges[2 * j + 1], (double)pix_data[ip0 + j]);
     }
 };
+// merge together all partial ranges, calculated by threads
+void inline merge_tls_ranges(std::vector<std::vector<double>> &tls_ranges,span<double>& pix_ranges,size_t n_threads, size_t PIX_STRIDE)
+{
+    for (int i = 0; i < n_threads; i++) {
+        for (size_t j = 0; j < PIX_STRIDE; j++) {
+            pix_ranges[2 * j] = std::min(pix_ranges[2 * j], tls_ranges[i][2 * j]);
+            pix_ranges[2 * j + 1] = std::max(pix_ranges[2 * j + 1], tls_ranges[i][2 * j + 1]);
+        }
+    }
+};
 
-// allocate pixels memory 
+// allocate pixels memory to keep with MATLAB and use in C++ code
 template<class TRG> 
-mxArray* allocate_pix_memory(size_t PIX_WIDTH, size_t N_ELEMENTS, TRG*& data_ptr)
+mxArray* allocate_pix_memory(size_t PIX_WIDTH, size_t N_ELEMENTS, span<TRG>& mem_wrap)
 { 
     mxArray* mxData_ptr(nullptr);
+    TRG* data_ptr(nullptr);
     std::string mem_name;
     if constexpr (std::is_same_v<TRG, double>) {
         mxData_ptr = mxCreateDoubleMatrix(PIX_WIDTH, N_ELEMENTS, mxREAL);
@@ -168,6 +178,7 @@ mxArray* allocate_pix_memory(size_t PIX_WIDTH, size_t N_ELEMENTS, TRG*& data_ptr
         mexErrMsgIdAndTxt("HORACE:bin_pixels_c:runtime_error",
             buf.str().c_str());
     }
+    mem_wrap = span<TRG>(data_ptr, PIX_WIDTH * N_ELEMENTS);
     return mxData_ptr;
 };
 
@@ -202,7 +213,7 @@ T getMatlabScalar(const mxArray* pPar, const char* const fieldName) {
 };
 
 struct bin_accum{
-    double npix;
+    size_t npix;
     double s;
     double e;
     bin_accum(size_t val) :

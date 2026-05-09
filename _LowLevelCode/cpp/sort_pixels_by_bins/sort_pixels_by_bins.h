@@ -64,7 +64,7 @@ void sort_pixels_by_bins( TG * const pPixelSorted, size_t nPixelsSorted, double 
         init_min_max_range_calc(pix_range, (size_t)pix_flds::PIX_WIDTH);
     }
 
-
+    size_t PIX_STRIDE = static_cast<size_t>(pix_flds::PIX_WIDTH);
     //#pragma omp parallel
     for(size_t nblock=0; nblock < PixelIndexes.size();nblock++)
     {
@@ -82,7 +82,8 @@ void sort_pixels_by_bins( TG * const pPixelSorted, size_t nPixelsSorted, double 
             auto cell_pix_ind = ppInd[ind]++;       // pixel position within a cell
 
             if (calc_pix_range) {
-                calc_pix_ranges<ST>(pix_range, pix_data,pix_flds::PIX_WIDTH, j);
+                size_t pixpos = PIX_STRIDE*j;
+                calc_pix_ranges<ST>(pix_range, pix_data,pixpos,PIX_STRIDE);
             }
             copy_pixels<ST, TG>(pix_data, j, pPixelSorted, cell_pix_ind); // copy all pixel data into the location requested
         }
