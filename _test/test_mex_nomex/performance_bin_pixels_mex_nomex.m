@@ -725,7 +725,7 @@ classdef performance_bin_pixels_mex_nomex
 
                 t1 = tic();
                 config_store.instance.set_value('hor_config','use_mex',true);
-                config_store.instance.set_value('parallel_config','threads',1);                
+                config_store.instance.set_value('parallel_config','threads',1);
                 [npix_mex,s_mex,e_mex,pix_ok_mex] = ...
                     lp.bin_pixels(AB,pix,npix_mex,s_mex,e_mex);
                 t_mex(i) = toc(t1);
@@ -733,7 +733,7 @@ classdef performance_bin_pixels_mex_nomex
                 config_store.instance.set_value('parallel_config','threads',obj.n_threads);
                 t1 = tic();
                 [npix_omp,s_omp,e_omp,pix_ok_omp] = ...
-                     lp.bin_pixels(AB,pix,npix_omp,s_omp,e_omp);
+                    lp.bin_pixels(AB,pix,npix_omp,s_omp,e_omp);
                 t_omp(i) = toc(t1);
 
 
@@ -1028,7 +1028,6 @@ classdef performance_bin_pixels_mex_nomex
             %*** first step:    nomex:  2.9(sec)  mex:  2.3(sec);  omp: 0.46(sec); Acc :  1.3/ 6.4
             %*** Avrg per step, nomex:  2.4(sec)  mex: 0.65(sec);  omp: 0.47(sec); Acc :  3.7/ 5.1
         end
-
         function [t_nomex,t_mex,t_omp] = performance_mex_nomex_mode0(obj)
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
@@ -1081,7 +1080,6 @@ classdef performance_bin_pixels_mex_nomex
             %*** first step:    nomex: 0.52(sec)  mex: 0.22(sec);  omp: 0.049(sec); Acc :  2.4/  10
             %*** Avrg per step, nomex: 0.54(sec)  mex: 0.067(sec);  omp: 0.05(sec); Acc :  8.1/  11
         end
-
     end
     methods(Static)
         function [AB,n_points]=prepare_clean_bin_data(nbins_all_dims)
