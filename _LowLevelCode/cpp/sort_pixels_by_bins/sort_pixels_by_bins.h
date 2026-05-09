@@ -48,13 +48,16 @@ void sort_pixels_by_bins( TG * const pPixelSorted, size_t nPixelsSorted, double 
     double const *const pCellDens, size_t distribution_size,
     size_t *const ppInd) {
 
+    const size_t PIX_STRIDE = static_cast<size_t>(pix_flds::PIX_WIDTH);
+    span<TG> pixel_sorted(pPixelSorted, nPixelsSorted* PIX_STRIDE);
 
     ppInd[0] = 0;
     for (size_t i = 1; i < distribution_size; i++) {   // calculate the ranges of the cell arrays
         ppInd[i] = ppInd[i - 1] + (size_t)pCellDens[i - 1]; // the next cell starts from the the previous one
     };                                      // plus the number of pixels in the previous cell
     if (ppInd[distribution_size - 1] + (size_t)pCellDens[distribution_size - 1] != nPixelsSorted) {
-        throw("Sort_pixels_by_bins: pixels data and their cell distributions are inconsistent ");
+        mexErrMsgIdAndTxt("HORACE:sort_pixels_by_bins:invalid_argument",\
+            "pixels data and their cell distributions are inconsistent");
     }
     bool calc_pix_range(false);
     span<double> pix_range;
@@ -64,7 +67,7 @@ void sort_pixels_by_bins( TG * const pPixelSorted, size_t nPixelsSorted, double 
         init_min_max_range_calc(pix_range, (size_t)pix_flds::PIX_WIDTH);
     }
 
-    size_t PIX_STRIDE = static_cast<size_t>(pix_flds::PIX_WIDTH);
+
     //#pragma omp parallel
     for(size_t nblock=0; nblock < PixelIndexes.size();nblock++)
     {
@@ -85,7 +88,7 @@ void sort_pixels_by_bins( TG * const pPixelSorted, size_t nPixelsSorted, double 
                 size_t pixpos = PIX_STRIDE*j;
                 calc_pix_ranges<ST>(pix_range, pix_data,pixpos,PIX_STRIDE);
             }
-            copy_pixels<ST, TG>(pix_data, j, pPixelSorted, cell_pix_ind); // copy all pixel data into the location requested
+            copy_pixels<ST, TG>(pix_data, j, pixel_sorted, cell_pix_ind); // copy all pixel data into the location requested
         }
     }
 

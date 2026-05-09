@@ -80,10 +80,8 @@ struct processWithNoSortingWithOMP {
 
                 // calculate location of pixel within the image grid and add values of this pixels to the accumulators
                 auto n_thread = omp_get_thread_num();
-                auto il = ctx.add_pix_to_tls_accum(qu, ip0, img_tls[n_thread]);
-
                 // store indices of contributing pixels
-                pix_ok_bin_idx[i] = il;
+                pix_ok_bin_idx[i] = ctx.add_pix_to_tls_accum(qu, ip0, img_tls[n_thread]);
                 // calculate pix ranges
                 calc_pix_ranges<SRC>(p_range_tls[n_thread], ctx.pix_coord, ip0, PIX_STRIDE);
             }

@@ -51,7 +51,7 @@ void BinningArg::set_u_offset(mxArray const* const pField) {
     this->transform_pixels = true;
     auto pData = mxGetPr(pField);
     bool apply_shift(false); // if offset contains all zeros
-    this->u_offset.resize(4,0); // let's make offset always 4-element vector regardless its size
+    this->u_offset.resize(4, 0); // let's make offset always 4-element vector regardless its size
     constexpr float eps = std::numeric_limits<float>::epsilon();
     for (auto i = 0; i < offset_length; i++) {
         auto element = (double)(pData[i]);
@@ -295,19 +295,11 @@ void BinningArg::set_unique_runid(mxArray const* const pField)
             buf.str().c_str());
     }
     auto n_elements = mxGetNumberOfElements(pField);
-    if (n_elements != this->unique_runID.size()) {
-        std::stringstream buf;
-        buf << "Number of input unique run_id(s) " << n_elements << " is different from expected: " << this->unique_runID.size() << "\n";
-        buf << "Resetting internal accumulators to the provided values";
-        mexWarnMsgIdAndTxt("HORACE:bin_pixels_c:internal_accumulator_reset",
-            buf.str().c_str());
-
-        this->unique_runID.clear();
-        uint32_t* unique_runid_ptr = reinterpret_cast<uint32_t*>(mxGetPr(pField));
-        span<uint32_t> uique_runid(unique_runid_ptr, n_elements);
-        for (auto runid : uique_runid) {
-            this->unique_runID.insert(runid);
-        }
+    this->unique_runID.clear();
+    uint32_t* unique_runid_ptr = reinterpret_cast<uint32_t*>(mxGetPr(pField));
+    span<uint32_t> uique_runid(unique_runid_ptr, n_elements);
+    for (auto runid : uique_runid) {
+        this->unique_runID.insert(runid);
     }
 }
 // Boolean parameters which would request output transformed pixels always been double regardless of input pixels
@@ -726,7 +718,8 @@ void BinningArg::parse_bin_inputs(mxArray const* pAllParStruct)
     else if (pix_type != mxUNKNOWN_CLASS) {
         if (this->transform_pixels) {
             coord_type = pix_type; // coordinates are not used
-        }else if (coord_type != pix_type) {
+        }
+        else if (coord_type != pix_type) {
             std::stringstream buf;
             buf << "Coordinates array type: " << coord_type << " must be equal to pixels array type: " << pix_type << "\n";
             buf << "Actually they are different";
@@ -901,12 +894,13 @@ void BinningArg::return_test_inputs(mxArray* plhs[], int nlhs)
                 for (size_t i = 0; i < n_rows; i++) {
                     dataPtr[i] = this->transf_matrix[i];
                 }
-            }else{
+            }
+            else {
                 tr_matr = mxCreateDoubleMatrix(n_rows, n_rows, mxREAL);
                 auto dataPtr = mxGetPr(tr_matr);
                 for (size_t i = 0; i < n_rows * n_rows; i++) {
-                dataPtr[i] = this->transf_matrix[i];
-            }
+                    dataPtr[i] = this->transf_matrix[i];
+                }
             }
         }
         mxSetCell(pFieldValue, fld_idx, tr_matr);

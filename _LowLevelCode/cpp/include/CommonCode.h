@@ -234,5 +234,4 @@ void init_tls_storage(size_t num_OMP_threads, size_t distribution_size,std::vect
         mexErrMsgIdAndTxt("HORACE:bin_pixels_c:runtime_error",
             buf.str().c_str());
     }
-
 };
