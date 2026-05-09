@@ -725,14 +725,26 @@ classdef performance_bin_pixels_mex_nomex
 
                 t1 = tic();
                 config_store.instance.set_value('hor_config','use_mex',true);
+                config_store.instance.set_value('parallel_config','threads',1);                
                 [npix_mex,s_mex,e_mex,pix_ok_mex] = ...
                     lp.bin_pixels(AB,pix,npix_mex,s_mex,e_mex);
                 t_mex(i) = toc(t1);
 
+                config_store.instance.set_value('parallel_config','threads',obj.n_threads);
+                t1 = tic();
+                [npix_omp,s_omp,e_omp,pix_ok_omp] = ...
+                     lp.bin_pixels(AB,pix,npix_omp,s_omp,e_omp);
+                t_omp(i) = toc(t1);
+
+
                 assertEqual(npix_nomex,npix_mex)
-                assertEqualToTol(s_nomex,s_mex,'tol',[1e-12 1e-12])
-                assertEqualToTol(e_nomex,e_mex,'tol',[1e-12 1e-12])
-                assertEqualToTol(pix_ok_nom,pix_ok_mex,'tol',[1e-12 1e-12])
+                assertEqual(npix_omp,npix_omp)
+                assertEqualToTol(s_nomex,s_mex,'tol',[1.e-12,1.e-12])
+                assertEqualToTol(s_nomex,s_omp,'tol',[1.e-12,1.e-12])
+                assertEqualToTol(e_nomex,e_mex,'tol',[1.e-12,1.e-12])
+                assertEqualToTol(e_nomex,e_omp,'tol',[1.e-12,1.e-12])
+                assertEqualToTol(pix_ok_nom,pix_ok_mex,'tol',[1.e-12,1.e-12])
+                assertEqualToTol(pix_ok_nom,pix_ok_omp,'tol',[1.e-12,1.e-12])
 
                 pix.coordinates = rand(4,n_points);
             end
