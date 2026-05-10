@@ -149,8 +149,8 @@ classdef test_bin_pixels_line_proj_mex_nomex < TestCase
             n_points = 200;
 
             pix_coord = rand(9,n_points);
-
             pix = PixelDataMemory(pix_coord);
+            pix.run_idx = 500+floor(100*rand(1,n_points));
             lp = line_proj([1,1,0],[0,0,1],'alatt',[2,2,2],'angdeg',[70,80,110],'offset',[1,1,0]);
 
             npix_nomex = []; s_nomex = [];e_nomex=[];uniqId_nom = [];
