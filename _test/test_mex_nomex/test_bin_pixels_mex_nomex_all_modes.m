@@ -36,44 +36,34 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
             pix.run_idx  =  500+floor(100*rand(1,n_points));
 
             n_repeats = 2;
-            npix_nomex = []; s_nomex = [];e_nomex=[];uniqId_nom = [];
-            npix_mex   = []; s_mex = [];  e_mex=[];uniqId_mex = [];
-            npix_omp   = []; s_omp = [];  e_omp=[];uniqId_omp = [];            
+            npix_nomex = []; s_nomex = [];e_nomex=[];
+            npix_mex   = []; s_mex = [];  e_mex=[];
+            npix_omp   = []; s_omp = [];  e_omp=[];
 
             for i= 1:n_repeats
 
                 config_store.instance.set_value('hor_config','use_mex',false);
-                [npix_nomex,s_nomex,e_nomex,pix_ok_nom,uniqId_nom,pix_idx_nom,is_sel_nom] = ...
-                    lp.bin_pixels(AB,pix,npix_nomex,s_nomex,e_nomex,uniqId_nom);
+                [npix_nomex,s_nomex,e_nomex,is_sel_nom] = ...
+                    lp.bin_pixels(AB,pix,npix_nomex,s_nomex,e_nomex,'-selected_only');
 
                 config_store.instance.set_value('hor_config','use_mex',true);
                 config_store.instance.set_value('parallel_config','threads',1);
-                [npix_mex,s_mex,e_mex,pix_ok_mex,uniqId_mex,pix_idx_mex,is_sel_mex] =...
-                    lp.bin_pixels(AB,pix,npix_mex,s_mex,e_mex,uniqId_mex);
-
+                [npix_mex,s_mex,e_mex,is_sel_mex] =...
+                    lp.bin_pixels(AB,pix,npix_mex,s_mex,e_mex,'-selected_only');
 
                 config_store.instance.set_value('parallel_config','threads',obj.n_threads);
-                [npix_omp,s_omp,e_omp,pix_ok_omp,uniqId_omp,pix_idx_omp,is_sel_omp] = ...
-                    lp.bin_pixels(AB,pix,npix_omp,s_omp,e_omp,uniqId_omp);
+                [npix_omp,s_omp,e_omp,is_sel_omp] = ...
+                    lp.bin_pixels(AB,pix,npix_omp,s_omp,e_omp,'-selected_only');
 
-
-
-                assertEqual(uint32(uniqId_nom),uniqId_mex);
-                assertEqual(uint32(uniqId_nom),uniqId_omp);
-                assertEqual(int64(pix_idx_nom),pix_idx_mex);
-                assertEqual(int64(pix_idx_nom),pix_idx_omp);
                 assertEqual(is_sel_nom,is_sel_mex);
                 assertEqual(is_sel_nom,is_sel_omp);
 
                 assertEqual(npix_nomex,npix_mex)
                 assertEqualToTol(s_nomex,s_mex,'tol',[1.e-12,1.e-12])
                 assertEqualToTol(e_nomex,e_mex,'tol',[1.e-12,1.e-12])
-                assertEqualToTol(pix_ok_nom,pix_ok_mex,'tol',[1.e-12,1.e-12])
-                assertEqualToTol(pix_ok_nom,pix_ok_omp,'tol',[1.e-12,1.e-12])
 
                 pix.coordinates = rand(4,n_points);
                 pix.run_idx  =  500+floor(100*rand(1,n_points));
-
             end
         end
 
@@ -90,9 +80,9 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
             [AB,n_points]=obj.prepare_clean_bin_data([50,1,50,20]);
 
             n_repeats = 2;
-            npix_nomex = []; s_nomex = [];e_nomex=[];uniqId_nom = [];
-            npix_mex   = []; s_mex = [];  e_mex=[];uniqId_mex = [];
-            npix_omp   = []; s_omp = [];  e_omp=[];uniqId_omp = [];
+            npix_nomex = []; s_nomex = [];e_nomex=[];
+            npix_mex   = []; s_mex = [];  e_mex=[];
+            npix_omp   = []; s_omp = [];  e_omp=[];
 
             for i= 1:n_repeats
                 fprintf('.')
@@ -103,31 +93,24 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
                 pix = PixelDataMemory(pix_data);
                 coord = pix.coordinates;
                 config_store.instance.set_value('hor_config','use_mex',false);
-                [npix_nomex,s_nomex,e_nomex,pix_ok_nom,uniqId_nom,pix_idx_nom,is_sel_nom] = ...
-                    AB.bin_pixels(coord,npix_nomex,s_nomex,e_nomex,pix,uniqId_nom);
+                [npix_nomex,s_nomex,e_nomex,is_sel_nom] = ...
+                    AB.bin_pixels(coord,npix_nomex,s_nomex,e_nomex,pix,'-selected_only');
 
                 config_store.instance.set_value('hor_config','use_mex',true);
                 config_store.instance.set_value('parallel_config','threads',1);
-                [npix_mex,s_mex,e_mex,pix_ok_mex,uniqId_mex,pix_idx_mex,is_sel_mex] =...
-                    AB.bin_pixels(coord,npix_mex,s_mex,e_mex,pix,uniqId_mex);
+                [npix_mex,s_mex,e_mex,is_sel_mex] =...
+                    AB.bin_pixels(coord,npix_mex,s_mex,e_mex,pix,'-selected_only');
 
                 config_store.instance.set_value('parallel_config','threads',obj.n_threads);
-                [npix_omp,s_omp,e_omp,pix_ok_omp,uniqId_omp,pix_idx_omp,is_sel_omp] = ...
-                    AB.bin_pixels(coord,npix_omp,s_omp,e_omp,pix,uniqId_omp);
+                [npix_omp,s_omp,e_omp,is_sel_omp] = ...
+                    AB.bin_pixels(coord,npix_omp,s_omp,e_omp,pix,'-selected_only');
 
-
-                assertEqual(uint32(uniqId_nom),uniqId_mex);
-                assertEqual(uint32(uniqId_nom),uniqId_omp);
-                assertEqual(int64(pix_idx_nom),pix_idx_mex);
-                assertEqual(int64(pix_idx_nom),pix_idx_omp);
                 assertEqual(is_sel_nom,is_sel_mex);
                 assertEqual(is_sel_nom,is_sel_omp);
 
                 assertEqual(npix_nomex,npix_mex)
                 assertEqualToTol(s_nomex,s_mex,'tol',[1.e-12,1.e-12])
                 assertEqualToTol(e_nomex,e_mex,'tol',[1.e-12,1.e-12])
-                assertEqualToTol(pix_ok_nom,pix_ok_mex,'tol',[1.e-12,1.e-12])
-                assertEqualToTol(pix_ok_nom,pix_ok_omp,'tol',[1.e-12,1.e-12])
             end
         end
         %------------------------------------------------------------------
@@ -488,7 +471,7 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
 
             npix_nomex=[]; s_nomex=[]; e_nomex=[];
             npix_mex=[];   s_mex=[];   e_mex=[];
-            npix_omp=[];   s_omp=[];   e_omp=[];            
+            npix_omp=[];   s_omp=[];   e_omp=[];
             for i=1:n_repeats
 
                 config_store.instance.set_value('hor_config','use_mex',false);
@@ -729,7 +712,6 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
             npix_omp   = [];
 
             for i= 1:n_repeats
-
                 in_coord = rand(4,n_points);
                 config_store.instance.set_value('hor_config','use_mex',false);
 

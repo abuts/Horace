@@ -81,10 +81,13 @@ struct processWithNoSortSelWithOMP {
         using tlsMem = std::vector<double>;
         std::vector<tlsMem> range_tls_stor(num_OMP_threads, tlsMem(2 * PIX_STRIDE));
         // use span as original min/max range calculation routine expects span
-        std::vector<span<double>>p_range_tls(num_OMP_threads);
-        for (int i = 0; i < num_OMP_threads; ++i) {
-            p_range_tls[i] = span<double>(range_tls_stor[i].data(), 2 * PIX_STRIDE);
-            init_min_max_range_calc(p_range_tls[i], PIX_STRIDE);
+        std::vector<span<double>>p_range_tls;
+        if (!return_selected_only) {
+            p_range_tls.resize(num_OMP_threads);
+            for (int i = 0; i < num_OMP_threads; ++i) {
+                p_range_tls[i] = span<double>(range_tls_stor[i].data(), 2 * PIX_STRIDE);
+                init_min_max_range_calc(p_range_tls[i], PIX_STRIDE);
+            }
         }
         omp_set_num_threads(num_OMP_threads);
 
@@ -131,10 +134,11 @@ struct processWithNoSortSelWithOMP {
         }
         } // end of parallel region
         ctx.nPixel_retained = num_pix;
-        merge_tls_ranges(range_tls_stor, ctx.pix_ranges, num_OMP_threads, PIX_STRIDE);
-
         if (return_selected_only) {
             return;
+        }
+        else {
+            merge_tls_ranges(range_tls_stor, ctx.pix_ranges, num_OMP_threads, PIX_STRIDE);
         }
         copy_results_to_final_arrays<SRC, TRG>(ctx.bin_par_ptr, ctx.pix_coord,
             ctx.data_size, ctx.nPixel_retained, pix_ok_bin_idx);

@@ -6,7 +6,7 @@ function varargout =project_and_bin_with_mex_code_(obj, ...
 % Inputs:
 % obj       -- initialized instance of LineProjBase
 % axes      -- correspondent axes linear block
-% in_pix    -- PixelDataMemory class to bin. This subalgorithm works in
+% in_pix    -- PixelDataMemory class to bin. This sub-algorithm works in
 %              memory only
 % npix,s,e  -- n-D arrays accumulators containing binned pixels
 %
@@ -19,8 +19,8 @@ function varargout =project_and_bin_with_mex_code_(obj, ...
 nout = nargout;
 varargout = cell(1,nout);
 
-[ok,mess,force_double,return_selected,test_mex_inputs,nosort,argi]=parse_char_options(varargin, ...
-    {'-force_double', '-return_selected','-test_mex_inputs','-nosort'});
+[ok,mess,force_double,selected_arr_instead_of_pix,test_mex_inputs,nosort,argi]=parse_char_options(varargin, ...
+    {'-force_double', '-selected_only','-test_mex_inputs','-nosort'});
 if ~ok
     error('HORACE:AxesBlockBase:invalid_argument',mess)
 end
@@ -31,7 +31,7 @@ else
 end
 % identify binning mode as function of number of input
 % arguments
-mode = bin_mode.from_narg(nargout-1,test_mex_inputs,return_selected,nosort,argi{:});
+mode = bin_mode.from_narg(nargout-1,test_mex_inputs,selected_arr_instead_of_pix,nosort,argi{:});
 % convert different input forms into fully expanded common form
 [npix,s,err,pix_cand,unique_runid]=...
     axes.normalize_bin_input([4,in_pix.num_pixels],mode,argi{:});

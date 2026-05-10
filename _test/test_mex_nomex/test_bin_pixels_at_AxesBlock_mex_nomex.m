@@ -39,12 +39,12 @@ classdef test_bin_pixels_at_AxesBlock_mex_nomex < TestCase
 
             clObHor = set_temporary_config_options(hor_config, 'use_mex', false);
             in_coord = pix.coordinates;
-            [npix_nom,s_nom,e_nom,selected_nom] = AB.bin_pixels(in_coord,[],[],[],pix,'-return_selected');
+            [npix_nom,s_nom,e_nom,selected_nom] = AB.bin_pixels(in_coord,[],[],[],pix,'-selected_only');
             assertEqual(size(npix_nom),[10,30]);
 
             clear clObHor
             clObHor = set_temporary_config_options(hor_config, 'use_mex', true);
-            [npix_mex,s_mex,e_mex,selected_mex] = AB.bin_pixels(in_coord,[],[],[],pix,'-return_selected');
+            [npix_mex,s_mex,e_mex,selected_mex] = AB.bin_pixels(in_coord,[],[],[],pix,'-selected_only');
             assertEqual(size(npix_mex),[10,30]);
 
             assertEqual(selected_nom,selected_mex)
@@ -68,7 +68,7 @@ classdef test_bin_pixels_at_AxesBlock_mex_nomex < TestCase
             pix = PixelDataMemory(pix_coord);
 
             in_coord = pix.coordinates;
-            [npix,s,e,is_selected,out_data] = AB.bin_pixels(in_coord,[],[],[],pix,'-return_selected','-test_mex_inputs');
+            [npix,s,e,is_selected,out_data] = AB.bin_pixels(in_coord,[],[],[],pix,'-selected_only','-test_mex_inputs');
 
             assertEqual(size(npix),[10,40]);
             assertEqual(npix,zeros(10,40));

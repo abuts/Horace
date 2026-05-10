@@ -94,9 +94,9 @@ classdef performance_bin_pixels_mex_nomex
             pix.run_idx  =  500+floor(100*rand(1,n_points));
 
             n_repeats = 5;
-            npix_nomex = []; s_nomex = [];e_nomex=[];uniqId_nom = [];
-            npix_mex   = []; s_mex = [];  e_mex=[];uniqId_mex = [];
-            npix_omp   = []; s_omp = [];  e_omp=[];uniqId_omp = [];
+            npix_nomex = []; s_nomex = [];e_nomex=[];
+            npix_mex   = []; s_mex = [];  e_mex=[];
+            npix_omp   = []; s_omp = [];  e_omp=[];
 
             t_nomex = zeros(1,n_repeats);
             t_mex  = zeros(1,n_repeats);
@@ -107,8 +107,8 @@ classdef performance_bin_pixels_mex_nomex
 
                 config_store.instance.set_value('hor_config','use_mex',false);
                 t1 = tic();
-                [npix_nomex,s_nomex,e_nomex,pix_ok_nom,uniqId_nom,pix_idx_nom,is_sel_nom] = ...
-                    lp.bin_pixels(AB,pix,npix_nomex,s_nomex,e_nomex,uniqId_nom);
+                [npix_nomex,s_nomex,e_nomex,is_sel_nom] = ...
+                    lp.bin_pixels(AB,pix,npix_nomex,s_nomex,e_nomex,'-selected_only');
 
                 t_nomex(i) = toc(t1);
                 fprintf('.')
@@ -116,29 +116,22 @@ classdef performance_bin_pixels_mex_nomex
                 config_store.instance.set_value('hor_config','use_mex',true);
                 config_store.instance.set_value('parallel_config','threads',1);
                 t1 = tic();
-                [npix_mex,s_mex,e_mex,pix_ok_mex,uniqId_mex,pix_idx_mex,is_sel_mex] =...
-                    lp.bin_pixels(AB,pix,npix_mex,s_mex,e_mex,uniqId_mex);
+                [npix_mex,s_mex,e_mex,is_sel_mex] =...
+                    lp.bin_pixels(AB,pix,npix_mex,s_mex,e_mex,'-selected_only');
                 t_mex(i) = toc(t1);
 
                 config_store.instance.set_value('parallel_config','threads',obj.n_threads);
                 t1 = tic();
-                [npix_omp,s_omp,e_omp,pix_ok_omp,uniqId_omp,pix_idx_omp,is_sel_omp] = ...
-                    lp.bin_pixels(AB,pix,npix_omp,s_omp,e_omp,uniqId_omp);
+                [npix_omp,s_omp,e_omp,is_sel_omp] = ...
+                    lp.bin_pixels(AB,pix,npix_omp,s_omp,e_omp,'-selected_only');
                 t_omp(i) = toc(t1);
 
-
-                assertEqual(uint32(uniqId_nom),uniqId_mex);
-                assertEqual(uint32(uniqId_nom),uniqId_omp);
-                assertEqual(int64(pix_idx_nom),pix_idx_mex);
-                assertEqual(int64(pix_idx_nom),pix_idx_omp);
                 assertEqual(is_sel_nom,is_sel_mex);
                 assertEqual(is_sel_nom,is_sel_omp);
 
                 assertEqual(npix_nomex,npix_mex)
                 assertEqualToTol(s_nomex,s_mex,'tol',[1.e-12,1.e-12])
                 assertEqualToTol(e_nomex,e_mex,'tol',[1.e-12,1.e-12])
-                assertEqualToTol(pix_ok_nom,pix_ok_mex,'tol',[1.e-12,1.e-12])
-                assertEqualToTol(pix_ok_nom,pix_ok_omp,'tol',[1.e-12,1.e-12])
 
                 pix.coordinates = rand(4,n_points);
                 pix.run_idx  =  500+floor(100*rand(1,n_points));
@@ -181,36 +174,30 @@ classdef performance_bin_pixels_mex_nomex
                 coord = pix.coordinates;
                 config_store.instance.set_value('hor_config','use_mex',false);
                 t1 = tic();
-                [npix_nomex,s_nomex,e_nomex,pix_ok_nom,uniqId_nom,pix_idx_nom,is_sel_nom] = ...
-                    AB.bin_pixels(coord,npix_nomex,s_nomex,e_nomex,pix,uniqId_nom);
+                [npix_nomex,s_nomex,e_nomex,is_sel_nom] = ...
+                    AB.bin_pixels(coord,npix_nomex,s_nomex,e_nomex,pix,'-selected_only');
                 t_nomex(i) = toc(t1);
                 fprintf('.')
 
                 config_store.instance.set_value('hor_config','use_mex',true);
                 config_store.instance.set_value('parallel_config','threads',1);
                 t1 = tic();
-                [npix_mex,s_mex,e_mex,pix_ok_mex,uniqId_mex,pix_idx_mex,is_sel_mex] =...
-                    AB.bin_pixels(coord,npix_mex,s_mex,e_mex,pix,uniqId_mex);
+                [npix_mex,s_mex,e_mex,is_sel_mex] =...
+                    AB.bin_pixels(coord,npix_mex,s_mex,e_mex,pix,'-selected_only');
                 t_mex(i) = toc(t1);
 
                 config_store.instance.set_value('parallel_config','threads',obj.n_threads);
                 t1 = tic();
-                [npix_omp,s_omp,e_omp,pix_ok_omp,uniqId_omp,pix_idx_omp,is_sel_omp] = ...
-                    AB.bin_pixels(coord,npix_omp,s_omp,e_omp,pix,uniqId_omp);
+                [npix_omp,s_omp,e_omp,is_sel_omp] = ...
+                    AB.bin_pixels(coord,npix_omp,s_omp,e_omp,pix,'-selected_only');
                 t_omp(i) = toc(t1);
 
-                assertEqual(uint32(uniqId_nom),uniqId_mex);
-                assertEqual(uint32(uniqId_nom),uniqId_omp);
-                assertEqual(int64(pix_idx_nom),pix_idx_mex);
-                assertEqual(int64(pix_idx_nom),pix_idx_omp);
                 assertEqual(is_sel_nom,is_sel_mex);
                 assertEqual(is_sel_nom,is_sel_omp);
 
                 assertEqual(npix_nomex,npix_mex)
                 assertEqualToTol(s_nomex,s_mex,'tol',[1.e-12,1.e-12])
                 assertEqualToTol(e_nomex,e_mex,'tol',[1.e-12,1.e-12])
-                assertEqualToTol(pix_ok_nom,pix_ok_mex,'tol',[1.e-12,1.e-12])
-                assertEqualToTol(pix_ok_nom,pix_ok_omp,'tol',[1.e-12,1.e-12])
             end
             obj.disp_perf_results(t_nomex,t_mex,t_omp);
             % REFERENCE DATA: ndw2671

@@ -571,8 +571,9 @@ classdef aProjectionBase < serializable
             %           PixelData object (as input pix_candidates) containing
             %           pixels contributing to the grid and sorted according
             %           to the axes block grid.
-            %           IF '-return_selected' passed and only npix,s,e requested
-            %            instead contains indices of kept pixels (cf. `selected`)
+            %           IF '-selected_only' passed and only npix,s,e requested
+            %           instead of pixels, contains indices of pixels contributed
+            %           to image (cf. `selected`)
             %
             % unique_runid -- the run-id (tags) for the runs, which
             %           contributed into the cut
@@ -596,7 +597,8 @@ classdef aProjectionBase < serializable
             %                 it gets on input, into double. if not, output
             %                 pixels will keep their initial type
             % -nomex and -force_mex options can not be used together.
-            % '-return_selected' -- returns `selected` in `pix_ok`
+            % '-selected_only' -- returns logical array of pixels `selected` to 
+            %              contribute to image instead of `pix_ok` PixelDataMemory class
             %             (For DnD only cuts fewer arguments are returned this uses
             %              the pix_ok slot)
             % NOTE:

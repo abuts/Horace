@@ -52,7 +52,8 @@ function [npix, s, e, pix_ok, unique_runid, pix_indx, selected] = bin_pixels_(ob
 %      -- if num_outputs >=4, returns input pix_cand contributed to
 %         the the cut and sorted by grid cell or left unsorted,
 %         depending on requested pix_indx output.
-%         IF '-return_selected' passed, contains indices of kept pixels
+%         IF '-selected_only' argument provided, contains logical array with true
+%         for pixels contributed to image instead of pix_ok PixelDataMemory class.
 % unique_runid
 %      -- if num_outputs >=5, array, containing the unique runids from the
 %         pixels, contributed to the cut. If input unique_runid was not
@@ -78,7 +79,7 @@ bin_array_size  = obj.nbins_all_dims; % arrays of this size will be allocated to
 ndims           = obj.dimensions;
 data_range      = obj.img_range;
 is_pix = isa(pix_cand,'PixelDataBase'); % pixel candidates may be either
-% Pixels or cellarray of data to bin size of each array coinciedes with
+% Pixels or cellarray of data to bin size of each array coincides with
 % size(coord,2)
 
 pax = obj.pax;

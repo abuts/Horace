@@ -695,8 +695,11 @@ classdef AxesBlockBase < serializable
             %              -- if provided, the routine changes type of pixels
             %                 it gets on input, into double. if not, output
             %                 pixels will keep their initial type
-            % '-return_selected' -- Returns `selected` in `pix_ok`
-            %                       for use with DnD cuts where fewer
+            % '-selected_only'
+            %              -- Returns logical array of `selected` with true 
+            %                 where pixels contributed in image instead of `pix_ok`
+            %                 class, containing contributed pixels.
+            %                 For use with DnD cuts with symmetries where fewer
             %                 args are requested
             %
             % Returns:
@@ -747,7 +750,7 @@ classdef AxesBlockBase < serializable
             % keep unused argi parameter to tell parse_char_options to ignore
             % unknown options
             [ok,mess,force_double,return_selected,test_mex_inputs,nosort,argi]=parse_char_options(varargin, ...
-                {'-force_double', '-return_selected','-test_mex_inputs','-nosort'});
+                {'-force_double', '-selected_only','-test_mex_inputs','-nosort'});
             if ~ok
                 error('HORACE:AxesBlockBase:invalid_argument',mess)
             end

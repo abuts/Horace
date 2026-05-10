@@ -140,6 +140,7 @@ auto makeTransfAndBinTable() {
     t[static_cast<size_t>(opModes::sort_pix) + n_modes]     = &invoke_and_transf<processWithSortingWithOMP<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::sort_and_uid) + n_modes] = &invoke_and_transf<processWithSortingWithOMP<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::nosort) + n_modes]       = &invoke_and_transf<processWithNoSortingWithOMP<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::nosort_sel) + n_modes]   = &invoke_and_transf<processWithNoSortSelWithOMP<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::siger_selected) + n_modes] = &invoke_and_transf<processWithNoSortSelWithOMP<SRC, TRG>, SRC, TRG>;
 
     return t;

@@ -131,7 +131,7 @@ for iter = 1:num_chunks
         [npix, s, e] = targ_proj.bin_pixels(targ_axes, candidate_pix, npix, s, e);
     else
         for i = 1:numel(targ_proj)
-            [npix, s, e, selected] = targ_proj(i).bin_pixels(targ_axes, candidate_pix, npix, s, e, '-return_selected');
+            [npix, s, e, selected] = targ_proj(i).bin_pixels(targ_axes, candidate_pix, npix, s, e, '-selected_only');
             candidate_pix = candidate_pix.tag(selected);
         end
     end

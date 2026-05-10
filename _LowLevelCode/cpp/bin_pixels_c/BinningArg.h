@@ -49,14 +49,16 @@ enum opModes {
     npix_only = 0, // calculate npix array only binning coordinates over
     invalid_mode = 1, // this mode is not supported by binning routine
     sig_err = 2, // calculate npix, signal and error
-    sigerr_cell = 3, // signal and error for binning are presented in cellarrays of data rather then pixel data array
+    sigerr_cell = 3, // signal and error for binning are presented in cellarrays of
+    //                 data rather then pixel data array
     sort_pix = 4, // in additional to binning, return pixels sorted by bins
     sort_and_uid = 5, // in additional to binning and sorting, return unique pixels id
-    nosort = 6, // do binning but do not sort pixels but return array which defines pixels position
-    //              within the image grid
-    nosort_sel = 7, // like 6, but return logical array which specifies what pixels have been selected
-    //                   and what were rejected by binning operations
-    siger_selected = 8, // the same as sig_err but return logical array of selected pixels instead of pix_ok array
+    nosort = 6, // do binning but do not sort pixels but return array which defines
+    //             pixels position within the image grid.
+    nosort_sel = 7, // like 6, but in addition, return logical array which specifies
+    //                what pixels have been selected and what were rejected by binning operations
+    siger_selected = 8, // the same as sig_err (no pixel returning) but return 
+    //                   logical array indicating selected pixels instead of pix_ok array
     test_inputs = 9, // do not do calculations but just return parsed inputs for
     //                  unit testing.
     N_OP_Modes = 10 // total number of modes code operates in. Provided for checks
