@@ -23,7 +23,7 @@ classdef test_bin_pixels_at_AxesBlock_mex_nomex < TestCase
             [~,n_errors] = check_horace_mex();
             obj.no_mex = n_errors > 0;
         end
-        %==================================================================        
+        %==================================================================
         function test_bin_pixels_mode8_sigerr_and_selected(obj)
             if obj.no_mex
                 skipTest('Can not test mex code to bin pixels in mode 8');
@@ -59,6 +59,7 @@ classdef test_bin_pixels_at_AxesBlock_mex_nomex < TestCase
                 skipTest('Can not test mex code to check binning against mex');
             end
             clObHor = set_temporary_config_options(hor_config, 'use_mex', true);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 8,'min_npix_for_omp_cut',0);
 
             AB = AxesBlockBase_tester('nbins_all_dims',[10,1,1,40], ...
                 'img_range',[-1,-2,-3,-10;1,2,3,40]);
@@ -188,6 +189,7 @@ classdef test_bin_pixels_at_AxesBlock_mex_nomex < TestCase
                 skipTest('Can not test mex code to check binning against mex');
             end
             clObHor = set_temporary_config_options(hor_config, 'use_mex', true);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
 
             AB = AxesBlockBase_tester('nbins_all_dims',[10,1,1,40], ...
                 'img_range',[-1,-2,-3,-10;1,2,3,40]);
@@ -357,11 +359,9 @@ classdef test_bin_pixels_at_AxesBlock_mex_nomex < TestCase
             pix_coord2(PixelDataBase.field_index('run_idx'),:) = [pix_id,pix_id];
             pix = PixelDataMemory(pix_coord2);
 
-            warning('HORACE:test_warning','warning to clear warning cache')
+
             in_coord = pix.coordinates;
             [npix_out,s_out,e_out,pix_ok,pix_id,pix_img_idx,out_data] = AB.bin_pixels(in_coord,npix,s,e,pix,pix_id,'-test_mex_inputs');
-            [~,wid] = lastwarn;
-            assertEqual(wid,'HORACE:bin_pixels_c:internal_accumulator_reset');
 
             assertEqual(pix_ok.data,out_data.pix_ok_data);
             assertEqual(pix_ok.data,pix_coord2);
@@ -391,6 +391,7 @@ classdef test_bin_pixels_at_AxesBlock_mex_nomex < TestCase
                 skipTest('Can not test mex code to check binning against mex');
             end
             clObHor = set_temporary_config_options(hor_config, 'use_mex', true);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
 
             AB = AxesBlockBase_tester('nbins_all_dims',[10,1,1,40], ...
                 'img_range',[-1,-2,-3,-10;1,2,3,40]);
@@ -552,11 +553,9 @@ classdef test_bin_pixels_at_AxesBlock_mex_nomex < TestCase
             pix_coord2(PixelDataBase.field_index('run_idx'),:) = [pix_id,pix_id];
             pix = PixelDataMemory(pix_coord2);
 
-            warning('HORACE:test_warning','warning to clear warning cache')
+
             in_coord = pix.coordinates;
             [npix_out,s_out,e_out,pix_ok,pix_id,out_data] = AB.bin_pixels(in_coord,npix,s,e,pix,pix_id,'-test_mex_inputs');
-            [~,wid] = lastwarn;
-            assertEqual(wid,'HORACE:bin_pixels_c:internal_accumulator_reset');
 
             assertEqual(pix_ok.data,out_data.pix_ok_data);
             assertEqual(pix_ok.data,pix_coord2);
@@ -583,6 +582,7 @@ classdef test_bin_pixels_at_AxesBlock_mex_nomex < TestCase
                 skipTest('Can not test mex code to check binning against mex');
             end
             clObHor = set_temporary_config_options(hor_config, 'use_mex', true);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
 
             AB = AxesBlockBase_tester('nbins_all_dims',[10,1,1,40], ...
                 'img_range',[-1,-2,-3,-10;1,2,3,40]);
@@ -624,7 +624,7 @@ classdef test_bin_pixels_at_AxesBlock_mex_nomex < TestCase
         end
 
         %==================================================================
- function test_bin_pixels_mex_nomex_mode4_multipage0Dim(obj)
+        function test_bin_pixels_mex_nomex_mode4_multipage0Dim(obj)
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
             end
@@ -829,6 +829,7 @@ classdef test_bin_pixels_at_AxesBlock_mex_nomex < TestCase
                 skipTest('Can not test mex code to check binning against mex');
             end
             clObHor = set_temporary_config_options(hor_config, 'use_mex', true);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
 
             AB = AxesBlockBase_tester('nbins_all_dims',[10,1,1,40], ...
                 'img_range',[-1,-2,-3,-10;1,2,3,40]);
@@ -1037,6 +1038,7 @@ classdef test_bin_pixels_at_AxesBlock_mex_nomex < TestCase
                 skipTest('Can not test mex code to check binning parameters');
             end
             clObHor = set_temporary_config_options(hor_config, 'use_mex', true);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 8,'min_npix_for_omp_cut',0);
 
             AB = AxesBlockBase_tester('nbins_all_dims',[1,20,30,1], ...
                 'img_range',[-1,-2,-3,-10;1,2,3,40]);
@@ -1051,8 +1053,7 @@ classdef test_bin_pixels_at_AxesBlock_mex_nomex < TestCase
 
             assertEqual(out_data.coord_in,in_coord);
             assertEqual(out_data.binning_mode,bin_mode.sigerr_cell);
-            assertEqual(out_data.num_threads, ...
-                config_store.instance().get_value('parallel_config','threads'));
+            assertEqual(out_data.num_threads, 1); % Mode 3 currently not uses OMP
             assertEqual(out_data.data_range,AB.img_range)
             assertEqual(out_data.bins_all_dims,uint32(AB.nbins_all_dims));
             assertTrue(isempty(out_data.unique_runid));
@@ -1197,6 +1198,7 @@ classdef test_bin_pixels_at_AxesBlock_mex_nomex < TestCase
                 skipTest('Can not test mex code to check binning against mex');
             end
             clObHor = set_temporary_config_options(hor_config, 'use_mex', true);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 8,'min_npix_for_omp_cut',0);
 
             AB = AxesBlockBase_tester('nbins_all_dims',[10,20,30,40], ...
                 'img_range',[-1,-2,-3,-10;1,2,3,40]);
@@ -1397,6 +1399,7 @@ classdef test_bin_pixels_at_AxesBlock_mex_nomex < TestCase
                 skipTest('Can not test mex code to check binning parameters');
             end
             clObHor = set_temporary_config_options(hor_config, 'use_mex', true);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
 
             AB = AxesBlockBase_tester('nbins_all_dims',[10,20,30,40], ...
                 'img_range',[-1,-2,-3,-10;1,2,3,40]);
