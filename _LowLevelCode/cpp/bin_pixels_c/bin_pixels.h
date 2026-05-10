@@ -81,7 +81,7 @@ auto makeBinTable() {
     // OMP calculations
     t[static_cast<size_t>(opModes::npix_only) + n_modes] = &invoke<processNpixOnlyWithOMP<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::sig_err) + n_modes] = &invoke<processSigErrWithOMP<SRC, TRG>, SRC, TRG>;
-    // no omp for this
+    //TODO: no omp for this yet
     t[static_cast<size_t>(opModes::sigerr_cell) + n_modes] = &invoke<processSigerrCell<SRC, TRG>, SRC, TRG>;
 
     t[static_cast<size_t>(opModes::sort_pix) + n_modes] = &invoke<processWithSortingWithOMP<SRC, TRG>, SRC, TRG>;
@@ -111,8 +111,7 @@ auto makeTransfAndBinTable() {
     t[static_cast<size_t>(opModes::nosort_sel)] = &invoke_and_transf<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::siger_selected)] = &invoke_and_transf<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
     // OMP calculations
-    t[static_cast<size_t>(opModes::npix_only) + n_modes] = \
-        &invoke_and_transf<processNpixOnlyWithOMP<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::npix_only) + n_modes] = &invoke_and_transf<processNpixOnlyWithOMP<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::sig_err) + n_modes] = &invoke_and_transf<processSigErrWithOMP<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::sort_pix) + n_modes] = &invoke_and_transf<processWithSortingWithOMP<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::sort_and_uid) + n_modes] = &invoke_and_transf<processWithSortingWithOMP<SRC, TRG>, SRC, TRG>;

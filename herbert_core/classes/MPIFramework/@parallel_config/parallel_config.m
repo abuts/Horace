@@ -34,7 +34,13 @@ classdef parallel_config<config_base
     % cluster_config     - The configuration class describing parallel
     %                      cluster, running selected cluster.
     % threads            - How many computational threads to use in parallel
-    %                      and in MEX
+    %                      and in MEX omp
+    % min_npix_for_omp_cut  - Running OMP on cuts with very small number of
+    %                      pixels is inefficient. If number of pixels in
+    %                      source object is smaller then specified
+    %                      mex code reverts to single threaded execution.
+    %                      Setting it to 0 or negative runs mex code with 
+    %                      OMP where available.
     % parallel_threads   - Number of computational threads to use on remote
     %                      workers
     % ---------------------------------------------------------------------
@@ -124,9 +130,12 @@ classdef parallel_config<config_base
         % number of workers to deploy in parallel jobs
         parallel_workers_number;
 
-        % Number of threads to use.
+        % Number of OMP threads to use.
         threads;
-
+        % Running OMP on cuts with very small number of pixels is
+        % inefficient. If number of pixels in source object is smaller then
+        % specified, mex code reverts to single threaded execution
+        min_npix_for_omp_cut
         % Number of threads to use in MPIFramework.
         parallel_threads;
 
@@ -228,6 +237,7 @@ classdef parallel_config<config_base
             'cluster_config', ...
             'parallel_workers_number',...
             'threads', ...
+            'min_npix_for_omp_cut',...
             'parallel_threads', ...
             'shared_folder_on_local', ...
             'shared_folder_on_remote', ...
@@ -254,6 +264,8 @@ classdef parallel_config<config_base
         parallel_workers_number_ = 2;
         % default auto threads
         threads_ = 0;
+        % default num-pixels to start OMP execution
+        min_npix_for_omp_cut_ = 100000;
         % default auto threads
         parallel_threads_ = 0;
 
@@ -340,6 +352,9 @@ classdef parallel_config<config_base
                 n_threads = maxNumCompThreads();
             end
         end
+        function n_pixels=get.min_npix_for_omp_cut(obj)
+            n_pixels = get_or_restore_field(obj,'min_npix_for_omp_cut');
+        end
 
         function n_threads=get.parallel_threads(obj)
             n_threads = get_or_restore_field(obj, 'parallel_threads');
@@ -403,9 +418,7 @@ classdef parallel_config<config_base
             end
 
             is = isempty(work_dir);
-
         end
-
         %------------------------------------------------------------------
 
         function frmw = get.known_clusters(obj)
@@ -487,6 +500,11 @@ classdef parallel_config<config_base
             end
             config_store.instance().store_config(obj,'threads',n_threads);
         end
+        function obj =set.min_npix_for_omp_cut(obj,n_pixels)
+            n_pixels = floor(n_pixels);
+            config_store.instance().store_config(obj,'min_npix_for_omp_cut',n_pixels);
+        end
+
 
         function obj = set.parallel_threads(obj,n_threads)
             n_threads = floor(n_threads);

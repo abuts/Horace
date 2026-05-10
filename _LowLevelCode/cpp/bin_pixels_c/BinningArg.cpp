@@ -185,13 +185,13 @@ void BinningArg::set_num_threads(mxArray const* const pField)
             "number of computational threads can be defined only by scalar values");
     }
     auto nthreads = mxGetScalar(pField);
-    if (nthreads < 1) {
+    if (nthreads < 0) {
         mexErrMsgIdAndTxt("HORACE:bin_pixels_c:invalid_argument",
-            "number of computational threads can not be smaller then 1");
+            "number of OMP threads can not be smaller than 0");
     }
     if (nthreads > 64) {
         mexWarnMsgIdAndTxt("HORACE:bin_pixels_c:invalid_argument",
-            "Using more then 64 computational threads is not expected.\n"
+            "Using more then 64 OMP threads is not expected.\n"
             "Reverted requested number of threads to 64");
         nthreads = 64;
     }

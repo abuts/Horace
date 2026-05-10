@@ -39,14 +39,14 @@ if isstruct(mode_to_bin)
     %Slave mode  All parameters were already calculated and stored within
     %the mode structure
     ndata = mode_to_bin.ndata;
-    is_pix= true;   
+    is_pix= true;
     in_code_struct = rmfield(mode_to_bin,{'ndata','is_pix'});
     mode_to_bin = bin_mode(mode_to_bin.binning_mode);
     return
 end
 
-num_threads = config_store.instance().get_value('parallel_config','threads');
-
+[num_threads,pix_omp_limit] = config_store.instance().get_value('parallel_config','threads','min_npix_for_omp_cut');
+[ignore_nan,ignore_inf]  = config_store.instance().get_value('hor_config','ignore_nan','ignore_inf');
 nbins_all_dims_in = uint32(obj.nbins_all_dims(:)');
 if size(coord,1) == 3  % 3D array binning
     pax_in = obj.pax;
@@ -68,9 +68,9 @@ in_code_struct = struct( ...
     'nbins_all_dims',nbins_all_dims_in, ... % dimensions of binning lattice
     'unique_runid', uint32(unique_runid), ... % unique run indices of pixels contributing into cut
     'force_double', force_double, ...       % make result double precision regardless of input data
-    'ignore_nan', config_store.instance().get_value('hor_config','ignore_nan'),...
-    'ignore_inf', config_store.instance().get_value('hor_config','ignore_inf'),...     
-    'q_to_img',[],...                       % transformation matrix used in projection binning        
+    'ignore_nan'  , ignore_nan,...
+    'ignore_inf'  , ignore_inf,...
+    'q_to_img',[],...                       % transformation matrix used in projection binning
     'u_offset',[],...                       % offset used in projection binning
     'test_input_parsing',test_mex_inputs ...% Run mex code in test mode validating the way input have been parsed by mex code and doing no caclculations.
     );
@@ -85,6 +85,7 @@ if is_pix
     else
         in_code_struct.alignment_matr  = [];
     end
+    disable_omp = pix_cand.num_pixels < pix_omp_limit;
 else
     if iscell(pix_cand)
         % this may be improved/simplified in a future by enabling mex code
@@ -94,6 +95,9 @@ else
                 pix_cand{i} = double(pix_cand{i});
             end
         end
+        disable_omp = true; %  TODO: OMP is not enabled for binning cells of pixels yet.
+    else
+        disable_omp = size(pix_cand,2) < pix_omp_limit;
     end
     in_code_struct.alignment_matr   = [];
     in_code_struct.pix_candidates   = pix_cand;
@@ -101,4 +105,8 @@ else
     % cell with data array
     ndata = numel(pix_cand);
 end
+if disable_omp
+    in_code_struct.num_threads = 1;
+end
+
 end

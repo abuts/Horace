@@ -30,7 +30,7 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
             % finished and temporary mex/nomex values will be set within
             % the loop.
             clObHor = set_temporary_config_options(hor_config, 'use_mex', false,'log_level',-1);
-            clObPar = set_temporary_config_options(parallel_config, 'threads', 1);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
             %
             [lp,AB,pix,n_points] = obj.prepare_lp_bin_data();
             pix.run_idx  =  500+floor(100*rand(1,n_points));
@@ -85,7 +85,7 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
             % finished and temporary mex/nomex values will be set within
             % the loop.
             clObHor = set_temporary_config_options(hor_config, 'use_mex', false,'log_level',-1);
-            clObPar = set_temporary_config_options(parallel_config, 'threads', 1);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
             %
             [AB,n_points]=obj.prepare_clean_bin_data([50,1,50,20]);
 
@@ -139,7 +139,7 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
             % finished and temporary mex/nomex values will be set within
             % the loop.
             clObHor = set_temporary_config_options(hor_config, 'use_mex', false,'log_level',-1);
-            clObPar = set_temporary_config_options(parallel_config, 'threads', 1);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
             %
             [lp,AB,pix,n_points] = obj.prepare_lp_bin_data();
             pix.run_idx  =  500+floor(100*rand(1,n_points));
@@ -187,7 +187,7 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
             % finished and temporary mex/nomex values will be set within
             % the loop.
             clObHor = set_temporary_config_options(hor_config, 'use_mex', false,'log_level',-1);
-            clObPar = set_temporary_config_options(parallel_config, 'threads', 1);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
 
             [AB,n_points]=obj.prepare_clean_bin_data([50,20,50,20]);
 
@@ -239,7 +239,7 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
             % finished and temporary mex/nomex values will be set within
             % the loop.
             clObHor = set_temporary_config_options(hor_config, 'use_mex', false,'log_level',-1);
-            clObPar = set_temporary_config_options(parallel_config, 'threads', 1);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
 
             [AB,n_points]=obj.prepare_clean_bin_data([50,20,50,20]);
 
@@ -290,7 +290,7 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
             % finished and temporary mex/nomex values will be set within
             % the loop.
             clObHor = set_temporary_config_options(hor_config, 'use_mex', false,'log_level',-1);
-            clObPar = set_temporary_config_options(parallel_config, 'threads', 1);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
             %
             [lp,AB,pix,n_points] = obj.prepare_lp_bin_data();
             pix.run_idx  =  500+floor(100*rand(1,n_points));
@@ -300,33 +300,20 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
             npix_mex   = []; s_mex = [];  e_mex=[];uniqId_mex = [];
             npix_omp   = []; s_omp = [];  e_omp=[];uniqId_omp = [];
 
-            t_nomex = zeros(1,n_repeats);
-            t_mex  = zeros(1,n_repeats);
-            t_omp  = zeros(1,n_repeats);
-            disp("*** Proj mex/nomex performance mode5 (bin and sort pixels + unique runid):")
             for i= 1:n_repeats
-                fprintf('.')
-
                 config_store.instance.set_value('hor_config','use_mex',false);
-                t1 = tic();
                 [npix_nomex,s_nomex,e_nomex,pix_ok_nom,uniqId_nom] =...
                     lp.bin_pixels(AB,pix,npix_nomex,s_nomex,e_nomex,uniqId_nom);
                 %AB.bin_pixels(coord,npix_nomex,s_nomex,e_nomex,pix,uniqId_nom);
-                t_nomex(i) = toc(t1);
-                fprintf('.')
 
                 config_store.instance.set_value('hor_config','use_mex',true);
                 config_store.instance.set_value('parallel_config','threads',1);
-                t1 = tic();
                 [npix_mex,s_mex,e_mex,pix_ok_mex,uniqId_mex] = ...
                     lp.bin_pixels(AB,pix,npix_mex,s_mex,e_mex,uniqId_mex);
-                t_mex(i) = toc(t1);
 
                 config_store.instance.set_value('parallel_config','threads',obj.n_threads);
-                t1 = tic();
                 [npix_omp,s_omp,e_omp,pix_ok_omp,uniqId_omp] = ...
                     lp.bin_pixels(AB,pix,npix_omp,s_omp,e_omp,uniqId_omp);
-                t_omp(i) = toc(t1);
 
                 assertEqual(uint32(uniqId_nom),uniqId_mex);
                 assertEqual(uint32(uniqId_nom),uniqId_omp);
@@ -343,8 +330,8 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
                 pix.coordinates = rand(4,n_points);
                 pix.run_idx  =  500+floor(100*rand(1,n_points));
             end
-
         end
+
         function test_mex_nomex_mode5_sort_and_uid(obj)
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
@@ -353,7 +340,7 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
             % finished and temporary mex/nomex values will be set within
             % the loop.
             clObHor = set_temporary_config_options(hor_config, 'use_mex', false,'log_level',-1);
-            clObPar = set_temporary_config_options(parallel_config, 'threads', 1);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
             %
             [AB,n_points]=obj.prepare_clean_bin_data([50,20,50,20]);
 
@@ -404,7 +391,7 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
             % finished and temporary mex/nomex values will be set within
             % the loop.
             clObHor = set_temporary_config_options(hor_config, 'use_mex', false,'log_level',-1);
-            clObPar = set_temporary_config_options(parallel_config, 'threads', 1);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
             %
             [lp,AB,pix,n_points] = obj.prepare_lp_bin_data();
 
@@ -453,7 +440,7 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
             % finished and temporary mex/nomex values will be set within
             % the loop.
             clObHor = set_temporary_config_options(hor_config, 'use_mex', false,'log_level',-1);
-            clObPar = set_temporary_config_options(parallel_config, 'threads', 1);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
             %
             [AB,n_points]=obj.prepare_clean_bin_data([50,20,50,20]);
 
@@ -493,7 +480,7 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
             end
 
             clObHor = set_temporary_config_options(hor_config, 'use_mex', false);
-            clObPar = set_temporary_config_options(parallel_config, 'threads', 1);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
 
             n_repeats = 2;
 
@@ -612,7 +599,7 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
             end
 
             clObHor = set_temporary_config_options(hor_config, 'use_mex', false);
-            clObPar = set_temporary_config_options(parallel_config, 'threads', 1);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
 
             n_repeats = 2;
             [lp,AB,pix,n_points] = obj.prepare_lp_bin_data();
@@ -654,7 +641,7 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
             % finished and temporary mex/nomex values will be set within
             % the loop.
             clObHor = set_temporary_config_options(hor_config, 'use_mex', false);
-            clObPar = set_temporary_config_options(parallel_config, 'threads', 1);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
             %
             [AB,n_points]=obj.prepare_clean_bin_data();
 
@@ -696,7 +683,7 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
             % this will recover existing configuration after test have been
             % finished
             clObHor = set_temporary_config_options(hor_config, 'use_mex', false);
-            clObPar = set_temporary_config_options(parallel_config, 'threads', 1);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
             %
 
             n_repeats = 2;
@@ -732,7 +719,7 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
             % this will recover existing configuration after test have been
             % finished
             clObHor = set_temporary_config_options(hor_config, 'use_mex', false);
-            clObPar = set_temporary_config_options(parallel_config, 'threads', 1);
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
             %
             [AB,n_points]=obj.prepare_clean_bin_data();
 
