@@ -154,8 +154,7 @@ size_t bin_pixels(span<double>& npix, span<double>& s, span<double>& e, BinningA
     // initialize common code for pixel binning
     size_t bin_mode = static_cast<size_t>(bin_par_ptr->binMode);
     // omp modes; enable if requested and reasonable number of pixels provided 
-    // TODO: make it externally configurable
-    if (bin_par_ptr->num_threads > 1 && bin_par_ptr->n_data_points>100000) {
+    if (bin_par_ptr->num_threads > 1) {
         bin_mode += static_cast<size_t>(opModes::N_OP_Modes);
     }
     if (bin_par_ptr->transform_pixels) {
