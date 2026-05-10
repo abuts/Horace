@@ -6,7 +6,7 @@ classdef bin_out < uint32
       npix         (1)
       s            (2)
       e            (3)
-      pix_ok       (4)
+      pix_ok       (4) % or sigerr_sel in -seleted_only mode
       unique_runid (5)
       pix_idx      (6)
       selected     (7)
