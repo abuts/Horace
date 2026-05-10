@@ -97,7 +97,7 @@ else
         end
         disable_omp = true; %  TODO: OMP is not enabled for binning cells of pixels yet.
     else
-        disable_omp = size(pix_cand,2) < pix_omp_limit;
+        disable_omp = size(coord,2) < pix_omp_limit;
     end
     in_code_struct.alignment_matr   = [];
     in_code_struct.pix_candidates   = pix_cand;

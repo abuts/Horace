@@ -695,6 +695,7 @@ classdef performance_bin_pixels_mex_nomex
 
             npix_nomex=[]; s_nomex=[]; e_nomex=[];
             npix_mex=[];   s_mex=[];   e_mex=[];
+            npix_omp=[];   s_omp=[];   e_omp=[];
 
             disp("*** Proj mex/nomex performance mode4 (sort pixels):")
             t_nomex = zeros(1,n_repeats);
