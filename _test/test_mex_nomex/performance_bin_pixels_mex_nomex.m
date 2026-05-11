@@ -1176,18 +1176,18 @@ classdef performance_bin_pixels_mex_nomex
                 [npix_mex,s_mex,e_mex,pix_ok_mex,uniqId_mex,pix_idx_mex,selected_mex] = ...
                     lp.bin_pixels(AB,pix,npix_mex,s_mex,e_mex,uniqId_mex);
                 t_mex(i) = toc(t1);
-                fprintf('.')                
+                fprintf('.')
 
                 config_store.instance.set_value('parallel_config','threads',obj.n_threads);
                 t1 = tic();
                 [npix_omp,s_omp,e_omp,pix_ok_omp,uniqId_omp,pix_idx_omp,selected_omp] = ...
                     lp.bin_pixels(AB,pix,npix_omp,s_omp,e_omp,uniqId_omp);
                 t_omp(i) = toc(t1);
-                fprintf('.')                
+                fprintf('.')
 
                 assertEqual(selected_nom,selected_mex);
                 assertEqual(selected_nom,selected_omp);
-                assertEqual(int64(pix_idx_nom),pix_idx_omp);                
+                assertEqual(int64(pix_idx_nom),pix_idx_omp);
             end
             obj.disp_perf_results(t_nomex,t_mex,t_omp);
 
@@ -1217,7 +1217,10 @@ classdef performance_bin_pixels_mex_nomex
 
         function [lp,ab,pix,n_points]=prepare_lp_bin_data()
             ab = line_axes('nbins_all_dims',[50,1,50,1], ...
-                'img_range',[-1,-1,-1,0;1,0.8,1,0.8]);
+                'img_range',[-1,-1,-1,0;1,0.8,1,0.8]);  % large pix contribution
+            %'img_range',[0,0,0,0;1,0.8,1,0.8]);  % low pixel
+            %contribution
+
             n_points = 20000000;
             pix_id = 10;
             pix_coord = rand(9,n_points);

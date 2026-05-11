@@ -155,15 +155,15 @@ struct processWithNoSortSelWithOMP {
                 ctx.nPixel_retained = num_pix;
             }//single
 #pragma omp for schedule(static)
-            for (long i = 0; i < distribution_size; i++) {
+            for (long iimg = 0; iimg < distribution_size; ++iimg) {
                 for (int n_thread = 0; n_thread < num_OMP_threads; n_thread++) {
-                    npix[i] += (double)img_tls[n_thread][i].npix;
-                    s[i] += img_tls[n_thread][i].s;
-                    e[i] += img_tls[n_thread][i].e;
+                    npix[iimg] += (double)img_tls[n_thread][iimg].npix;
+                    s[iimg] += img_tls[n_thread][iimg].s;
+                    e[iimg] += img_tls[n_thread][iimg].e;
                     /* I do not understand why it does not equivalent to row 144 above!!!!
                     * It may be, of course slower for images larger then pixels
                     if (!return_selected_only) {
-                        npix_thread_contibution[n_thread] += img_tls[n_thread][i].npix;
+                        npix_thread_contibution[n_thread] += img_tls[n_thread][iimg].npix;
                     }
                     */
                 }
