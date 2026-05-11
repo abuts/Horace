@@ -1176,12 +1176,14 @@ classdef performance_bin_pixels_mex_nomex
                 [npix_mex,s_mex,e_mex,pix_ok_mex,uniqId_mex,pix_idx_mex,selected_mex] = ...
                     lp.bin_pixels(AB,pix,npix_mex,s_mex,e_mex,uniqId_mex);
                 t_mex(i) = toc(t1);
+                fprintf('.')                
 
                 config_store.instance.set_value('parallel_config','threads',obj.n_threads);
                 t1 = tic();
                 [npix_omp,s_omp,e_omp,pix_ok_omp,uniqId_omp,pix_idx_omp,selected_omp] = ...
                     lp.bin_pixels(AB,pix,npix_omp,s_omp,e_omp,uniqId_omp);
                 t_omp(i) = toc(t1);
+                fprintf('.')                
 
                 assertEqual(selected_nom,selected_mex);
                 assertEqual(selected_nom,selected_omp);
@@ -1216,7 +1218,7 @@ classdef performance_bin_pixels_mex_nomex
         function [lp,ab,pix,n_points]=prepare_lp_bin_data()
             ab = line_axes('nbins_all_dims',[50,1,50,1], ...
                 'img_range',[0,0,0,0;1,0.8,1,0.8]);
-            n_points = 200;
+            n_points = 50000000;
             pix_id = 10;
             pix_coord = rand(9,n_points);
             pix_coord(PixelDataBase.field_index('run_idx'),:) = pix_id;

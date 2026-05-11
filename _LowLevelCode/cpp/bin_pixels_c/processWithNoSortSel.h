@@ -144,6 +144,7 @@ struct processWithNoSortSelWithOMP {
                 // calculate location of pixel within the image grid and add values of this pixels to the accumulators
                 auto il = ctx.add_pix_to_tls_accum(qu, ip0, img_tls[n_thread]);
                 if (!return_selected_only) {
+                    npix_thread_contibution[n_thread]++;
                     pix_ok_bin_idx[i] = il;
                     // calculate pix ranges
                     calc_pix_ranges<SRC>(p_range_tls[n_thread], ctx.pix_coord, ip0, PIX_STRIDE);
@@ -160,9 +161,6 @@ struct processWithNoSortSelWithOMP {
                     npix[i] += (double)img_tls[n_thread][i].npix;
                     s[i] += img_tls[n_thread][i].s;
                     e[i] += img_tls[n_thread][i].e;
-                    if (!return_selected_only) {
-                        npix_thread_contibution[n_thread] += img_tls[n_thread][i].npix;
-                    }
                 }
             }
 #pragma omp single
@@ -184,13 +182,12 @@ struct processWithNoSortSelWithOMP {
                     ctx.bin_par_ptr->pix_img_idx_ptr = allocate_pix_memory<mxInt64>(ctx.nPixel_retained, 1, pix_img_idx);
                 }
 #pragma omp barrier
-#pragma omp for schedule(static)
-                for (int n_thread = 0; n_thread < num_OMP_threads; n_thread++) {
-                    copy_results_to_final_arraysWithOMP<SRC, TRG>(n_thread,
-                        selected_pix, pix_img_idx, tls_unique_ID,
-                        align_result, ctx.bin_par_ptr->alignment_matrix, ctx.pix_coord, ctx.data_size,
-                        ctx.nPixel_retained, pix_ok_bin_idx, thread_contribution_res_start, tls_thread_range);
-                }
+                int n_thread = omp_get_thread_num();
+                copy_results_to_final_arraysWithOMP<SRC, TRG>(n_thread,
+                    selected_pix, pix_img_idx, tls_unique_ID,
+                    align_result, ctx.bin_par_ptr->alignment_matrix, ctx.pix_coord, ctx.data_size,
+                    ctx.nPixel_retained, pix_ok_bin_idx, thread_contribution_res_start, tls_thread_range);
+
 #pragma omp barrier
 #pragma omp single
                 {   // collect all unique ID-s from threads into final unique run_id set
