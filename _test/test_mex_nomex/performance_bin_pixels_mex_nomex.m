@@ -1217,8 +1217,8 @@ classdef performance_bin_pixels_mex_nomex
 
         function [lp,ab,pix,n_points]=prepare_lp_bin_data()
             ab = line_axes('nbins_all_dims',[50,1,50,1], ...
-                'img_range',[0,0,0,0;1,0.8,1,0.8]);
-            n_points = 50000000;
+                'img_range',[-1,-1,-1,0;1,0.8,1,0.8]);
+            n_points = 20000000;
             pix_id = 10;
             pix_coord = rand(9,n_points);
             pix_coord(PixelDataBase.field_index('run_idx'),:) = pix_id;

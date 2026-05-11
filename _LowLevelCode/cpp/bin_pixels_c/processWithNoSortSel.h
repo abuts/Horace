@@ -121,9 +121,6 @@ struct processWithNoSortSelWithOMP {
             for (long i = 0; i < ctx.data_size; i++) {
                 // store actual thread ranges for using it in a pixel copying
                 auto n_thread = omp_get_thread_num();
-                if (!return_selected_only) {
-                    tls_thread_range[n_thread].check_range(i);
-                }
                 // drop out coordinates outside of the binning range
                 if (ctx.out_of_ranges(i, qu)) {
                     is_pix_selected[i] = false;
@@ -145,6 +142,7 @@ struct processWithNoSortSelWithOMP {
                 auto il = ctx.add_pix_to_tls_accum(qu, ip0, img_tls[n_thread]);
                 if (!return_selected_only) {
                     npix_thread_contibution[n_thread]++;
+                    tls_thread_range[n_thread].check_range(i);
                     pix_ok_bin_idx[i] = il;
                     // calculate pix ranges
                     calc_pix_ranges<SRC>(p_range_tls[n_thread], ctx.pix_coord, ip0, PIX_STRIDE);
