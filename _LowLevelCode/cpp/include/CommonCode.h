@@ -88,7 +88,7 @@ inline size_t copy_pixels(span<const SRC> pixel_data, long source_pos, span<TRG>
 };
 // Align and copy pixels from source to target array template <class SRC, class TRG>
 template <class SRC, class TRG>
-inline size_t align_and_copy_pixels(std::vector<double> &al_matr,span<const SRC> pixel_data, long source_pos, span<TRG> pix_sorted, size_t targ_pos)
+inline size_t align_and_copy_pixels(const std::vector<double> &al_matr,span<const SRC> pixel_data, long source_pos, span<TRG> pix_sorted, size_t targ_pos)
 {
     //
     targ_pos *= pix_flds::PIX_WIDTH; // each position in a grid cell corresponds to a pixel of the size PIX_WIDTH;
@@ -211,7 +211,8 @@ T getMatlabScalar(const mxArray* pPar, const char* const fieldName) {
     }
     return static_cast<T>(*mxGetPr(pPar));
 };
-
+/* Accumulators used in tls storage to keep part of image, calculated by every
+** OMP thread */
 struct bin_accum{
     size_t npix;
     double s;
@@ -219,6 +220,19 @@ struct bin_accum{
     bin_accum(size_t val) :
         npix(val),s(val),e(val)
     {}
+};
+/* structure used to identify thread ranges used in pixel loop divided into OMP
+** static chunks*/
+struct thread_range {
+    long min_idx;
+    long max_idx;
+    thread_range() :
+        min_idx(std::numeric_limits<long>::max()),max_idx(-std::numeric_limits<long>::max())
+    {}
+    void check_range(long idx) {
+        this->min_idx = std::min(this->min_idx, idx);
+        this->max_idx = std::max(this->max_idx, idx);
+    }
 };
 
 template<class T>

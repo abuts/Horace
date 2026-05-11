@@ -15,6 +15,7 @@ struct processInvalidCall{
            "Axess binning does not support this operational mode\n");
     }
 };
+// Macro to process unsupported binning and transformation modes.
 template<class SRC, class TRG>
 struct processInvalidCallWithTransf {
     void operator()(CommonBinCodeWithTransf<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
@@ -22,8 +23,6 @@ struct processInvalidCallWithTransf {
             "binning with transformation (projection) does not support this operational mode\n");
     }
 };
-
-
 
 template<class SRC, class TRG>
 struct processSigerrCell {
@@ -77,7 +76,7 @@ void invoke_and_transf(CommonBinCodeWithTransf<SRC, TRG>& ctx, span<double>& npi
 };
 
 
-// Define table which contains various binning sub-algorithms
+// Define function table which contains various binning sub-algorithms
 template<typename SRC, typename TRG>
 auto makeBinTable() {
     using Fn = void(*)(CommonBinCode<SRC, TRG>&,
@@ -112,7 +111,7 @@ auto makeBinTable() {
 
     return t;
 };
-
+// Define function table which contains various transformation and binning sub-algorithms
 template<typename SRC, typename TRG>
 auto makeTransfAndBinTable() {
     using Fn = void(*)(CommonBinCodeWithTransf<SRC, TRG>&,
@@ -156,7 +155,6 @@ const auto& fTransfAndBinTable() {
     static const auto table = makeTransfAndBinTable<SRC, TRG>();
     return table;
 };
-
 
 /** Procedure calculates positions of the input pixels coordinates within specified
  *   image box and various other values related to distributions of pixels over the image

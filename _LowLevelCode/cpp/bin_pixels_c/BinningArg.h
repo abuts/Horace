@@ -124,7 +124,7 @@ public:
     // resulting range of pixels
     mxArray* pix_data_range_ptr;
     mxArray* pix_ok_ptr; // pointer to array of all pixels retained after binning
-    std::unordered_set<uint32_t> unique_runID; // set containing unique run_id-s of the
+    std::unordered_set<uint32_t> unique_runID; // set containing unique run_id-s of the contributing pixels
     mxArray* pix_img_idx_ptr; // pointer to array of pixel indices within the image cell 
     mxArray* is_pix_selected_ptr; // pointer to logical array containing true where pixel 
     //                               was selected for binning and false otherwise

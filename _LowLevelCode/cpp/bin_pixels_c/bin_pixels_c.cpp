@@ -169,10 +169,3 @@ void parse_inputs(mxArray* plhs[], mxArray const* prhs[], std::unique_ptr<class_
     bin_arg_ptr->check_and_init_accumulators(plhs, prhs,force_update);
     return;
 };
-
-
-//#undef OMP_VERSION_3
-//#undef C_MUTEXES
-
-
-
