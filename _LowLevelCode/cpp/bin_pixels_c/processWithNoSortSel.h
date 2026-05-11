@@ -142,6 +142,7 @@ struct processWithNoSortSelWithOMP {
                 auto il = ctx.add_pix_to_tls_accum(qu, ip0, img_tls[n_thread]);
                 if (!return_selected_only) {
                     npix_thread_contibution[n_thread]++;
+                    // relies on omp schedule being static so thread responsibility ranges do not overlap
                     tls_thread_range[n_thread].check_range(i);
                     pix_ok_bin_idx[i] = il;
                     // calculate pix ranges
@@ -159,6 +160,12 @@ struct processWithNoSortSelWithOMP {
                     npix[i] += (double)img_tls[n_thread][i].npix;
                     s[i] += img_tls[n_thread][i].s;
                     e[i] += img_tls[n_thread][i].e;
+                    /* I do not understand why it does not equivalent to row 144 above!!!!
+                    * It may be, of course slower for images larger then pixels
+                    if (!return_selected_only) {
+                        npix_thread_contibution[n_thread] += img_tls[n_thread][i].npix;
+                    }
+                    */
                 }
             }
 #pragma omp single
