@@ -221,19 +221,6 @@ struct bin_accum{
         npix(val),s(val),e(val)
     {}
 };
-/* structure used to identify thread ranges used in pixel loop divided into OMP
-** static chunks*/
-struct thread_range {
-    long min_idx;
-    long max_idx;
-    thread_range() :
-        min_idx(std::numeric_limits<long>::max()),max_idx(-std::numeric_limits<long>::max())
-    {}
-    void check_range(long idx) {
-        this->min_idx = std::min(this->min_idx, idx);
-        this->max_idx = std::max(this->max_idx, idx);
-    }
-};
 
 template<class T>
 void init_tls_storage(size_t num_OMP_threads, size_t distribution_size,std::vector<std::vector<T> > &tls_storage) {

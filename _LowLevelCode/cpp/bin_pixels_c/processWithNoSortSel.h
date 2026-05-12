@@ -80,15 +80,9 @@ struct processWithNoSortSelWithOMP {
         auto PIX_STRIDE = ctx.PIX_STRIDE;
         bool align_result = ctx.bin_par_ptr->alignment_matrix.size() == 9;
 
-        // alocate TLS storage:
-        std::vector<thread_range> tls_thread_range;
-        // how many pixels every thread puts into image
-        std::vector<size_t> npix_thread_contibution;
         // and where these pixel contribution starts in final pixel array 
         std::vector<size_t> thread_contribution_res_start;
-
         std::vector<std::unordered_set<uint32_t> > tls_unique_ID;
-
         // for npix, signal and arror
         std::vector<std::vector<bin_accum>> img_tls;
         init_tls_storage<bin_accum>(num_OMP_threads, distribution_size, img_tls);
@@ -97,28 +91,25 @@ struct processWithNoSortSelWithOMP {
         std::vector<tlsMem> range_tls_stor(num_OMP_threads, tlsMem(2 * PIX_STRIDE));
         // use span as original min/max range calculation routine expects span
         std::vector<span<double>>p_range_tls;
+        std::vector<std::vector<int>> tls_contribution;
+        std::vector<std::vector<int>> balanced_idx;
         if (!return_selected_only) {
-
-            thread_contribution_res_start.resize(num_OMP_threads, 0);
-            npix_thread_contibution.resize(num_OMP_threads, 0);
-
             p_range_tls.resize(num_OMP_threads);
             for (int i = 0; i < num_OMP_threads; ++i) {
                 p_range_tls[i] = span<double>(range_tls_stor[i].data(), 2 * PIX_STRIDE);
                 init_min_max_range_calc(p_range_tls[i], PIX_STRIDE);
             }
 
-            tls_thread_range.resize(num_OMP_threads);
             tls_unique_ID.resize(num_OMP_threads);
+            tls_contribution.resize(num_OMP_threads);
         }
-
         omp_set_num_threads(num_OMP_threads);
 
 #pragma omp parallel firstprivate(check_pix_selection,PIX_STRIDE,return_selected_only)
         {
             std::vector<double> qu(ctx.COORD_STRIDE);
-#pragma omp for schedule(static) reduction(+:num_pix)
-            for (long i = 0; i < ctx.data_size; i++) {
+#pragma omp for schedule(dynamic,1000) reduction(+:num_pix)
+            for (int i = 0; i < ctx.data_size; i++) {
                 // store actual thread ranges for using it in a pixel copying
                 auto n_thread = omp_get_thread_num();
                 // drop out coordinates outside of the binning range
@@ -141,9 +132,9 @@ struct processWithNoSortSelWithOMP {
                 // calculate location of pixel within the image grid and add values of this pixels to the accumulators
                 auto il = ctx.add_pix_to_tls_accum(qu, ip0, img_tls[n_thread]);
                 if (!return_selected_only) {
-                    npix_thread_contibution[n_thread]++;
-                    // relies on omp schedule being static so thread responsibility ranges do not overlap
-                    tls_thread_range[n_thread].check_range(i);
+                    //npix_thread_contibution[n_thread]++;
+                    tls_contribution[n_thread].push_back(i);
+                    // store indices to keep
                     pix_ok_bin_idx[i] = il;
                     // calculate pix ranges
                     calc_pix_ranges<SRC>(p_range_tls[n_thread], ctx.pix_coord, ip0, PIX_STRIDE);
@@ -172,9 +163,7 @@ struct processWithNoSortSelWithOMP {
             {
                 if (!return_selected_only) {
                     merge_tls_ranges(range_tls_stor, ctx.pix_ranges, num_OMP_threads, PIX_STRIDE);
-                    for (size_t i = 1; i < num_OMP_threads; ++i) {
-                        thread_contribution_res_start[i] = thread_contribution_res_start[i - 1] + npix_thread_contibution[i - 1];
-                    }
+                    balance_copying_load(ctx.nPixel_retained,tls_contribution, balanced_idx, thread_contribution_res_start);
                 }
             }//single
 
@@ -187,12 +176,13 @@ struct processWithNoSortSelWithOMP {
                     ctx.bin_par_ptr->pix_img_idx_ptr = allocate_pix_memory<mxInt64>(ctx.nPixel_retained, 1, pix_img_idx);
                 }
 #pragma omp barrier
-                int n_thread = omp_get_thread_num();
-                copy_results_to_final_arraysWithOMP<SRC, TRG>(n_thread,
-                    selected_pix, pix_img_idx, tls_unique_ID,
-                    align_result, ctx.bin_par_ptr->alignment_matrix, ctx.pix_coord, ctx.data_size,
-                    ctx.nPixel_retained, pix_ok_bin_idx, thread_contribution_res_start, tls_thread_range);
-
+                if (ctx.nPixel_retained > 0) {
+                    int n_thread = omp_get_thread_num();
+                    copy_results_to_final_arraysWithOMP<SRC, TRG>(n_thread,
+                        selected_pix, pix_img_idx, tls_unique_ID,
+                        align_result, ctx.bin_par_ptr->alignment_matrix, ctx.pix_coord,
+                        pix_ok_bin_idx, thread_contribution_res_start, balanced_idx);
+                }
 #pragma omp barrier
 #pragma omp single
                 {   // collect all unique ID-s from threads into final unique run_id set

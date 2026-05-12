@@ -67,43 +67,43 @@ void inline copy_results_to_final_arrays(BinningArg* const bin_par_ptr, span<con
 ** selected pixels using OMP.
 ** Pixels are not sorted and array of indices which correspond to pixels positions
 ** according to image is returned instead.
-* Inputs:
-* bin_par_ptr -- pointer to binning parameters of the routine, containing
-*                routine input parameters (alignment matrix, if any) and holder
-*                for output parameters (contributing pixels array and  array of
-*                pixel indices in image.
+* Parameters:
+* n_thread     -- number of thread to copy array for
+* selected_pix -- target array of pixel data
+* pix_img_idx  -- target array of contributing pixel's indices in the image
+* unique_ID_tls-- target array of thread-specific unique indices contribution
+* align_resut  -- if true, resulting pixels have be aligned.
+* alignment_matrix
+*              -- if aligh_result is true, 9-element (3x3) rotation matix describing pixel alignment
+*                 may be empty if align_resut == false
+* pix_coord    -- pointer to source array of pixel data
+* 
 * pix_data    -- pointer to array of input pixels previously evaluated and checked
 *                on what pixel contributes and what does not.
-* data_size   -- number of pixels in pixel_coord array.
-* nPixel_retained
-*             -- number of pixels contributed into final image
 * pix_ok_bin_idx
 *             -- pointer to array containg info about pix_data position in image
 *                if pixel contributes to image or negative if it does not.
-* Returns:
-* bin_par_ptr  with modified "pix_ok_ptr", "pix_img_idx_ptr" and "unique_runID" fields.
-*              Two first pointers are holding MATLAB arrays allocated by routine,
-*              and contain contributed pixels data array and their indices in target image.
-* unique_runID is unordered map containing unique indeces of runs, contributed to indices.
-*              The map is modified by adding the indices, unique to this particular block of
-*              pixel data.
+* npix_thread_contibution_start
+*             -- array of num_opm_thead size, identifying target position of
+*                each thread contribution in the selected_pix and pix_img_idx
+*                arrays.
+* tls_indices -- load-balanced array of size num_omp_thread containing arrays
+                 of pix_coord indices of pixels contributing to the image.
 */
 template <class SRC, class TRG>
 void inline copy_results_to_final_arraysWithOMP(int n_thread,
     span<TRG> &selected_pix, span<mxInt64> &pix_img_idx, std::vector<std::unordered_set<uint32_t> >& unique_ID_tls,
-    bool align_result, const std::vector<double> & alignment_matrix, span<const SRC> pix_coord, size_t data_size,
-    size_t nPixel_retained, span<mxInt64> pix_ok_bin_idx,
-    const std::vector<size_t> &npix_thread_contibution_start, const std::vector<thread_range> &tls_thread_range)
+    bool align_result, const std::vector<double> & alignment_matrix, span<const SRC> pix_coord,
+    span<mxInt64> pix_ok_bin_idx,
+    const std::vector<size_t> &npix_thread_contibution_start, const std::vector<std::vector<int> > &tls_indices)
 {
 
     // actually move pixels and copy indices to the target array
     size_t targ_pix_pos(npix_thread_contibution_start[n_thread]);
     size_t targ_pix_array_pos(0);
-    auto iStart = tls_thread_range[n_thread].min_idx;
-    auto iEnd   = tls_thread_range[n_thread].max_idx;
-    for (auto i = iStart; i <= iEnd; i++) {
-        if (pix_ok_bin_idx[i] < 0) // drop pixels with have not been included above
-            continue;
+    for (auto i : tls_indices[n_thread]) {
+        //if (pix_ok_bin_idx[i] < 0) // drop pixels with have not been included above
+        //    continue;
 
         // number of image cell pixel should go to
         pix_img_idx[targ_pix_pos] = static_cast<size_t>(pix_ok_bin_idx[i] + 1); // MATLB indices start from 1 and these -- from 0

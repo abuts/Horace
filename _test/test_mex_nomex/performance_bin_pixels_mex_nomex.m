@@ -1187,14 +1187,13 @@ classdef performance_bin_pixels_mex_nomex
 
                 assertEqual(selected_nom,selected_mex);
                 assertEqual(selected_nom,selected_omp);
-                assertEqual(int64(pix_idx_nom),pix_idx_omp);
+                assertEqual(sort(int64(pix_idx_nom)),sort(pix_idx_omp));
             end
             obj.disp_perf_results(t_nomex,t_mex,t_omp);
 
             assertEqual(uint32(uniqId_nom),uniqId_mex);
             assertEqual(uint32(uniqId_nom),uniqId_omp);
             assertEqual(int64(pix_idx_nom),pix_idx_mex);
-            assertEqual(int64(pix_idx_nom),pix_idx_omp);
             assertEqual(selected_nom,selected_mex);
             assertEqual(selected_nom,selected_omp);
 
@@ -1218,9 +1217,9 @@ classdef performance_bin_pixels_mex_nomex
         function [lp,ab,pix,n_points]=prepare_lp_bin_data()
             ab = line_axes('nbins_all_dims',[50,1,50,1], ...
                 'img_range',[-1,-1,-1,0;1,0.8,1,0.8]);  % large pix contribution
-            %'img_range',[0,0,0,0;1,0.8,1,0.8]);  % low pixel
-            %contribution
+            %'img_range',[0,0,0,0;1,0.8,1,0.8]);  % low pixel contribution
 
+            %contribution
             n_points = 20000000;
             pix_id = 10;
             pix_coord = rand(9,n_points);

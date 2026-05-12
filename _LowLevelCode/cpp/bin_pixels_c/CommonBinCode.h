@@ -234,3 +234,42 @@ public:
     };
 
 };
+/* take vector of vectors, containing indices of pixels which */
+void  balance_copying_load(size_t num_pixels, const std::vector<std::vector<int> >& tls_contribution,
+    std::vector<std::vector<int> > & balanced_idx, std::vector<size_t >& thread_contribution_res_start) {
+
+    size_t num_OMP_threads = tls_contribution.size();
+    balanced_idx.resize(num_OMP_threads);
+    // where in target pixels array contribution from each thread should start.
+    thread_contribution_res_start.resize(num_OMP_threads);
+    thread_contribution_res_start[0] = 0;
+
+    size_t block_size = num_pixels / num_OMP_threads;
+    size_t reminder(0);
+    if (block_size == 0) {
+        block_size = 1;
+        reminder = 0;
+    }
+    else {
+        reminder = num_pixels % num_OMP_threads;
+    }
+
+    for (size_t t = 0; t < num_OMP_threads; ++t) {
+        size_t target = block_size + (t < reminder ? 1 : 0);
+        balanced_idx[t].reserve(target);
+    }
+    size_t thr_idx = 0;
+    for (const auto& src_vec : tls_contribution) {
+        for (int idx : src_vec) {
+            while (balanced_idx[thr_idx].size() ==
+                balanced_idx[thr_idx].capacity())
+            {
+                thread_contribution_res_start[thr_idx + 1] = \
+                    thread_contribution_res_start[thr_idx] + balanced_idx[thr_idx].size();
+                ++thr_idx;   // move to next bucket
+            }
+
+            balanced_idx[thr_idx].push_back(idx);
+        }
+    }
+};
