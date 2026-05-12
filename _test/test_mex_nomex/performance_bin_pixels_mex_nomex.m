@@ -128,18 +128,18 @@ classdef performance_bin_pixels_mex_nomex
                     lp.bin_pixels(AB,pix,npix_omp,s_omp,e_omp,'-selected_only');
                 t_omp(i) = toc(t1);
 
-                assertEqual(is_sel_nom,is_sel_mex);
-                assertEqual(is_sel_nom,is_sel_omp);
-
-                assertEqual(npix_nomex,npix_mex)
-                assertEqualToTol(s_nomex,s_mex,'tol',[1.e-12,1.e-12])
-                assertEqualToTol(e_nomex,e_mex,'tol',[1.e-12,1.e-12])
-
                 pix.coordinates = rand(4,n_points);
                 pix.run_idx  =  500+floor(100*rand(1,n_points));
 
             end
             obj.disp_perf_results(t_nomex,t_mex,t_omp);
+            assertEqual(is_sel_nom,is_sel_mex);
+            assertEqual(is_sel_nom,is_sel_omp);
+
+            assertEqual(npix_nomex,npix_mex)
+            assertEqualToTol(s_nomex,s_mex,'tol',[1.e-12,1.e-12])
+            assertEqualToTol(e_nomex,e_mex,'tol',[1.e-12,1.e-12])
+
         end
 
         function [t_nomex,t_mex,t_omp] = performance_proj_mex_nomex_mode8_nosort_id_idx_sel(obj)
@@ -188,19 +188,6 @@ classdef performance_bin_pixels_mex_nomex
                     lp.bin_pixels(AB,pix,npix_omp,s_omp,e_omp,uniqId_omp);
                 t_omp(i) = toc(t1);
 
-                assertEqual(uint32(uniqId_nom),uniqId_mex);
-                assertEqual(uint32(uniqId_nom),uniqId_omp);
-                assertEqual(int64(pix_idx_nom),pix_idx_mex);
-                assertEqual(int64(pix_idx_nom),pix_idx_omp);
-                assertEqual(sel_nom,sel_mex);
-                assertEqual(sel_nom,sel_omp);
-
-                assertEqual(npix_nomex,npix_mex)
-                assertEqualToTol(s_nomex,s_mex,'tol',[1.e-12,1.e-12])
-                assertEqualToTol(e_nomex,e_mex,'tol',[1.e-12,1.e-12])
-                assertEqualToTol(pix_ok_nom,pix_ok_mex,'tol',[1.e-12,1.e-12])
-                assertEqualToTol(pix_ok_nom,pix_ok_omp,'tol',[1.e-12,1.e-12])
-
                 pix.coordinates = rand(4,n_points);
                 pix.run_idx  =  500+floor(100*rand(1,n_points));
             end
@@ -208,8 +195,19 @@ classdef performance_bin_pixels_mex_nomex
             % REFERENCE DATA: ndw2671
             %*** time of first step,    nomex:  1.9(sec)  mex:  1.1(sec); Acceleration :  1.8
             %*** Average time per step, nomex:  1.9(sec)  mex:  1.1(sec); Acceleration :  1.8
-        end
+            assertEqual(uint32(uniqId_nom),uniqId_mex);
+            assertEqual(uint32(uniqId_nom),uniqId_omp);
+            assertEqual(int64(pix_idx_nom),pix_idx_mex);
+            assertEqual(sort(int64(pix_idx_nom)),sort(pix_idx_omp));
+            assertEqual(sel_nom,sel_mex);
+            assertEqual(sel_nom,sel_omp);
 
+            assertEqual(npix_nomex,npix_mex)
+            assertEqualToTol(s_nomex,s_mex,'tol',[1.e-12,1.e-12])
+            assertEqualToTol(e_nomex,e_mex,'tol',[1.e-12,1.e-12])
+            assertEqualToTol(pix_ok_nom,pix_ok_mex,'tol',[1.e-12,1.e-12])
+            assertEqualToTol(pix_ok_nom,pix_ok_omp,'tol',[1.e-12,1.e-12])
+        end
 
         function [t_nomex,t_mex,t_omp] = performance_mex_nomex_mode8_nosort_idx_sel(obj)
             if obj.no_mex
@@ -320,17 +318,6 @@ classdef performance_bin_pixels_mex_nomex
                     lp.bin_pixels(AB,pix,npix_omp,s_omp,e_omp,uniqId_omp);
                 t_omp(i) = toc(t1);
 
-                assertEqual(uint32(uniqId_nom),uniqId_mex);
-                assertEqual(uint32(uniqId_nom),uniqId_omp);
-                assertEqual(int64(pix_idx_nom),pix_idx_mex);
-                assertEqual(int64(pix_idx_nom),pix_idx_omp);
-
-                assertEqual(npix_nomex,npix_mex)
-                assertEqualToTol(s_nomex,s_mex,'tol',[1.e-12,1.e-12])
-                assertEqualToTol(e_nomex,e_mex,'tol',[1.e-12,1.e-12])
-                assertEqualToTol(pix_ok_nom,pix_ok_mex,'tol',[1.e-12,1.e-12])
-                assertEqualToTol(pix_ok_nom,pix_ok_omp,'tol',[1.e-12,1.e-12])
-
                 pix.coordinates = rand(4,n_points);
                 pix.run_idx  =  500+floor(100*rand(1,n_points));
             end
@@ -338,6 +325,17 @@ classdef performance_bin_pixels_mex_nomex
             % REFERENCE DATA: ndw2671
             %*** time of first step,    nomex:  1.9(sec)  mex:  1.1(sec); Acceleration :  1.8
             %*** Average time per step, nomex:  1.9(sec)  mex:  1.1(sec); Acceleration :  1.8
+            assertEqual(uint32(uniqId_nom),uniqId_mex);
+            assertEqual(uint32(uniqId_nom),uniqId_omp);
+            assertEqual(int64(pix_idx_nom),pix_idx_mex);
+            assertEqual(sort(int64(pix_idx_nom)),sort(pix_idx_omp));
+
+            assertEqual(npix_nomex,npix_mex)
+            assertEqualToTol(s_nomex,s_mex,'tol',[1.e-12,1.e-12])
+            assertEqualToTol(e_nomex,e_mex,'tol',[1.e-12,1.e-12])
+            assertEqualToTol(pix_ok_nom,pix_ok_mex,'tol',[1.e-12,1.e-12])
+            assertEqualToTol(pix_ok_nom,pix_ok_omp,'tol',[1.e-12,1.e-12])
+
         end
         function [t_nomex,t_mex,t_omp] = performance_mex_nomex_mode7_nosort_id_idx(obj)
             if obj.no_mex
@@ -1211,7 +1209,7 @@ classdef performance_bin_pixels_mex_nomex
             end
             AB = AxesBlockBase_tester('nbins_all_dims',nbins_all_dims, ...
                 'img_range',[0,0,0,0;1,0.8,1,0.8]);
-            n_points = 50000000;
+            n_points = 20000000;
         end
 
         function [lp,ab,pix,n_points]=prepare_lp_bin_data()

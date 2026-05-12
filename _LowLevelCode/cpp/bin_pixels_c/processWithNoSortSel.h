@@ -67,13 +67,12 @@ struct processWithNoSortSelWithOMP {
 
         auto return_selected_only = ctx.bin_par_ptr->binMode == opModes::siger_selected;
 
-        // Allocate memory for logical array of selected pixels
+        // Allocate memory for logical array of selected pixels and prepare to return it to MATLAB
         span<mxLogical> is_pix_selected;
         ctx.bin_par_ptr->is_pix_selected_ptr = allocate_pix_memory<mxLogical>(1, ctx.data_size, is_pix_selected);
         // reseve place for the pointer for selected pixels and pixels indices if they found necessary
         span<TRG> selected_pix; // pointer to the selected pixels.
         span<mxInt64> pix_img_idx; // pointer to the selected pixels indices
-
         //------------------------------------------------------------------
         // Parallel stuff
        // copy to local variables
@@ -103,14 +102,13 @@ struct processWithNoSortSelWithOMP {
                 p_range_tls[i] = span<double>(range_tls_stor[i].data(), 2 * PIX_STRIDE);
                 init_min_max_range_calc(p_range_tls[i], PIX_STRIDE);
             }
-            tls_unique_ID.resize(num_OMP_threads);
             tls_contribution.resize(num_OMP_threads);
         }
         omp_set_num_threads(num_OMP_threads);
 
 #pragma omp parallel firstprivate(check_pix_selection,PIX_STRIDE,return_selected_only)
         {
-            // identify number of worker
+            // identify id of a parallel worker
             auto n_thread = omp_get_thread_num();
             std::vector<double> qu(ctx.COORD_STRIDE);
 #pragma omp for schedule(dynamic,1000) reduction(+:num_pix)
@@ -155,6 +153,7 @@ struct processWithNoSortSelWithOMP {
                 // retrieve thread-combined number of pixels
                 ctx.nPixel_retained = num_pix;
                 if (!return_selected_only) {
+                    tls_unique_ID.resize(num_OMP_threads);
                     // merge pixel ranges obtained from each thrad
                     merge_tls_ranges(range_tls_stor, ctx.pix_ranges, num_OMP_threads, PIX_STRIDE);
                     balance_copying_load(ctx.nPixel_retained, tls_contribution, balanced_idx, thread_contribution_res_start);
@@ -166,22 +165,21 @@ struct processWithNoSortSelWithOMP {
                 }
             }//single
 #pragma omp barrier
-            if (ctx.nPixel_retained > 0) {  // per-thread, copy data to target
-                int n_thread = omp_get_thread_num();
+            if (!return_selected_only && ctx.nPixel_retained > 0) {  // per-thread, copy data to target
                 copy_results_to_final_arraysWithOMP<SRC, TRG>(n_thread,
                     selected_pix, pix_img_idx, tls_unique_ID,
                     align_result, ctx.bin_par_ptr->alignment_matrix, ctx.pix_coord,
                     thread_contribution_res_start, balanced_idx);
             }
-#pragma omp barrier
-#pragma omp single
-            {   // collect all unique ID-s from threads into final unique run_id set
-                for (size_t n_thr = 0; n_thr < num_OMP_threads; ++n_thr) {
-                    for (auto runid : tls_unique_ID[n_thr]) {
-                        ctx.bin_par_ptr->unique_runID.insert(runid);
-                    }
+        } // end of parallel region
+        if (!return_selected_only) {
+            // collect all unique ID-s from threads into final unique run_id set
+            for (size_t n_thr = 0; n_thr < num_OMP_threads; ++n_thr) {
+                for (auto runid : tls_unique_ID[n_thr]) {
+                    ctx.bin_par_ptr->unique_runID.insert(runid);
                 }
             }
-        } // end of parallel region
+        }
+
     }// end of () operator.
 };
