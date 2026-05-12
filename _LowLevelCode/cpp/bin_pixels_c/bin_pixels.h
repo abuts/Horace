@@ -7,7 +7,7 @@
 #include "processWithNoSorting.h"
 #include "processWithNoSortSel.h"
 
-// Macro to process unsupported binning modes
+// Macro to process unsupported binning modes failing gently
 template<class SRC, class TRG>
 struct processInvalidCall{
     void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
@@ -15,7 +15,7 @@ struct processInvalidCall{
            "Axess binning does not support this operational mode\n");
     }
 };
-// Macro to process unsupported binning and transformation modes.
+// Macro to process unsupported binning and transformation modes failing gently.
 template<class SRC, class TRG>
 struct processInvalidCallWithTransf {
     void operator()(CommonBinCodeWithTransf<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {

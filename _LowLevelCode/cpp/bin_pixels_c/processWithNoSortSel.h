@@ -110,7 +110,7 @@ struct processWithNoSortSelWithOMP {
             std::vector<double> qu(ctx.COORD_STRIDE);
 #pragma omp for schedule(dynamic,1000) reduction(+:num_pix)
             for (int i = 0; i < ctx.data_size; i++) {
-                // store actual thread ranges for using it in a pixel copying
+                // identify number of worker
                 auto n_thread = omp_get_thread_num();
                 // drop out coordinates outside of the binning range
                 if (ctx.out_of_ranges(i, qu)) {
@@ -120,7 +120,6 @@ struct processWithNoSortSelWithOMP {
                 else {
                     is_pix_selected[i] = true;
                 }
-
                 // drop out already selected pixels, if requested
                 size_t ip0 = i * PIX_STRIDE;
                 if (check_pix_selection && ctx.pix_coord[ip0 + pix_flds::idet] < 0) {
@@ -129,70 +128,60 @@ struct processWithNoSortSelWithOMP {
                 }
                 num_pix++;
 
-                // calculate location of pixel within the image grid and add values of this pixels to the accumulators
+                // calculate location of pixel within the image grid and add values of this pixels
+                // to the thread accumulators
                 auto il = ctx.add_pix_to_tls_accum(qu, ip0, img_tls[n_thread]);
                 if (!return_selected_only) {
-                    //npix_thread_contibution[n_thread]++;
                     tls_contribution[n_thread].push_back(i);
                     // store indices to keep
                     pix_ok_bin_idx[i] = il;
                     // calculate pix ranges
                     calc_pix_ranges<SRC>(p_range_tls[n_thread], ctx.pix_coord, ip0, PIX_STRIDE);
                 }
-            }
+            } // end of for loop.
 #pragma omp barrier // should be implicit? will do no harm.
 #pragma omp single
-            {
+            {   // retrieve thread-combined number of pixels
                 ctx.nPixel_retained = num_pix;
             }//single
-#pragma omp for schedule(static)
+#pragma omp for schedule(static)  // Combine thread-calculated images to final image
             for (long iimg = 0; iimg < distribution_size; ++iimg) {
                 for (int n_thread = 0; n_thread < num_OMP_threads; n_thread++) {
                     npix[iimg] += (double)img_tls[n_thread][iimg].npix;
                     s[iimg] += img_tls[n_thread][iimg].s;
                     e[iimg] += img_tls[n_thread][iimg].e;
-                    /* I do not understand why it does not equivalent to row 144 above!!!!
-                    * It may be, of course slower for images larger then pixels
-                    if (!return_selected_only) {
-                        npix_thread_contibution[n_thread] += img_tls[n_thread][iimg].npix;
-                    }
-                    */
                 }
             }
 #pragma omp single
             {
                 if (!return_selected_only) {
+                    // merge pixel ranges obtained from each thrad
                     merge_tls_ranges(range_tls_stor, ctx.pix_ranges, num_OMP_threads, PIX_STRIDE);
-                    balance_copying_load(ctx.nPixel_retained,tls_contribution, balanced_idx, thread_contribution_res_start);
-                }
-            }//single
+                    balance_copying_load(ctx.nPixel_retained, tls_contribution, balanced_idx, thread_contribution_res_start);
 
-            if (!return_selected_only) {
-#pragma omp single
-                {
                     // allocate memory for pixels to retain.
                     ctx.bin_par_ptr->pix_ok_ptr = allocate_pix_memory<TRG>(pix_flds::PIX_WIDTH, ctx.nPixel_retained, selected_pix);
                     // allocated memory for pixel indices
                     ctx.bin_par_ptr->pix_img_idx_ptr = allocate_pix_memory<mxInt64>(ctx.nPixel_retained, 1, pix_img_idx);
                 }
+            }//single
 #pragma omp barrier
-                if (ctx.nPixel_retained > 0) {
-                    int n_thread = omp_get_thread_num();
-                    copy_results_to_final_arraysWithOMP<SRC, TRG>(n_thread,
-                        selected_pix, pix_img_idx, tls_unique_ID,
-                        align_result, ctx.bin_par_ptr->alignment_matrix, ctx.pix_coord,
-                        pix_ok_bin_idx, thread_contribution_res_start, balanced_idx);
-                }
+            if (ctx.nPixel_retained > 0) {  // per-thread, copy data to target
+                int n_thread = omp_get_thread_num();
+                copy_results_to_final_arraysWithOMP<SRC, TRG>(n_thread,
+                    selected_pix, pix_img_idx, tls_unique_ID,
+                    align_result, ctx.bin_par_ptr->alignment_matrix, ctx.pix_coord,
+                    pix_ok_bin_idx, thread_contribution_res_start, balanced_idx);
+            }
 #pragma omp barrier
 #pragma omp single
-                {   // collect all unique ID-s from threads into final unique run_id set
-                    for (size_t n_thr = 0; n_thr < num_OMP_threads; ++n_thr) {
-                        for (auto runid : tls_unique_ID[n_thr]) {
-                            ctx.bin_par_ptr->unique_runID.insert(runid);
-                        }
+            {   // collect all unique ID-s from threads into final unique run_id set
+                for (size_t n_thr = 0; n_thr < num_OMP_threads; ++n_thr) {
+                    for (auto runid : tls_unique_ID[n_thr]) {
+                        ctx.bin_par_ptr->unique_runID.insert(runid);
                     }
                 }
             }
         } // end of parallel region
-    } // end of operator
+    }// end of () operator.
 };
