@@ -7,9 +7,9 @@ struct processWithNoSortSel {
 
     void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
         // access working bufer persistent between calls to this function:
-        auto return_selected_only = ctx.bin_par_ptr->binMode == opModes::siger_selected;
+        auto process_pixels = ctx.bin_par_ptr->binMode == opModes::nosort_sel;
         span<mxInt64> pix_ok_bin_idx;
-        if (!return_selected_only) {
+        if (process_pixels) {
             const auto bin_par_ptr = ctx.bin_par_ptr;
             if (bin_par_ptr->n_data_points > bin_par_ptr->pix_ok_bin_idx.size()) {
                 bin_par_ptr->pix_ok_bin_idx.resize(bin_par_ptr->n_data_points);
@@ -45,13 +45,13 @@ struct processWithNoSortSel {
 
             // calculate location of pixel within the image grid and add values of this pixels to the accumulators
             auto il = ctx.add_pix_to_accumulators(qu, ip0, npix, s, e);
-            if (!return_selected_only) {
+            if (process_pixels) {
                 pix_ok_bin_idx[i] = il;
                 // calculate pix ranges
                 calc_pix_ranges<SRC>(ctx.pix_ranges, ctx.pix_coord, ip0, ctx.PIX_STRIDE);
             }
         }
-        if (return_selected_only) {
+        if (!process_pixels) {
             return;
         }
         copy_results_to_final_arrays<SRC, TRG>(ctx.bin_par_ptr, ctx.pix_coord,
@@ -65,7 +65,7 @@ struct processWithNoSortSelWithOMP {
     void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const
     {
 
-        auto return_selected_only = ctx.bin_par_ptr->binMode == opModes::siger_selected;
+        auto process_pixels = ctx.bin_par_ptr->binMode == opModes::nosort_sel;
 
         // Allocate memory for logical array of selected pixels and prepare to return it to MATLAB
         span<mxLogical> is_pix_selected;
@@ -96,7 +96,7 @@ struct processWithNoSortSelWithOMP {
         std::vector<span<double>>p_range_tls;
         std::vector<std::vector<idx_accum> > tls_contribution;
         std::vector<std::vector<idx_accum> > balanced_idx;
-        if (!return_selected_only) {
+        if (process_pixels) {
             p_range_tls.resize(num_OMP_threads);
             for (int i = 0; i < num_OMP_threads; ++i) {
                 p_range_tls[i] = span<double>(range_tls_stor[i].data(), 2 * PIX_STRIDE);
@@ -106,7 +106,7 @@ struct processWithNoSortSelWithOMP {
         }
         omp_set_num_threads(num_OMP_threads);
 
-#pragma omp parallel firstprivate(check_pix_selection,PIX_STRIDE,return_selected_only)
+#pragma omp parallel firstprivate(check_pix_selection,PIX_STRIDE,process_pixels)
         {
             // identify id of a parallel worker
             auto n_thread = omp_get_thread_num();
@@ -132,7 +132,7 @@ struct processWithNoSortSelWithOMP {
                 // calculate location of pixel within the image grid and add values of this pixels
                 // to the thread accumulators
                 auto il = ctx.add_pix_to_tls_accum(qu, ip0, img_tls[n_thread]);
-                if (!return_selected_only) {
+                if (process_pixels) {
                     // store indices to provide for 
                     tls_contribution[n_thread].push_back(idx_accum(i, il));
                     // calculate pix ranges
@@ -152,7 +152,7 @@ struct processWithNoSortSelWithOMP {
             {
                 // retrieve thread-combined number of pixels
                 ctx.nPixel_retained = num_pix;
-                if (!return_selected_only) {
+                if (process_pixels) {
                     tls_unique_ID.resize(num_OMP_threads);
                     // merge pixel ranges obtained from each thrad
                     merge_tls_ranges(range_tls_stor, ctx.pix_ranges, num_OMP_threads, PIX_STRIDE);
@@ -165,14 +165,14 @@ struct processWithNoSortSelWithOMP {
                 }
             }//single
 #pragma omp barrier
-            if (!return_selected_only && ctx.nPixel_retained > 0) {  // per-thread, copy data to target
+            if (process_pixels && ctx.nPixel_retained > 0) {  // per-thread, copy data to target
                 copy_results_to_final_arraysWithOMP<SRC, TRG>(n_thread,
                     selected_pix, pix_img_idx, tls_unique_ID,
                     align_result, ctx.bin_par_ptr->alignment_matrix, ctx.pix_coord,
                     thread_contribution_res_start, balanced_idx);
             }
         } // end of parallel region
-        if (!return_selected_only) {
+        if (process_pixels) {
             // collect all unique ID-s from threads into final unique run_id set
             for (size_t n_thr = 0; n_thr < num_OMP_threads; ++n_thr) {
                 for (auto runid : tls_unique_ID[n_thr]) {
