@@ -1,4 +1,5 @@
 #pragma once
+#include <include/CommonCode.h>
 /* Copy selected pixels from original array to the target array, containing only selected pixels.
 ** Pixels are not sorted and array of indices which correspond to pixels positions according
 ** to image is returned instead
@@ -94,27 +95,24 @@ template <class SRC, class TRG>
 void inline copy_results_to_final_arraysWithOMP(int n_thread,
     span<TRG> &selected_pix, span<mxInt64> &pix_img_idx, std::vector<std::unordered_set<uint32_t> >& unique_ID_tls,
     bool align_result, const std::vector<double> & alignment_matrix, span<const SRC> pix_coord,
-    span<mxInt64> pix_ok_bin_idx,
-    const std::vector<size_t> &npix_thread_contibution_start, const std::vector<std::vector<int> > &tls_indices)
+    const std::vector<size_t> &npix_thread_contibution_start, const std::vector<std::vector<idx_accum> > &tls_indices)
 {
 
     // actually move pixels and copy indices to the target array
     size_t targ_pix_pos(npix_thread_contibution_start[n_thread]);
     size_t targ_pix_array_pos(0);
-    for (auto i : tls_indices[n_thread]) {
-        //if (pix_ok_bin_idx[i] < 0) // drop pixels with have not been included above
-        //    continue;
-
+    for (size_t i = 0; i < tls_indices[n_thread].size();++i) {
+        const idx_accum &info = tls_indices[n_thread][i];
         // number of image cell pixel should go to
-        pix_img_idx[targ_pix_pos] = static_cast<size_t>(pix_ok_bin_idx[i] + 1); // MATLB indices start from 1 and these -- from 0
+        pix_img_idx[targ_pix_pos] = info.img_idx+1; // MATLB indices start from 1 and these -- from 0
 
         if (align_result) {
             // align q-coordinates and copy all other pixel data into the location requested
-            targ_pix_array_pos = align_and_copy_pixels<SRC, TRG>(alignment_matrix, pix_coord, i, selected_pix, targ_pix_pos);
+            targ_pix_array_pos = align_and_copy_pixels<SRC, TRG>(alignment_matrix, pix_coord, info.pix_idx, selected_pix, targ_pix_pos);
         }
         else {
             // copy all pixel data into the location requested
-            targ_pix_array_pos = copy_pixels<SRC, TRG>(pix_coord, i, selected_pix, targ_pix_pos);
+            targ_pix_array_pos = copy_pixels<SRC, TRG>(pix_coord, info.pix_idx, selected_pix, targ_pix_pos);
         }
         // search for unique run_id;
         unique_ID_tls[n_thread].insert(uint32_t(selected_pix[targ_pix_array_pos + pix_flds::irun]));

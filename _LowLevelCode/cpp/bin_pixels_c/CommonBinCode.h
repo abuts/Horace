@@ -234,9 +234,11 @@ public:
     };
 
 };
-/* take vector of vectors, containing indices of pixels which */
-void  balance_copying_load(size_t num_pixels, const std::vector<std::vector<int> >& tls_contribution,
-    std::vector<std::vector<int> > & balanced_idx, std::vector<size_t >& thread_contribution_res_start) {
+/* take vector of vectors, containing indices of pixels which contribute into image and rearrange them
+*  in a way, convenient for multiple threads to copy these pixels into resulting array.
+*/
+void  balance_copying_load(size_t num_pixels, const std::vector<std::vector<idx_accum> >& tls_contribution,
+    std::vector<std::vector<idx_accum> > & balanced_idx, std::vector<size_t >& thread_contribution_res_start) {
 
     size_t num_OMP_threads = tls_contribution.size();
     balanced_idx.resize(num_OMP_threads);
@@ -260,7 +262,7 @@ void  balance_copying_load(size_t num_pixels, const std::vector<std::vector<int>
     }
     size_t thr_idx = 0;
     for (const auto& src_vec : tls_contribution) {
-        for (int idx : src_vec) {
+        for (size_t idx = 0; idx < src_vec.size(); ++idx) {
             while (balanced_idx[thr_idx].size() ==
                 balanced_idx[thr_idx].capacity())
             {
@@ -268,8 +270,7 @@ void  balance_copying_load(size_t num_pixels, const std::vector<std::vector<int>
                     thread_contribution_res_start[thr_idx] + balanced_idx[thr_idx].size();
                 ++thr_idx;   // move to next bucket
             }
-
-            balanced_idx[thr_idx].push_back(idx);
+            balanced_idx[thr_idx].push_back(src_vec[idx]);
         }
     }
 };

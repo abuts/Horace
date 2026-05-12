@@ -1,14 +1,22 @@
 #pragma once
-#include "CommonBinCode.h"
+#include <include/CommonCode.h>
+#include "copy_results_to_final_arrays.h"
 
 template<class SRC, class TRG>
 struct processWithNoSortSel {
 
     void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
-
+        // access working bufer persistent between calls to this function:
         auto return_selected_only = ctx.bin_par_ptr->binMode == opModes::siger_selected;
         span<mxInt64> pix_ok_bin_idx;
         if (!return_selected_only) {
+            const auto bin_par_ptr = ctx.bin_par_ptr;
+            if (bin_par_ptr->n_data_points > bin_par_ptr->pix_ok_bin_idx.size()) {
+                bin_par_ptr->pix_ok_bin_idx.resize(bin_par_ptr->n_data_points);
+            }
+            // fill all positions of the pix_ok vector with definetely invalid value.
+            // Index can not be negative so this will indicate invalid elements
+            std::fill(bin_par_ptr->pix_ok_bin_idx.begin(), bin_par_ptr->pix_ok_bin_idx.end(), -1);
             pix_ok_bin_idx = span<mxInt64>(ctx.bin_par_ptr->pix_ok_bin_idx);
         }
         // Allocate memory for logical array of selected pixels
@@ -58,10 +66,6 @@ struct processWithNoSortSelWithOMP {
     {
 
         auto return_selected_only = ctx.bin_par_ptr->binMode == opModes::siger_selected;
-        span<mxInt64> pix_ok_bin_idx;
-        if (!return_selected_only) {
-            pix_ok_bin_idx = span<mxInt64>(ctx.bin_par_ptr->pix_ok_bin_idx);
-        }
 
         // Allocate memory for logical array of selected pixels
         span<mxLogical> is_pix_selected;
@@ -91,15 +95,14 @@ struct processWithNoSortSelWithOMP {
         std::vector<tlsMem> range_tls_stor(num_OMP_threads, tlsMem(2 * PIX_STRIDE));
         // use span as original min/max range calculation routine expects span
         std::vector<span<double>>p_range_tls;
-        std::vector<std::vector<int>> tls_contribution;
-        std::vector<std::vector<int>> balanced_idx;
+        std::vector<std::vector<idx_accum> > tls_contribution;
+        std::vector<std::vector<idx_accum> > balanced_idx;
         if (!return_selected_only) {
             p_range_tls.resize(num_OMP_threads);
             for (int i = 0; i < num_OMP_threads; ++i) {
                 p_range_tls[i] = span<double>(range_tls_stor[i].data(), 2 * PIX_STRIDE);
                 init_min_max_range_calc(p_range_tls[i], PIX_STRIDE);
             }
-
             tls_unique_ID.resize(num_OMP_threads);
             tls_contribution.resize(num_OMP_threads);
         }
@@ -107,11 +110,11 @@ struct processWithNoSortSelWithOMP {
 
 #pragma omp parallel firstprivate(check_pix_selection,PIX_STRIDE,return_selected_only)
         {
+            // identify number of worker
+            auto n_thread = omp_get_thread_num();
             std::vector<double> qu(ctx.COORD_STRIDE);
 #pragma omp for schedule(dynamic,1000) reduction(+:num_pix)
             for (int i = 0; i < ctx.data_size; i++) {
-                // identify number of worker
-                auto n_thread = omp_get_thread_num();
                 // drop out coordinates outside of the binning range
                 if (ctx.out_of_ranges(i, qu)) {
                     is_pix_selected[i] = false;
@@ -132,18 +135,13 @@ struct processWithNoSortSelWithOMP {
                 // to the thread accumulators
                 auto il = ctx.add_pix_to_tls_accum(qu, ip0, img_tls[n_thread]);
                 if (!return_selected_only) {
-                    tls_contribution[n_thread].push_back(i);
-                    // store indices to keep
-                    pix_ok_bin_idx[i] = il;
+                    // store indices to provide for 
+                    tls_contribution[n_thread].push_back(idx_accum(i, il));
                     // calculate pix ranges
                     calc_pix_ranges<SRC>(p_range_tls[n_thread], ctx.pix_coord, ip0, PIX_STRIDE);
                 }
             } // end of for loop.
 #pragma omp barrier // should be implicit? will do no harm.
-#pragma omp single
-            {   // retrieve thread-combined number of pixels
-                ctx.nPixel_retained = num_pix;
-            }//single
 #pragma omp for schedule(static)  // Combine thread-calculated images to final image
             for (long iimg = 0; iimg < distribution_size; ++iimg) {
                 for (int n_thread = 0; n_thread < num_OMP_threads; n_thread++) {
@@ -154,6 +152,8 @@ struct processWithNoSortSelWithOMP {
             }
 #pragma omp single
             {
+                // retrieve thread-combined number of pixels
+                ctx.nPixel_retained = num_pix;
                 if (!return_selected_only) {
                     // merge pixel ranges obtained from each thrad
                     merge_tls_ranges(range_tls_stor, ctx.pix_ranges, num_OMP_threads, PIX_STRIDE);
@@ -171,7 +171,7 @@ struct processWithNoSortSelWithOMP {
                 copy_results_to_final_arraysWithOMP<SRC, TRG>(n_thread,
                     selected_pix, pix_img_idx, tls_unique_ID,
                     align_result, ctx.bin_par_ptr->alignment_matrix, ctx.pix_coord,
-                    pix_ok_bin_idx, thread_contribution_res_start, balanced_idx);
+                    thread_contribution_res_start, balanced_idx);
             }
 #pragma omp barrier
 #pragma omp single

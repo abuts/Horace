@@ -27,6 +27,7 @@ struct processInvalidCallWithTransf {
 template<class SRC, class TRG>
 struct processSigerrCell {
     void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
+
         std::vector<double*> accum_ptr(3);
         accum_ptr[0] = s.data();
         accum_ptr[1] = e.data();

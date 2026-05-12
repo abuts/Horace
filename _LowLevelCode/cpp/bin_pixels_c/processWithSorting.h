@@ -3,9 +3,18 @@
 
 template<class SRC, class TRG>
 struct processWithSorting {
-    void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
 
-        span<mxInt64> pix_ok_bin_idx(ctx.bin_par_ptr->pix_ok_bin_idx);
+    void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
+        // access working bufer persistent between calls to this function:
+        const auto bin_par_ptr = ctx.bin_par_ptr;
+        if (bin_par_ptr->n_data_points > bin_par_ptr->pix_ok_bin_idx.size()) {
+            bin_par_ptr->pix_ok_bin_idx.resize(bin_par_ptr->n_data_points);
+        }
+        // fill all positions of the pix_ok vector with definetely invalid value.
+        // Index can not be negative so this will indicate invalid elements
+        std::fill(bin_par_ptr->pix_ok_bin_idx.begin(), bin_par_ptr->pix_ok_bin_idx.end(), -1);
+        span<mxInt64> pix_ok_bin_idx(bin_par_ptr->pix_ok_bin_idx);
+
         span<size_t> npix1(ctx.bin_par_ptr->npix1.data(), ctx.bin_par_ptr->npix1.size());
 
         std::vector<double> qu(ctx.COORD_STRIDE);
@@ -73,8 +82,16 @@ struct processWithSorting {
 template<class SRC, class TRG>
 struct processWithSortingWithOMP {
     void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
+        // access working bufer persistent between calls to this function:
+        const auto bin_par_ptr = ctx.bin_par_ptr;
+        if (bin_par_ptr->n_data_points > bin_par_ptr->pix_ok_bin_idx.size()) {
+            bin_par_ptr->pix_ok_bin_idx.resize(bin_par_ptr->n_data_points);
+        }
+        // fill all positions of the pix_ok vector with definetely invalid value.
+        // Index can not be negative so this will indicate invalid elements
+        std::fill(bin_par_ptr->pix_ok_bin_idx.begin(), bin_par_ptr->pix_ok_bin_idx.end(), -1);
+        span<mxInt64> pix_ok_bin_idx(bin_par_ptr->pix_ok_bin_idx);
 
-        span<mxInt64> pix_ok_bin_idx(ctx.bin_par_ptr->pix_ok_bin_idx);
         span<size_t> npix1(ctx.bin_par_ptr->npix1.data(), ctx.bin_par_ptr->npix1.size());
 
         // copy to local variables
@@ -102,6 +119,7 @@ struct processWithSortingWithOMP {
         firstprivate(check_pix_selection,PIX_STRIDE )
         {
             std::vector<double> qu(ctx.COORD_STRIDE);
+            auto n_thread = omp_get_thread_num();
 #pragma omp for schedule(dynamic,1000) reduction(+:num_pix)
             for (long i = 0; i < ctx.data_size; i++) {
                 // drop out coordinates outside of the binning range
@@ -114,8 +132,6 @@ struct processWithSortingWithOMP {
                 num_pix++;
 
                 // calculate location of pixel within the image grid and add values of this pixels to the accumulators
-                    // calculate location of pixel within the image grid and add values of this pixels to the accumulators
-                auto n_thread = omp_get_thread_num();
                 // store indices of contributing pixels
                 pix_ok_bin_idx[i] = ctx.add_pix_to_tls_accum(qu, ip0, img_tls[n_thread]);
                 // calculate pix ranges

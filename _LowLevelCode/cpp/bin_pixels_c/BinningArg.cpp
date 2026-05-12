@@ -1059,12 +1059,6 @@ void BinningArg::check_and_init_accumulators(mxArray* plhs[], mxArray const* prh
     }
     // pixels modes
     if (this->binMode >= opModes::sort_pix && this->binMode < opModes::siger_selected) {
-        if (this->n_data_points > this->pix_ok_bin_idx.size()) {
-            this->pix_ok_bin_idx.resize(this->n_data_points);
-        }
-        // fill all positions of the pix_ok vector with certainly invalid value. Index can not be negative
-        // this will indicate invalid elements
-        std::fill(this->pix_ok_bin_idx.begin(), this->pix_ok_bin_idx.end(), -1);
         // allocate space for pixel data range, which is always calculated for
         // any pixel mode
         this->pix_data_range_ptr = mxCreateDoubleMatrix(2, pix_flds::PIX_WIDTH, mxREAL);

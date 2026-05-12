@@ -221,6 +221,18 @@ struct bin_accum{
         npix(val),s(val),e(val)
     {}
 };
+// structure used in storing contributing pixel indices within TLS storage
+struct idx_accum {
+    int pix_idx;    // position of contributed index in original pixel array 
+    size_t img_idx; // index of pixel position in image array calculated through binning
+    idx_accum():
+        pix_idx(-1), img_idx(0)
+    {}
+    idx_accum(int pix_idx, size_t img_idx) {
+        this->pix_idx = pix_idx;
+        this->img_idx = img_idx;
+    }
+};
 
 template<class T>
 void init_tls_storage(size_t num_OMP_threads, size_t distribution_size,std::vector<std::vector<T> > &tls_storage) {
