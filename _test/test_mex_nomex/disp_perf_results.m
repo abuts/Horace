@@ -1,0 +1,13 @@
+function [tav_nom,tav_mex,tav_omp] = disp_perf_results(t_nomex,t_mex,t_omp)
+% display performance results measured in mex/nomex/omp modes
+n_repeats = numel(t_nomex);
+tav_mex = sum(t_mex)/n_repeats;
+tav_nom = sum(t_nomex)/n_repeats;
+tav_omp = sum(t_omp)/n_repeats;
+fprintf( ...
+    '\n*** first step:    nomex: %4.2g(sec)  mex: %4.2g(sec);  omp: %4.2g(sec); Acc : %4.2g/%4.2g/%4.2g\n', ...
+    t_nomex(1),t_mex(1),t_omp(1),t_nomex(1)/t_mex(1),t_nomex(1)/t_omp(1),t_mex(1)/t_omp(1));
+fprintf( ...
+    '*** Avrg per step: nomex: %4.2g(sec)  mex: %4.2g(sec);  omp: %4.2g(sec); Acc : %4.2g/%4.2g/%4.2g\n', ...
+    tav_nom,tav_mex,tav_omp,tav_nom/tav_mex,tav_nom/tav_omp,tav_mex/tav_omp);
+end
