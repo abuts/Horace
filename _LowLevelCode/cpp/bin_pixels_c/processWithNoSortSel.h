@@ -24,7 +24,7 @@ struct processWithNoSortSel {
         ctx.bin_par_ptr->is_pix_selected_ptr = allocate_pix_memory<mxLogical>(1, ctx.data_size, is_pix_selected);
 
         std::vector<double> qu(ctx.COORD_STRIDE);
-        for (long i = 0; i < ctx.data_size; i++) {
+        for (int i = 0; i < ctx.data_size; i++) {
             // drop out coordinates outside of the binning range
             if (ctx.out_of_ranges(i, qu)) {
                 is_pix_selected[i] = false;

@@ -87,11 +87,11 @@ struct processWithNoSortingWithOMP {
 
 #pragma omp parallel firstprivate(check_pix_selection,PIX_STRIDE)
         {
-            // identify number of worker
+            // identify id of parallel worker
             auto n_thread = omp_get_thread_num();
             std::vector<double> qu(ctx.COORD_STRIDE);
 #pragma omp for schedule(dynamic,1000) reduction(+:num_pix)
-            for (long i = 0; i < ctx.data_size; i++) {
+            for (int i = 0; i < ctx.data_size; i++) {
                 // drop out coordinates outside of the binning range
                 if (ctx.out_of_ranges(i, qu))
                     continue;

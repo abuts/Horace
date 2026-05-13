@@ -467,16 +467,16 @@ classdef (InferiorClasses = {?DnDBase,?IX_dataset,?sigvar},Abstract) ...
         function obj = set_raw_alignment(obj,al_mat)
             % set alignment matrix only, not changing pixels in memory
             % based case.
-            % 
+            %
             % set_alignment_martix in memory based case does not actually
-            % sets alignment matrix but realign pixels. 
+            % sets alignment matrix but realign pixels.
             % This method allows to set matrix without changing pixels,
             % which is useful for tests
-            
+
             % set non-unary alignment matrix and invalidate pixel averages
-            % if alignment changes. If matrix is unary, it 
+            % if alignment changes. If matrix is unary, it
             obj = obj.set_alignment(al_mat,@invalidate_range);
-            
+
         end
         %
         function is = is_range_valid(obj,fld)
@@ -514,7 +514,25 @@ classdef (InferiorClasses = {?DnDBase,?IX_dataset,?sigvar},Abstract) ...
             end
             obj.data_range_ = data_range;
         end
-
+        function data_range = get_data_range(obj,varargin)
+            % data range getter
+            %
+            % if field_idx provided, return ranges for the pixel fields with
+            % indexes provided.
+            %
+            if nargin == 1
+                data_range = obj.data_range_;
+            else
+                field_id = varargin{1};
+                if isnumeric(field_id)
+                    data_range = obj.data_range_(:,field_id);
+                else
+                    idx = obj.field_index(varargin{1});
+                    data_range = obj.data_range_(:,idx);
+                end
+            end
+        end
+        %
         function [is,mess] = eq_to_tol_type_equal(obj1,obj2,name_a,name_b)
             % Helper function used by equal_to_tol to validate if types of
             % two objects is equal for purposes of equal_to_tol comparison
@@ -908,18 +926,6 @@ classdef (InferiorClasses = {?DnDBase,?IX_dataset,?sigvar},Abstract) ...
             val = pix_data(obj);
         end
         %
-        function data_range = get_data_range(obj,field_idx)
-            % data range getter
-            %
-            % if field_idx provided, return ranges for the pixel fields with
-            % indexes provided.
-            %
-            if nargin == 1
-                data_range = obj.data_range_;
-            else
-                data_range = obj.data_range_(:,field_idx);
-            end
-        end
     end
     %======================================================================
     % Helper methods.

@@ -1,5 +1,5 @@
 function [obj,hash,is_calculated] = build_hash(obj)
-% makes a hash from the argument object which will be unique
+% makes a MD5 hash from the argument object which will be unique
 % when generated from any identical object
 %
 % Input:

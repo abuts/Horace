@@ -235,7 +235,10 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
                 fprintf('.')
                 pix_data = rand(9,n_points);
                 ids = 500+floor(100*rand(1,n_points));
+                det_ids = 1024+floor(100000*rand(1,n_points));
+                en_ids = floor(500*rand(1,n_points));
                 pix_data(PixelDataBase.field_index('run_idx'),:) = ids;
+                pix_data(PixelDataBase.field_index('detector_idx'),:) = ids;                
 
                 pix = PixelDataMemory(pix_data);
                 coord = pix.coordinates;
