@@ -138,7 +138,7 @@ classdef performance_bin_pixels_mex_nomex
             %        AB.bin_pixels(coord,npix,s,e,pix,'-selected_only');
             [AB,n_points]=obj.prepare_clean_bin_data([50,1,50,20]);
             [t_nomex,t_mex,t_omp] = common_ab_tester( ...
-                "*** Mex/nomex performance mode7 (bin pixels + selected only):", ...
+                "*** Mex/nomex performance mode8 (bin pixels + selected only):", ...
                 false, ... test mode
                 AB,3, ... n_accum
                 1, ...  n_add_inputs (pix included)
@@ -161,7 +161,7 @@ classdef performance_bin_pixels_mex_nomex
                 skipTest('Can not test mex code to check binning against mex');
             end
             %[npix,s,e,pix_ok,uniqId,pix_idx] = ...
-            %       lp.bin_pixels(AB,pix,npix_mex,s_mex,e_mex,uniqId_mex);
+            %       lp.bin_pixels(AB,pix,npix,s,e,uniqId);
 
             [lp,AB,pix,n_points] = obj.prepare_lp_bin_data();
             pix.run_idx  =  500+floor(100*rand(1,n_points));
@@ -185,13 +185,13 @@ classdef performance_bin_pixels_mex_nomex
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
             end
-            %    [npix_nomex,s_nomex,e_nomex,pix_ok_nom,uniqId_nom,pix_idx_nom] = ...
-            %        AB.bin_pixels(coord,npix_nomex,s_nomex,e_nomex,pix,uniqId_nom);
+            %    [npix,s,e,pix_ok,uniqId,pix_idx] = ...
+            %        AB.bin_pixels(coord,npix,s,e,pix,uniqId);
 
             rng(10)
             [AB,n_points]=obj.prepare_clean_bin_data([50,20,50,20]);
             [t_nomex,t_mex,t_omp] = common_ab_tester( ...
-                "*** Mex/nomex performance mode7 (bin pixels(nosort) + unique runid + pix_img_positions):", ...
+                "*** Mex/nomex performance mode7 (bin pixels(nosort) + unique runid + img idx):", ...
                 false, ... test mode
                 AB,4, ... n_accum
                 1, ...  n_add_inputs

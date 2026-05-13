@@ -46,7 +46,7 @@ for i= 1:n_repeats
         pix = pix.set_raw_alignment(al_matr);
     end
 
-    fprintf('.')
+    if ~test_mode; fprintf('.'); end
     config_store.instance.set_value('hor_config','use_mex',false);
     inps = copy_inputs(acc_nomex,in_ac,other_inputs,keys);
     t1 = tic();
@@ -56,7 +56,7 @@ for i= 1:n_repeats
 
     config_store.instance.set_value('parallel_config','threads',1);
     config_store.instance.set_value('hor_config','use_mex',true);
-    fprintf('.')
+    if ~test_mode; fprintf('.'); end
     inps = copy_inputs(acc_mex,in_ac,other_inputs,keys);
     t1 = tic();
     [out_mex{1:n_tout}] = lp.bin_pixels(AB,pix,inps{:});
@@ -65,12 +65,12 @@ for i= 1:n_repeats
 
 
     config_store.instance.set_value('parallel_config','threads',n_threads);
-    fprintf('.')
+    if ~test_mode; fprintf('.'); end
     inps = copy_inputs(acc_omp,in_ac,other_inputs,keys);
     t1 = tic();
     [out_omp{1:n_tout}] = lp.bin_pixels(AB,pix,inps{:});
     t_omp(i) = toc(t1);
-    fprintf('*')
+    if ~test_mode; fprintf('*'); end
     acc_omp = copy_accumulators(out_omp,n_accum);
 
     if test_mode
