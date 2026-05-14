@@ -241,18 +241,14 @@ int set_omp_scheduling(BinningArg const * const bin_arg_ptr) {
     }
     else {
         omp_set_schedule(omp_sched_static,0);
-#ifdef omp3_available
         selected_stride = 0;
-#else
-        selected_stride = 1000;
-#endif
     }
     return selected_stride;
 };
 /* take vector of vectors, containing indices of pixels which contribute into image and rearrange them
 *  in a way, convenient for multiple threads to copy these pixels into resulting array.
 */
-void  balance_copying_load(size_t num_pixels, const std::vector<std::vector<idx_accum> >& tls_contribution,
+void  balance_copying_load(size_t num_pixels, std::vector<std::vector<idx_accum> >& tls_contribution,
     std::vector<std::vector<idx_accum> > & balanced_idx, std::vector<size_t >& thread_contribution_res_start) {
 
     size_t num_OMP_threads = tls_contribution.size();
@@ -275,9 +271,10 @@ void  balance_copying_load(size_t num_pixels, const std::vector<std::vector<idx_
         size_t target = block_size + (t < reminder ? 1 : 0);
         balanced_idx[t].reserve(target);
     }
+    
     size_t thr_idx = 0;
-    for (const auto& src_vec : tls_contribution) {
-        for (size_t idx = 0; idx < src_vec.size(); ++idx) {
+    for (auto& src_vec : tls_contribution) {
+        for (auto &elem :src_vec) {
             while (balanced_idx[thr_idx].size() ==
                 balanced_idx[thr_idx].capacity())
             {
@@ -285,7 +282,7 @@ void  balance_copying_load(size_t num_pixels, const std::vector<std::vector<idx_
                     thread_contribution_res_start[thr_idx] + balanced_idx[thr_idx].size();
                 ++thr_idx;   // move to next bucket
             }
-            balanced_idx[thr_idx].push_back(src_vec[idx]);
+            balanced_idx[thr_idx].push_back(std::move(elem));
         }
     }
 };

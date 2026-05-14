@@ -7,6 +7,7 @@
 #include <matrix.h>
 #include <vector>
 #include <cmath>
+#include <unordered_set>
 #include <iostream>
 #include <sstream>
 #include <memory>
@@ -16,6 +17,7 @@
 
 #ifndef _OPENMP
 inline void omp_set_num_threads(int nThreads) {};
+inline void omp_set_schedule(int omp_sched, int size) {};
 #define omp_get_num_threads() 1
 #define omp_get_max_threads() 1
 #define omp_get_thread_num()  0
@@ -23,10 +25,16 @@ inline void omp_set_num_threads(int nThreads) {};
 #include <omp.h>
 #endif
 
-#if defined(_OPENMP) && _OPENMP < 200805
-//   No OpenMP 3.0 
-#define omp_sched_dynamic 0
+// ---- schedule enum fallbacks (MSVC safe) ----
+#ifndef omp_sched_static
 #define omp_sched_static  1
+#endif
+
+#ifndef omp_sched_dynamic
+#define omp_sched_dynamic 2
+#endif
+
+#if defined(_OPENMP) && _OPENMP < 200805
 inline void omp_set_schedule(int omp_sched, int size) {};
 #else
 #define omp3_available
@@ -49,21 +57,6 @@ extern "C" bool ioFlush(void);
 #else
 extern bool utIsInterruptPending();
 extern bool ioFlush(void);
-#endif
-
-// something strange is happening with parallel pixels copying. Let's
-// disable if for the time being
-//#define SINGLE_PATH
-# if __GNUC__ > 4 || (__GNUC__ == 4)&&(__GNUC_MINOR__ > 4)
-#define  OMP_VERSION_3
-//#define C_MUTEXES
-#else
-#define C_MUTEXES
-#endif
-//
-#ifdef SINGLE_PATH
-#undef OMP_VERSION_3
-#undef C_MUTEXES
 #endif
 
 

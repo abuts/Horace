@@ -26,6 +26,7 @@ pace_add_mex(
     SRC "${SRC_FILES}" "${HDR_FILES}"
 )
 if(${OPENMP_FOUND})
+  #set(OpenMP_CXX_FLAGS "${OpenMP_CXX_FLAGS} -static-libgomp")
   target_compile_options("${MEX_NAME}" PRIVATE ${OpenMP_CXX_FLAGS})
   target_link_options("${MEX_NAME}" PRIVATE ${OpenMP_EXE_LINKER_FLAGS})
 endif()

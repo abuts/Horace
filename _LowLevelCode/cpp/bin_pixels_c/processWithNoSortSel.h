@@ -115,7 +115,7 @@ struct processWithNoSortSelWithOMP {
 #ifdef omp3_available
 #pragma omp for schedule(runtime) reduction(+:num_pix)
 #else
-#pragma omp for schedule(dynamic,chunk_size) reduction(+:num_pix)
+#pragma omp for schedule(static,chunk_size) reduction(+:num_pix)
 #endif
             for (int i = 0; i < ctx.data_size; i++) {
                 // drop out coordinates outside of the binning range

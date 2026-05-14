@@ -281,8 +281,9 @@ classdef parallel_config<config_base
         threads_ = 0;
         % default num-pixels to start OMP execution
         min_npix_for_omp_cut_ = 100000;
-        % default OMP dynamic stride
-        dynamic_omp_npixels_stride_ = 1000;
+        % default OMP static stride (autoselect). Dynamic currently does
+        % not work
+        dynamic_omp_npixels_stride_ = 0;
         % default auto threads
         parallel_threads_ = 0;
 
