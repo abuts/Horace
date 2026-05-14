@@ -107,6 +107,8 @@ public:
     bool force_double;
     // logical variable with enables test mode returning input to outputs if
     bool test_inputs;
+    // size of chunk used in dynamic OMP scheduling. Negative value enables static scheduling
+    int dynamic_omp_stride;
     //********************************************************************************
     // Properties which contain results, obtained in various binning modes
     //********************************************************************************
@@ -162,6 +164,7 @@ protected:
     void set_coord_in(mxArray const* const pField); //   // Input pixels coordinates to bin. May be empty in modes where they are produced from pixels coordinates
     void set_binning_mode(mxArray const* const pField); // what parameters calculate during the binning
     void set_num_threads(mxArray const* const pField); // how many computational threads to deploy for calculations
+    void set_dynamic_omp_stride(mxArray const* const pField); // ?hunk size for dynamic scheduler or disable for static
     void set_data_range(mxArray const* const pField); // the range of data to bin in
     void set_dimensions(mxArray const* const pField); // number of dimensions the binning should be performed on
     void set_nbins_all_dims(mxArray const* const pField); //

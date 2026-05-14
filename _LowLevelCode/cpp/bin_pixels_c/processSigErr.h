@@ -29,13 +29,18 @@ struct processSigErrWithOMP {
         auto PIX_STRIDE = ctx.PIX_STRIDE;
         std::vector<std::vector<bin_accum>> img_tls;
         init_tls_storage<bin_accum>(num_OMP_threads, distribution_size, img_tls);
+        auto chunk_size = set_omp_scheduling(ctx.bin_par_ptr);
         omp_set_num_threads(num_OMP_threads);
 
         std::vector<double> qu(ctx.COORD_STRIDE);
 #pragma omp parallel     \
         firstprivate(qu,check_pix_selection,PIX_STRIDE )
         {
-#pragma omp for schedule(dynamic,1000) reduction(+:num_pix)
+#ifdef omp3_available
+#pragma omp for schedule(runtime) reduction(+:num_pix)
+#else
+#pragma omp for schedule(dynamic,chunk_size) reduction(+:num_pix)
+#endif
             for (long i = 0; i < ctx.data_size; i++) {
                 // drop out coordinates outside of the binning range
                 if (ctx.out_of_ranges(i, qu))

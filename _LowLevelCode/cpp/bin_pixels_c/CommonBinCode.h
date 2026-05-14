@@ -234,6 +234,17 @@ public:
     };
 
 };
+int set_omp_scheduling(BinningArg const * const bin_arg_ptr) {
+    int selected_stride(0);
+    if (bin_arg_ptr->dynamic_omp_stride > 0) {
+        omp_set_schedule(omp_sched_dynamic, bin_arg_ptr->dynamic_omp_stride);
+        selected_stride = bin_arg_ptr->dynamic_omp_stride;
+    }
+    else {
+        omp_set_schedule(omp_sched_static,0);
+    }
+    return selected_stride;
+};
 /* take vector of vectors, containing indices of pixels which contribute into image and rearrange them
 *  in a way, convenient for multiple threads to copy these pixels into resulting array.
 */

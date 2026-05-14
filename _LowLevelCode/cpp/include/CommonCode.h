@@ -23,6 +23,15 @@ inline void omp_set_num_threads(int nThreads) {};
 #include <omp.h>
 #endif
 
+#if defined(_OPENMP) && _OPENMP < 200805
+//   No OpenMP 3.0 
+#define omp_sched_dynamic 0
+#define omp_sched_static  1
+inline void omp_set_schedule(int omp_sched, int size) {};
+#else
+#define omp3_available
+#endif
+
 // check span supported
 //#undef __cpp_lib_span
 #if defined(__cpp_lib_span)
@@ -218,7 +227,7 @@ struct bin_accum{
     double s;
     double e;
     bin_accum(size_t val) :
-        npix(val),s(val),e(val)
+        npix(val),s(double(val)),e(double(val))
     {}
 };
 // structure used in storing contributing pixel indices within TLS storage

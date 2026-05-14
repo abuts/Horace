@@ -41,6 +41,9 @@ classdef parallel_config<config_base
     %                      mex code reverts to single threaded execution.
     %                      Setting it to 0 or negative runs mex code with 
     %                      OMP where available.
+    % dynamic_omp_npixels_stride
+    %                    - set this value to negative to disable dynamic
+    %                      scheduling OMP pixels cuts.
     % parallel_threads   - Number of computational threads to use on remote
     %                      workers
     % ---------------------------------------------------------------------
@@ -136,6 +139,17 @@ classdef parallel_config<config_base
         % inefficient. If number of pixels in source object is smaller then
         % specified, mex code reverts to single threaded execution
         min_npix_for_omp_cut
+        % bin_pixels with OMP processes pixels in chunks of size dynamic_omp_npixels_stride, 
+        % which is big enough to provide decent performance but does not
+        % cover whole pixels range divided into number of threads, as some
+        % chunks of work may hit areas with no contributing pixels. These
+        % chunks will reject all its pixels and will run faster then others
+        % creating load imbalance. Default value is usually good enough bug
+        % for some old compilers/MATLAB versions dynamic scheduler may not
+        % work. Set this value to -1 to make scheduling static. Identify
+        % your best chunk number to improve performance. (if doing range
+        % of very similar cuts)
+        dynamic_omp_npixels_stride
         % Number of threads to use in MPIFramework.
         parallel_threads;
 
@@ -238,6 +252,7 @@ classdef parallel_config<config_base
             'parallel_workers_number',...
             'threads', ...
             'min_npix_for_omp_cut',...
+            'dynamic_omp_npixels_stride',...
             'parallel_threads', ...
             'shared_folder_on_local', ...
             'shared_folder_on_remote', ...
@@ -266,6 +281,8 @@ classdef parallel_config<config_base
         threads_ = 0;
         % default num-pixels to start OMP execution
         min_npix_for_omp_cut_ = 100000;
+        % default OMP dynamic stride
+        dynamic_omp_npixels_stride_ = 1000;
         % default auto threads
         parallel_threads_ = 0;
 
@@ -274,6 +291,7 @@ classdef parallel_config<config_base
         shared_folder_on_remote_ = '';
 
         working_directory_ ='';
+
 
         % holder to default external_mpiexec property value
         external_mpiexec_ = '';
@@ -354,6 +372,9 @@ classdef parallel_config<config_base
         end
         function n_pixels=get.min_npix_for_omp_cut(obj)
             n_pixels = get_or_restore_field(obj,'min_npix_for_omp_cut');
+        end
+        function stride = get.dynamic_omp_npixels_stride(obj)
+            stride  = get_or_restore_field(obj,'dynamic_omp_npixels_stride');            
         end
 
         function n_threads=get.parallel_threads(obj)
@@ -503,6 +524,14 @@ classdef parallel_config<config_base
         function obj =set.min_npix_for_omp_cut(obj,n_pixels)
             n_pixels = floor(n_pixels);
             config_store.instance().store_config(obj,'min_npix_for_omp_cut',n_pixels);
+        end
+        function obj = set.dynamic_omp_npixels_stride(obj,stride)
+            if (~isnumeric(stride))
+                error('HERBERT:parallel_config:invalid_argument', ...
+                    'Stride size must be numeric. Provided class %s', ...
+                    class(stride));                
+            end
+            config_store.instance().store_config(obj,'dynamic_omp_npixels_stride',stride);            
         end
 
 

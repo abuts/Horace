@@ -45,8 +45,10 @@ if isstruct(mode_to_bin)
     return
 end
 
-[num_threads,pix_omp_limit] = config_store.instance().get_value('parallel_config','threads','min_npix_for_omp_cut');
-[ignore_nan,ignore_inf]  = config_store.instance().get_value('hor_config','ignore_nan','ignore_inf');
+[num_threads,pix_omp_limit,dynamic_omp_stride] = config_store.instance().get_value( ...
+    'parallel_config','threads','min_npix_for_omp_cut','dynamic_omp_npixels_stride');
+[ignore_nan,ignore_inf]  = config_store.instance().get_value( ...
+    'hor_config','ignore_nan','ignore_inf');
 nbins_all_dims_in = uint32(obj.nbins_all_dims(:)');
 if size(coord,1) == 3  % 3D array binning
     pax_in = obj.pax;
@@ -63,6 +65,7 @@ in_code_struct = struct( ...
     'coord_in',    coord,...                % input coordinates to bin. May be empty in modes when they are processed from transformed pixel data
     'binning_mode',double(mode_to_bin), ... % binning mode, what binning values to calculate and return
     'num_threads', num_threads,  ...        % how many threads to use in parallel computation
+    'dynamic_omp_stride',dynamic_omp_stride,... % control static/dynamic scheduling and dynamic scheduler stride
     'data_range',  data_range,...           % binning ranges
     'dimensions',   ndims, ...              % number of image dimensions (sum(nbins_all_dims > 1)))
     'nbins_all_dims',nbins_all_dims_in, ... % dimensions of binning lattice

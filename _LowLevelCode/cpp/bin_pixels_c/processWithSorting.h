@@ -114,13 +114,19 @@ struct processWithSortingWithOMP {
             init_min_max_range_calc(p_range_tls[i], PIX_STRIDE);
         }
         omp_set_num_threads(num_OMP_threads);
+        auto chunk_size = set_omp_scheduling(ctx.bin_par_ptr);
 
 #pragma omp parallel     \
         firstprivate(check_pix_selection,PIX_STRIDE )
         {
             std::vector<double> qu(ctx.COORD_STRIDE);
             auto n_thread = omp_get_thread_num();
-#pragma omp for schedule(dynamic,1000) reduction(+:num_pix)
+#ifdef omp3_available
+#pragma omp for schedule(runtime) reduction(+:num_pix)
+#else
+#pragma omp for schedule(dynamic,chunk_size) reduction(+:num_pix)
+#endif
+
             for (long i = 0; i < ctx.data_size; i++) {
                 // drop out coordinates outside of the binning range
                 if (ctx.out_of_ranges(i, qu))

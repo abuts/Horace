@@ -83,6 +83,7 @@ struct processWithNoSortingWithOMP {
         }
         tls_contribution.resize(num_OMP_threads);
 
+        auto chunk_size = set_omp_scheduling(ctx.bin_par_ptr);
         omp_set_num_threads(num_OMP_threads);
 
 #pragma omp parallel firstprivate(check_pix_selection,PIX_STRIDE)
@@ -90,7 +91,12 @@ struct processWithNoSortingWithOMP {
             // identify id of parallel worker
             auto n_thread = omp_get_thread_num();
             std::vector<double> qu(ctx.COORD_STRIDE);
-#pragma omp for schedule(dynamic,1000) reduction(+:num_pix)
+#ifdef omp3_available
+#pragma omp for schedule(runtime) reduction(+:num_pix)
+#else
+#pragma omp for schedule(dynamic,chunk_size) reduction(+:num_pix)
+#endif
+
             for (int i = 0; i < ctx.data_size; i++) {
                 // drop out coordinates outside of the binning range
                 if (ctx.out_of_ranges(i, qu))

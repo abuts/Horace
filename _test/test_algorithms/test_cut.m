@@ -28,6 +28,7 @@ classdef test_cut < TestCase
         sqw_4d;
         working_dir;
         old_ws;
+        cl_omp_proc
     end
 
     methods
@@ -58,6 +59,9 @@ classdef test_cut < TestCase
                     obj.ref_cut_file);
                 sqw_cut = cut(obj.sqw_file, obj.ref_params{:});
                 save(sqw_cut,obj.ref_cut_file);
+            end
+            if is_jenkins() && verLessThan('MATLAB','9')
+                obj.cl_omp_proc = set_temporary_config_options(parallel_config,'dynamic_omp_npixels_stride',0);
             end
         end
 
@@ -276,7 +280,7 @@ classdef test_cut < TestCase
             v_axis_lims = [-0.1, 0.1];
             w_axis_lims = [-0.1, 0.1];
             en_axis_lims = [105, 1, 114];
-            clWarn = set_temporary_warning('off','HORACE:old_file_format','SQW_FILE:old_version');                        
+            clWarn = set_temporary_warning('off','HORACE:old_file_format','SQW_FILE:old_version');
 
             dnd_cut = cut(...
                 obj.sqw_file, proj, u_axis_lims, v_axis_lims, w_axis_lims, ...
@@ -539,19 +543,19 @@ classdef test_cut < TestCase
 
         function test_cut_nopix_to_file_mex_nomex(obj)
             outfile1 = fullfile(tmp_dir, 'tmp_outfile_nomex.sqw');
-            outfile2 = fullfile(tmp_dir, 'tmp_outfile_mex.sqw');            
+            outfile2 = fullfile(tmp_dir, 'tmp_outfile_mex.sqw');
             cleanup1 = onCleanup(@() clean_up_file(outfile1));
-            cleanup2 = onCleanup(@() clean_up_file(outfile2));            
+            cleanup2 = onCleanup(@() clean_up_file(outfile2));
             clWarn = set_temporary_warning('off','HORACE:old_file_format','SQW_FILE:old_version');
             clConf = set_temporary_config_options(hor_config,'use_mex',false);
-        
+
             cut(obj.sqw_file, obj.ref_params{:}, outfile1, '-nopix')
-            assertTrue(logical(exist(outfile1, 'file')));            
+            assertTrue(logical(exist(outfile1, 'file')));
             config_store.instance().set_value('hor_config','use_mex',true);
             cut(obj.sqw_file, obj.ref_params{:}, outfile2, '-nopix')
 
             nom_obj = read_dnd(outfile1);
-            mex_obj = read_dnd(outfile2);            
+            mex_obj = read_dnd(outfile2);
 
             assertEqualToTol(nom_obj, mex_obj, ...
                 'ignore_str', true,'abstol',2.e-7);

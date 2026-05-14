@@ -197,6 +197,18 @@ void BinningArg::set_num_threads(mxArray const* const pField)
     }
     this->num_threads = nthreads;
 };
+
+void BinningArg::set_dynamic_omp_stride(mxArray const* const pField)
+{
+    if (!mxIsScalar(pField)) {
+        mexErrMsgIdAndTxt("HORACE:bin_pixels_c:invalid_argument",
+            "omp stride can be defined only by scalar values");
+    }
+    auto omp_chunk_size = static_cast<int>(mxGetScalar(pField));
+    this->dynamic_omp_stride = omp_chunk_size;
+};
+
+
 // set the range of data to bin pixels in
 void BinningArg::set_data_range(mxArray const* const pField)
 {
@@ -570,6 +582,7 @@ void BinningArg::register_input_methods()
     this->BinParInfo["coord_in"] = [this](mxArray const* const pField) { this->set_coord_in(pField); };
     this->BinParInfo["binning_mode"] = [this](mxArray const* const pField) { this->set_binning_mode(pField); };
     this->BinParInfo["num_threads"] = [this](mxArray const* const pField) { this->set_num_threads(pField); };
+    this->BinParInfo["dynamic_omp_stride"] = [this](mxArray const* const pField) { this->set_dynamic_omp_stride(pField);};
     this->BinParInfo["data_range"] = [this](mxArray const* const pField) { this->set_data_range(pField); };
     this->BinParInfo["dimensions"] = [this](mxArray const* const pField) { this->set_dimensions(pField); };
     this->BinParInfo["nbins_all_dims"] = [this](mxArray const* const pField) { this->set_nbins_all_dims(pField); };
