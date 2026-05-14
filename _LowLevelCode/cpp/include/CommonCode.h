@@ -17,7 +17,6 @@
 
 #ifndef _OPENMP
 inline void omp_set_num_threads(int nThreads) {};
-inline void omp_set_schedule(int omp_sched, int size) {};
 #define omp_get_num_threads() 1
 #define omp_get_max_threads() 1
 #define omp_get_thread_num()  0
@@ -25,18 +24,7 @@ inline void omp_set_schedule(int omp_sched, int size) {};
 #include <omp.h>
 #endif
 
-// ---- schedule enum fallbacks (MSVC safe) ----
-#ifndef omp_sched_static
-#define omp_sched_static  1
-#endif
-
-#ifndef omp_sched_dynamic
-#define omp_sched_dynamic 2
-#endif
-
-#if defined(_OPENMP) && _OPENMP < 200805
-inline void omp_set_schedule(int omp_sched, int size) {};
-#else
+#if defined(_OPENMP) && _OPENMP >= 200805
 #define omp3_available
 #endif
 
