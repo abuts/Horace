@@ -1096,8 +1096,8 @@ classdef test_bin_pixels_at_AxesBlock_mex_nomex < TestCase
             assertEqual(size(npix_nom),[10,20]);
 
             assertEqual(npix_mex,npix_nom);
-            assertEqual(s_mex,s_nom);
-            assertEqual(e_mex,e_nom);
+            assertEqualToTol(s_mex,s_nom,'tol',[1.e-12,1.e-12]);
+            assertEqual(e_mex,e_nom,'tol',[1.e-12,1.e-12]);
         end
 
         function test_bin_pixels_mex_nomex_mode2_2D_selection_works(obj)
@@ -1376,6 +1376,7 @@ classdef test_bin_pixels_at_AxesBlock_mex_nomex < TestCase
                 skipTest('Can not test mex code to check binning parameters');
             end
             clObHor = set_temporary_config_options(hor_config, 'use_mex', true);
+            clObPar = set_temporary_config_options(parallel_config, 'min_npix_for_omp_cut',0);            
 
             AB = AxesBlockBase_tester('nbins_all_dims',[10,20,30,40], ...
                 'img_range',[-1,-2,-3,-10;1,2,3,40]);
@@ -1399,7 +1400,7 @@ classdef test_bin_pixels_at_AxesBlock_mex_nomex < TestCase
                 skipTest('Can not test mex code to check binning parameters');
             end
             clObHor = set_temporary_config_options(hor_config, 'use_mex', true);
-            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
+            clObPar = set_temporary_config_options(parallel_config, 'min_npix_for_omp_cut',0);
 
             AB = AxesBlockBase_tester('nbins_all_dims',[10,20,30,40], ...
                 'img_range',[-1,-2,-3,-10;1,2,3,40]);

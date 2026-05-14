@@ -940,7 +940,7 @@ void BinningArg::return_test_inputs(mxArray* plhs[], int nlhs)
 
     auto number_of_fields = this->OutParList.size();
     if (this->binMode == opModes::npix_only) {
-        if (nlhs == 4) {
+        if (nlhs == out_arg_mode0::N_OUT_Arguments0) {
             plhs[out_arg_mode0::out_par_names0] = mxCreateCellMatrix(1, mwSize(number_of_fields));
             plhs[out_arg_mode0::out_par_values0] = mxCreateCellMatrix(1, mwSize(number_of_fields));
             pFieldNames = plhs[out_arg_mode0::out_par_names0];

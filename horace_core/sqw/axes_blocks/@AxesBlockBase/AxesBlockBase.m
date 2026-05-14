@@ -696,7 +696,7 @@ classdef AxesBlockBase < serializable
             %                 it gets on input, into double. if not, output
             %                 pixels will keep their initial type
             % '-selected_only'
-            %              -- Returns logical array of `selected` with true 
+            %              -- Returns logical array of `selected` with true
             %                 where pixels contributed in image instead of `pix_ok`
             %                 class, containing contributed pixels.
             %                 For use with DnD cuts with symmetries where fewer
@@ -773,11 +773,16 @@ classdef AxesBlockBase < serializable
                 [varargout{:}] = bin_pixels_( ...
                     obj,coord_transf,mode,...
                     npix,s,e,pix_cand,unique_runid,force_double);
-                if mode == bin_mode.npix_only && nargout == 2
-                    npix = varargout{1}; % maintain consistency with mex code which calculates sum(npix(:)) in this case
+            end
+            if mode == bin_mode.npix_only && nargout == 2
+                npix = varargout{1}; % maintain consistency with mex code which calculates sum(npix(:)) in this case
+                if isstruct(varargout{2})
+                    varargout{2}.npix_retained = sum(npix(:));
+                else
                     varargout{2} = struct('npix_retained',sum(npix(:)));
                 end
             end
+
         end
         %
         function [nodes,dE_edges,nbin_size,grid_cell_size] = get_bin_nodes(obj,varargin)

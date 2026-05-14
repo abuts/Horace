@@ -18,8 +18,6 @@ enum InOutTransf {
 
 // enumerate input arguments of the mex function
 enum in_arg {
-    mex_code_hldrIn, // pointer to the class shared with Matlab and containing persistent input arguments and binning arrays
-    // storage of the mex-function.
     npixIn, // image array containing number of pixels contributing into each bin. Actually used as indicator of first call to binning code
     signalIn, // image array containing signals
     errorIn, //  image array containing errors
@@ -28,7 +26,6 @@ enum in_arg {
 };
 // enumerate output arguments of the mex function
 enum out_arg {
-    mex_code_hldrOut, // pointer to the class shared with Matlab and containing persistent input arguments and binning arrays
     npix, // pointer to modified npix array
     Signal, // pointer to modified signal array
     Error, // pointer to modified error array
@@ -37,7 +34,6 @@ enum out_arg {
     N_OUT_Arguments
 };
 enum out_arg_mode0 {
-    mex_code_hldrOut0, // pointer to the class shared with Matlab and containing persistent
     npix0, // pointer to modified npix array
     out_par_names0, // pointer to cellarray with the names  of other possible output parameters
     out_par_values0, // pointer to cellarray with the values of other possible output parameters
