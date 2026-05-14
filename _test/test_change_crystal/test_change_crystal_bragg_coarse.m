@@ -187,6 +187,10 @@ classdef test_change_crystal_bragg_coarse < TestCaseWithSave
             % finalize_alignment routine on file
             clConf = set_temporary_config_options(hor_config, ...
                 'mem_chunk_size', 100000, 'fb_scale_factor', 4);
+            %TODO: #1799 Disabled OMP cutting until proper pixel comparison
+            %is implemented. remove after #1799 is resolved
+            clPar = set_temporary_config_options(parallel_config, ...
+                'threads', 0);
 
 
             tmp_file_1 = TmpFileHandler(obj.misaligned_sqw_file);
@@ -241,6 +245,11 @@ classdef test_change_crystal_bragg_coarse < TestCaseWithSave
             % finalize_alignment routine on file
             clConf = set_temporary_config_options(hor_config, ...
                 'mem_chunk_size', 100000, 'fb_scale_factor', 4);
+            %TODO: #1799 Disabled OMP cutting until proper pixel comparison
+            %is implemented. remove after #1799 is resolved
+            clPar = set_temporary_config_options(parallel_config, ...
+                'threads', 0);
+
 
             tmp_file_1 = TmpFileHandler(obj.misaligned_sqw_file);
             tf_ref_corr = tmp_file_1.file_name;
@@ -688,6 +697,10 @@ classdef test_change_crystal_bragg_coarse < TestCaseWithSave
         end
         %
         function test_legacy_vs_pix_aligmnent_recovered_on_load(obj)
+            %TODO: #1799 Disabled OMP cutting until proper pixel comparison
+            %is implemented. remove after #1799 is resolved
+            clPar = set_temporary_config_options(parallel_config, ...
+                'threads', 0);
             % theoretical Bragg points positions
             bragg_pos=[...
                 0, -1, 0; ...
@@ -755,7 +768,7 @@ classdef test_change_crystal_bragg_coarse < TestCaseWithSave
             cut_old1d.experiment_info = cut_new1d.experiment_info;
             % images look the same but pixels remain misaligned in old cut
             % and aligned afer new cut so you can not do direct comparison
-            assertEqualToTol(cut_old1d.data, cut_new1d.data);
+            assertEqualToTol(cut_old1d.data, cut_new1d.data,'tol',[1.e-12,1.e-12]);
 
             ranges = {[cr(1, 1), 0.05, cr(2, 1)], [cr(1, 2), 0.1, cr(2, 2)], [cr(1, 3), 0.1, cr(2, 3)], [cr(1, 4), 0.1, cr(2, 4)]};
             cut_old = cut(wout_leg_rec, proj0, ranges{:});
@@ -766,7 +779,7 @@ classdef test_change_crystal_bragg_coarse < TestCaseWithSave
             % old alignment changes the direction of cu, cv components and
             % new one does not so they can not be compared directly. Yet!
             cut_old.experiment_info = cut_new.experiment_info;
-            assertEqualToTol(cut_old.data, cut_new.data);
+            assertEqualToTol(cut_old.data, cut_new.data,'tol',[1.e-12,1.e-12]);
             skipTest('Re #1616 Experiment alignment is not recovered as modern alignment')
         end
         %

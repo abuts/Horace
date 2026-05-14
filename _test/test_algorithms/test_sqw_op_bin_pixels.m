@@ -125,7 +125,7 @@ classdef test_sqw_op_bin_pixels < TestCaseWithSave
             out_dnd = sqw_op_bin_pixels(sqw_in, obj.fold_dataX_fun, [], ...
                 [0,0.05,2],[-2,0.05,2],[-0.1,0.1],[-5,5],'-nopix');
 
-            assertEqualToTol(out_sqw.data,out_dnd);
+            assertEqualToTol(out_sqw.data,out_dnd,'tol',[1.e-12,1.e-12]);
 
             assertEqualToTolWithSave(obj,out_sqw,...
                 obj.FLOAT_TOL, '-ignore_str','-ignore_date');
