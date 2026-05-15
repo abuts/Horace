@@ -21,10 +21,8 @@ set(MEX_FUNCTIONS
     "file_parameters"
      ${HDF_READER}
 )
-if(OPENMP_FOUND)
-    if (UNIX AND "${Matlab_RELEASE}" STREQUAL "R2018b")
-        set(OMP_TYPES DISABLE_DYNAMIC_SHEDULER)
-    endif()
+if(OPENMP_FOUND AND UNIX AND Matlab_RELEASE STREQUAL "R2018b")
+    set(OMP_TYPES DISABLE_DYNAMIC_SCHEDULER)
 endif()
 foreach(_mex_func ${MEX_FUNCTIONS})
     add_subdirectory("${_mex_func}")
