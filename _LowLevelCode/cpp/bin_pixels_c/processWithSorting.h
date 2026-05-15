@@ -7,15 +7,13 @@ struct processWithSorting {
     void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
         // access working bufer persistent between calls to this function:
         const auto bin_par_ptr = ctx.bin_par_ptr;
-        if (bin_par_ptr->n_data_points > bin_par_ptr->pix_ok_bin_idx.size()) {
-            bin_par_ptr->pix_ok_bin_idx.resize(bin_par_ptr->n_data_points);
-        }
-        // fill all positions of the pix_ok vector with definetely invalid value.
-        // Index can not be negative so this will indicate invalid elements
-        std::fill(bin_par_ptr->pix_ok_bin_idx.begin(), bin_par_ptr->pix_ok_bin_idx.end(), -1);
-        span<mxInt64> pix_ok_bin_idx(bin_par_ptr->pix_ok_bin_idx);
-
-        span<size_t> npix1(ctx.bin_par_ptr->npix1.data(), ctx.bin_par_ptr->npix1.size());
+        // pixel rejection cache
+        span<mxInt64> pix_ok_bin_idx;
+        bin_par_ptr->init_pix_ok_cache(pix_ok_bin_idx);
+        // accumulators needed for sorting pixels according to bins
+        span<size_t> npix1;
+        span<size_t> bin_start;
+        bin_par_ptr->init_npix1_step_cache(npix1, bin_start);
 
         std::vector<double> qu(ctx.COORD_STRIDE);
         for (long i = 0; i < ctx.data_size; i++) {
@@ -45,8 +43,8 @@ struct processWithSorting {
         // allocate memory for pixels to retain contributing pixels.
         span<TRG> sorted_pix; // pointer to the actual data position.
         ctx.bin_par_ptr->pix_ok_ptr = allocate_pix_memory<TRG>(pix_flds::PIX_WIDTH, ctx.nPixel_retained, sorted_pix);
+
         // calculate ranges of cells to place pixels
-        span<size_t> bin_start(ctx.bin_par_ptr->npix_bin_start);
         bin_start[0] = 0;
         npix[0] += npix1[0];
         if (ctx.distribution_size > 1) {
@@ -84,15 +82,14 @@ struct processWithSortingWithOMP {
     void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
         // access working bufer persistent between calls to this function:
         const auto bin_par_ptr = ctx.bin_par_ptr;
-        if (bin_par_ptr->n_data_points > bin_par_ptr->pix_ok_bin_idx.size()) {
-            bin_par_ptr->pix_ok_bin_idx.resize(bin_par_ptr->n_data_points);
-        }
-        // fill all positions of the pix_ok vector with definetely invalid value.
-        // Index can not be negative so this will indicate invalid elements
-        std::fill(bin_par_ptr->pix_ok_bin_idx.begin(), bin_par_ptr->pix_ok_bin_idx.end(), -1);
-        span<mxInt64> pix_ok_bin_idx(bin_par_ptr->pix_ok_bin_idx);
 
-        span<size_t> npix1(ctx.bin_par_ptr->npix1.data(), ctx.bin_par_ptr->npix1.size());
+
+        span<mxInt64> pix_ok_bin_idx;
+        bin_par_ptr->init_pix_ok_cache(pix_ok_bin_idx);
+        // accumulators needed for sorting pixels according to bins
+        span<size_t> npix1;
+        span<size_t> bin_start;
+        ctx.bin_par_ptr->init_npix1_step_cache(npix1, bin_start);
 
         // copy to local variables
         auto num_pix = ctx.nPixel_retained;
@@ -124,9 +121,12 @@ struct processWithSortingWithOMP {
 #ifdef omp3_available
 #pragma omp for schedule(runtime) reduction(+:num_pix)
 #else
+#ifdef DISABLE_DYNAMIC_SHEDULER
 #pragma omp for schedule(static,chunk_size) reduction(+:num_pix)
+#else
+#pragma omp for schedule(dynamic,chunk_size) reduction(+:num_pix)
 #endif
-
+#endif
             for (long i = 0; i < ctx.data_size; i++) {
                 // drop out coordinates outside of the binning range
                 if (ctx.out_of_ranges(i, qu))
@@ -145,13 +145,13 @@ struct processWithSortingWithOMP {
             }
 #pragma omp barrier // should be implicit? will do no harm.
 #pragma omp for schedule(static)
-        for (long i = 0; i < distribution_size; i++) {
-            for (int n_thread = 0; n_thread < num_OMP_threads; n_thread++) {
-                npix1[i] += img_tls[n_thread][i].npix;
-                s[i] += img_tls[n_thread][i].s;
-                e[i] += img_tls[n_thread][i].e;
+            for (long i = 0; i < distribution_size; i++) {
+                for (int n_thread = 0; n_thread < num_OMP_threads; n_thread++) {
+                    npix1[i] += img_tls[n_thread][i].npix;
+                    s[i] += img_tls[n_thread][i].s;
+                    e[i] += img_tls[n_thread][i].e;
+                }
             }
-        }
         } // end of parallel region
         ctx.nPixel_retained = num_pix;
         merge_tls_ranges(range_tls_stor, ctx.pix_ranges, num_OMP_threads, PIX_STRIDE);
@@ -159,8 +159,8 @@ struct processWithSortingWithOMP {
         // allocate memory for pixels to retain contributing pixels.
         span<TRG> sorted_pix; // pointer to the actual data position.
         ctx.bin_par_ptr->pix_ok_ptr = allocate_pix_memory<TRG>(pix_flds::PIX_WIDTH, ctx.nPixel_retained, sorted_pix);
+
         // calculate ranges of cells to place pixels
-        span<size_t> bin_start(ctx.bin_par_ptr->npix_bin_start);
         bin_start[0] = 0;
         npix[0] += npix1[0];
         if (distribution_size > 1) {
@@ -169,6 +169,7 @@ struct processWithSortingWithOMP {
                 npix[i] += npix1[i]; // increase multi-call accumulators
             }
         }
+
         bool align_result = ctx.bin_par_ptr->alignment_matrix.size() == 9;
         size_t targ_pix_pos(0);
         bool keep_unique_id = ctx.bin_par_ptr->binMode == opModes::sort_and_uid;

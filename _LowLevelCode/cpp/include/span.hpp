@@ -25,7 +25,7 @@ public:
 
     constexpr pointer data() const noexcept { return ptr_; }
     constexpr size_type size() const noexcept { return size_; }
-    constexpr bool empty() const noexcept { return size_ == 0; }
+    constexpr bool empty() const noexcept { return (size_ == 0 || ptr_ == nullptr); }
 
     constexpr reference operator[](size_type i) const noexcept {
         return ptr_[i];

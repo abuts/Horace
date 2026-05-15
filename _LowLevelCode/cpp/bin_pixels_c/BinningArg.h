@@ -151,6 +151,7 @@ public:
         return product;
     }
 
+
 protected:
     // register with parameters map all methods which accept input parameters from MATLAB
     void register_input_methods();
@@ -193,6 +194,10 @@ public:
     BinningArg(); // construction
     // process binning arguments input values for new binning arguments cycle
     void parse_bin_inputs(mxArray const* pAllParStruct);
+    // initialize caches used in old-style pixel-selection algorithm
+    void init_pix_ok_cache(span<mxInt64>& pix_ok_bin_idx);
+    // initialize cahces used in old-style pixel sorting over bins
+    void init_npix1_step_cache(span<size_t>& npix1, span<size_t>& npix_bin_start);
     // process binning arguments which have changed during following call to binning procedure
     void parse_changed_bin_inputs(mxArray const* pAllParStruct);
     // generate test output which would echo input values
@@ -207,7 +212,6 @@ public:
     mwSize get_Matlab_n_dimensions();
     // get dimensions of accumulator array to allocate using MATLAB methods
     mwSize* get_Matlab_acc_dimensions(size_t &distr_size);
-
 private:
     // map to keep list of function to process input values from MATLAB structure
     std::unordered_map<std::string, std::function<void(mxArray const* const)>> BinParInfo;

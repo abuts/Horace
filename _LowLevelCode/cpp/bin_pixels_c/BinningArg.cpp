@@ -27,8 +27,31 @@ bool BinningArg::new_binning_arguments_present(mxArray const* prhs[])
     this->set_binning_mode(mxGetField(inpar_structure_ptr, 0, "binning_mode"));
     return (oldMode != this->binMode);
 
-}; //
+};
 
+// Initialize caches used in serial pixel sorting over the bin
+void BinningArg::init_npix1_step_cache(span<size_t>& npix1,span<size_t> &npix_bin_start) {
+    if (this->npix_bin_start.size() != this->distr_size) {
+        this->npix_bin_start.resize(this->distr_size);
+        this->npix1.resize(this->distr_size);
+    }
+    std::fill(this->npix1.begin(), this->npix1.end(), 0); // nullify accumulators for npix1
+    npix1 = span<size_t>(this->npix1);
+    npix_bin_start = span<size_t>(this->npix_bin_start);
+};
+// Initialize caches used in old-style (static storage) pixel out-of-range
+// rejection.
+void BinningArg::init_pix_ok_cache(span<mxInt64>& pix_ok_bin_idx) {
+    if (this->n_data_points > this->pix_ok_bin_idx.size()) {
+        this->pix_ok_bin_idx.resize(this->n_data_points);
+    }
+    // fill all positions of the pix_ok vector with definetely invalid value.
+    // Index can not be negative so this will indicate invalid elements
+    std::fill(this->pix_ok_bin_idx.begin(), this->pix_ok_bin_idx.end(), -1);
+    pix_ok_bin_idx = span<mxInt64>(this->pix_ok_bin_idx);
+};
+//==============================================================================================
+// PARSING INPUT PARAMETERS
 // analyse and if appropriate store pointer to input (MATLAB provided) pixels coordinates array
 // together with information about size and shape of the coordinates array
 // set u_offset values, used in 

@@ -8,13 +8,9 @@ struct processWithNoSorting {
     void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
         // access working bufer persistent between calls to this function:
         const auto bin_par_ptr = ctx.bin_par_ptr;
-        if (bin_par_ptr->n_data_points > bin_par_ptr->pix_ok_bin_idx.size()) {
-            bin_par_ptr->pix_ok_bin_idx.resize(bin_par_ptr->n_data_points);
-        }
-        // fill all positions of the pix_ok vector with definetely invalid value.
-        // Index can not be negative so this will indicate invalid elements
-        std::fill(bin_par_ptr->pix_ok_bin_idx.begin(), bin_par_ptr->pix_ok_bin_idx.end(), -1);
-        span<mxInt64> pix_ok_bin_idx(bin_par_ptr->pix_ok_bin_idx);
+        // pixel rejection cache
+        span<mxInt64> pix_ok_bin_idx;
+        bin_par_ptr->init_pix_ok_cache(pix_ok_bin_idx);
 
         std::vector<double> qu(ctx.COORD_STRIDE);
         for (long i = 0; i < ctx.data_size; i++) {
@@ -94,7 +90,11 @@ struct processWithNoSortingWithOMP {
 #ifdef omp3_available
 #pragma omp for schedule(runtime) reduction(+:num_pix)
 #else
+#ifdef DISABLE_DYNAMIC_SHEDULER
 #pragma omp for schedule(static,chunk_size) reduction(+:num_pix)
+#else
+    #pragma omp for schedule(dynamic,chunk_size) reduction(+:num_pix)
+#endif
 #endif
 
             for (int i = 0; i < ctx.data_size; i++) {

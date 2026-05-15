@@ -11,13 +11,8 @@ struct processWithNoSortSel {
         span<mxInt64> pix_ok_bin_idx;
         if (process_pixels) {
             const auto bin_par_ptr = ctx.bin_par_ptr;
-            if (bin_par_ptr->n_data_points > bin_par_ptr->pix_ok_bin_idx.size()) {
-                bin_par_ptr->pix_ok_bin_idx.resize(bin_par_ptr->n_data_points);
-            }
-            // fill all positions of the pix_ok vector with definetely invalid value.
-            // Index can not be negative so this will indicate invalid elements
-            std::fill(bin_par_ptr->pix_ok_bin_idx.begin(), bin_par_ptr->pix_ok_bin_idx.end(), -1);
-            pix_ok_bin_idx = span<mxInt64>(ctx.bin_par_ptr->pix_ok_bin_idx);
+            // pixel rejection cache
+            bin_par_ptr->init_pix_ok_cache(pix_ok_bin_idx);
         }
         // Allocate memory for logical array of selected pixels
         span<mxLogical> is_pix_selected;
@@ -70,7 +65,8 @@ struct processWithNoSortSelWithOMP {
         // Allocate memory for logical array of selected pixels and prepare to return it to MATLAB
         span<mxLogical> is_pix_selected;
         ctx.bin_par_ptr->is_pix_selected_ptr = allocate_pix_memory<mxLogical>(1, ctx.data_size, is_pix_selected);
-        // reseve place for the pointer for selected pixels and pixels indices if they found necessary
+        // reseve earlier to be visible for all threads the variables for the pointer to selected pixels
+        // and pixels indices if they found necessary and present as the result
         span<TRG> selected_pix; // pointer to the selected pixels.
         span<mxInt64> pix_img_idx; // pointer to the selected pixels indices
         //------------------------------------------------------------------
@@ -115,8 +111,13 @@ struct processWithNoSortSelWithOMP {
 #ifdef omp3_available
 #pragma omp for schedule(runtime) reduction(+:num_pix)
 #else
+#ifdef DISABLE_DYNAMIC_SHEDULER
 #pragma omp for schedule(static,chunk_size) reduction(+:num_pix)
+#else
+#pragma omp for schedule(dynamic,chunk_size) reduction(+:num_pix)
 #endif
+#endif
+
             for (int i = 0; i < ctx.data_size; i++) {
                 // drop out coordinates outside of the binning range
                 if (ctx.out_of_ranges(i, qu)) {

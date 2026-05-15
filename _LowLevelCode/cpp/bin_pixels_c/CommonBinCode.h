@@ -237,12 +237,12 @@ public:
 int set_omp_scheduling(BinningArg const * const bin_arg_ptr) {
     int selected_stride = bin_arg_ptr->dynamic_omp_stride;
 #ifdef omp3_available
-    if (bin_arg_ptr->dynamic_omp_stride > 0) {
-        omp_set_schedule(omp_sched_dynamic, bin_arg_ptr->dynamic_omp_stride);
+    if (selected_stride > 0) {
+        omp_set_schedule(omp_sched_dynamic, selected_stride);
     }
     else {
-        omp_set_schedule(omp_sched_static,0);
-        selected_stride = 0;
+        selected_stride = abs(selected_stride);
+        omp_set_schedule(omp_sched_static, selected_stride);
     }
 #else
     if (selected_stride < 0)

@@ -64,8 +64,12 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[])
     try {
         auto distr_size = bin_par_ptr->class_ptr->distr_size;
         span<double> npix(mxGetPr(bin_par_ptr->class_ptr->npix_ptr), distr_size);
-        span<double> signal(mxGetPr(bin_par_ptr->class_ptr->signal_ptr),distr_size);
-        span<double> error(mxGetPr(bin_par_ptr->class_ptr->error_ptr),distr_size);
+        span<double> signal;
+        span<double> error;
+        if (bin_par_ptr->class_ptr->binMode > opModes::npix_only) {
+            signal = span<double>(mxGetPr(bin_par_ptr->class_ptr->signal_ptr), distr_size);
+            error  = span<double>(mxGetPr(bin_par_ptr->class_ptr->error_ptr), distr_size);
+        }
         auto transfType = bin_par_ptr->class_ptr->InOutTypeTransf;
 
         size_t num_pixels_retained(0);
