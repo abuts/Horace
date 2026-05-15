@@ -172,7 +172,6 @@ mxArray* allocate_pix_memory(size_t PIX_WIDTH, size_t N_ELEMENTS, span<TRG>& mem
     return mxData_ptr;
 };
 
-
 // nullify input mxArray (used as accumulator)
 inline void nullify_array(const mxArray* mxData_ptr) {
 

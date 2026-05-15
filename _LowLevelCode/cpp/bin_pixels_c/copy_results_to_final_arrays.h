@@ -81,7 +81,7 @@ void inline copy_results_to_final_arrays_dyn(BinningArg* const bin_par_ptr, span
     // actually move pixels and copy indices to the target array
     size_t targ_pix_pos(0);
     size_t targ_pix_array_pos(0);
-    for (auto sel_idx : pix_contribuion) {
+    for (idx_accum & sel_idx : pix_contribuion) {
 
         pix_img_idx[targ_pix_pos] = sel_idx.img_idx + 1; // MATLB indices start from 1 and these -- from 0
 
@@ -155,5 +155,36 @@ void inline copy_results_to_final_arraysWithOMP(int n_thread,
         unique_ID_tls[n_thread].insert(uint32_t(selected_pix[targ_pix_array_pos + pix_flds::irun]));
 
         targ_pix_pos++; // move to the next pixel position within the target array
+    }
+};
+
+
+template<class SRC, class TRG>
+void inline copy_pixels_to_final_arrays(BinningArg* const bin_par_ptr, span<const SRC> pix_data,
+    bool keep_unique_id, const std::vector<idx_accum>& pix_idx_included, span<size_t> bin_start){
+
+    bool align_result = bin_par_ptr->alignment_matrix.size() == 9;
+
+    size_t nPixel_retained = pix_idx_included.size();
+    // allocate memory for sorted pixels to retain.
+    span<TRG> sorted_pix; // pointer to the actual data position.
+    bin_par_ptr->pix_ok_ptr = allocate_pix_memory<TRG>(pix_flds::PIX_WIDTH, nPixel_retained, sorted_pix);
+
+    // actually sort pixels and copy selected pixels into proper locations within the target array
+    size_t targ_pix_pos(0);
+    for (const idx_accum& contr_idx : pix_idx_included) {
+
+        size_t il = contr_idx.img_idx;       // number of cell pixel should go to
+        auto cell_pix_ind = bin_start[il]++; // pixel position within the array defined by cell
+        if (align_result) {
+            // align q-coordinates and copy all other pixel data into the location requested
+            targ_pix_pos = align_and_copy_pixels<SRC, TRG>(bin_par_ptr->alignment_matrix, pix_data, contr_idx.pix_idx, sorted_pix, cell_pix_ind);
+        }
+        else {
+            targ_pix_pos = copy_pixels<SRC, TRG>(pix_data, contr_idx.pix_idx, sorted_pix, cell_pix_ind); // copy all pixel data into the location requested
+        }
+        if (keep_unique_id) {
+            bin_par_ptr->unique_runID.insert(uint32_t(sorted_pix[targ_pix_pos + pix_flds::irun]));
+        }
     }
 };

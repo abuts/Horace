@@ -8,14 +8,7 @@ struct processWithNoSortSel {
     void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
         // access working bufer persistent between calls to this function:
         auto process_pixels = ctx.bin_par_ptr->binMode == opModes::nosort_sel;
-        /*
-        span<mxInt64> pix_ok_bin_idx;
-        if (process_pixels) {
-            const auto bin_par_ptr = ctx.bin_par_ptr;
-            // pixel rejection cache
-            bin_par_ptr->init_pix_ok_cache(pix_ok_bin_idx);
-        }
-        */
+
         std::vector<idx_accum> pix_contribution;
         if (process_pixels) {
             pix_contribution.reserve(ctx.data_size);

@@ -8,9 +8,12 @@ struct processWithNoSorting {
     void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
         // access working bufer persistent between calls to this function:
         const auto bin_par_ptr = ctx.bin_par_ptr;
+
+        std::vector<idx_accum> pix_contribution;
+        pix_contribution.reserve(ctx.data_size);
         // pixel rejection cache
-        span<mxInt64> pix_ok_bin_idx;
-        bin_par_ptr->init_pix_ok_cache(pix_ok_bin_idx);
+        //span<mxInt64> pix_ok_bin_idx;
+        //bin_par_ptr->init_pix_ok_cache(pix_ok_bin_idx);
 
         std::vector<double> qu(ctx.COORD_STRIDE);
         for (long i = 0; i < ctx.data_size; i++) {
@@ -28,13 +31,14 @@ struct processWithNoSorting {
             auto il = ctx.add_pix_to_accumulators(qu, ip0, npix, s, e);
 
             // store indices of contributing pixels
-            pix_ok_bin_idx[i] = il;
+            pix_contribution.push_back(idx_accum(i, il));
+            //pix_ok_bin_idx[i] = il;
             // calculate pix ranges
             calc_pix_ranges<SRC>(ctx.pix_ranges, ctx.pix_coord, ip0, ctx.PIX_STRIDE);
         }
 
-        copy_results_to_final_arrays<SRC, TRG>(ctx.bin_par_ptr, ctx.pix_coord,
-            ctx.data_size, ctx.nPixel_retained, pix_ok_bin_idx);
+        copy_results_to_final_arrays_dyn<SRC, TRG>(ctx.bin_par_ptr, ctx.pix_coord,
+            ctx.data_size, ctx.nPixel_retained, pix_contribution);
 
     }
 };

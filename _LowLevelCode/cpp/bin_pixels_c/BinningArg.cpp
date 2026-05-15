@@ -507,7 +507,7 @@ void BinningArg::return_unique_runid(mxArray* pFieldName, mxArray* pFieldValue, 
 };
 //
 // return number of pixels retained in binning
-void BinningArg::return_npix_retained(mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name)
+const void BinningArg::return_npix_retained(mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name)
 {
     mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
     mxSetCell(pFieldValue, fld_idx, mxCreateDoubleScalar(this->n_pix_retained));
@@ -846,7 +846,7 @@ void BinningArg::return_test_inputs(mxArray* plhs[], int nlhs)
         mxSetCell(pFieldValue, fld_idx, mxCreateDoubleScalar(n_threads));
         };
     this->OutParList["data_range"] = [this](mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name) {
-        auto range = this->data_range;
+        std::vector<double>& range = this->data_range;
         auto pRange = mxCreateDoubleMatrix(2, 4, mxREAL);
         double* const pData = (double*)mxGetPr(pRange);
         for (auto i = 0; i < range.size(); i++) {
@@ -923,18 +923,18 @@ void BinningArg::return_test_inputs(mxArray* plhs[], int nlhs)
             tr_matr = mxCreateDoubleMatrix(0, 0, mxREAL);
         }
         else {
-            auto n_rows = this->transf_matrix_width;
+            int n_rows = this->transf_matrix_width;
             if (this->diag_transf) {
                 tr_matr = mxCreateDoubleMatrix(1, n_rows, mxREAL);
                 auto dataPtr = mxGetPr(tr_matr);
-                for (size_t i = 0; i < n_rows; i++) {
+                for (int i = 0; i < n_rows; i++) {
                     dataPtr[i] = this->transf_matrix[i];
                 }
             }
             else {
                 tr_matr = mxCreateDoubleMatrix(n_rows, n_rows, mxREAL);
                 auto dataPtr = mxGetPr(tr_matr);
-                for (size_t i = 0; i < n_rows * n_rows; i++) {
+                for (int i = 0; i < n_rows * n_rows; i++) {
                     dataPtr[i] = this->transf_matrix[i];
                 }
             }
@@ -1012,7 +1012,7 @@ void BinningArg::return_results(mxArray* plhs[], mwSize nlhs)
     mxArray* pFieldValues(nullptr);
 
     if (this->binMode == opModes::npix_only) {
-        if (nlhs < out_arg_mode0::N_OUT_Arguments0 - 2) {
+        if (nlhs < static_cast<mwSize>(out_arg_mode0::N_OUT_Arguments0) - 2) {
             return;
         }
         number_of_fields = out_func_map->size();
@@ -1022,7 +1022,7 @@ void BinningArg::return_results(mxArray* plhs[], mwSize nlhs)
         pFieldValues = plhs[out_arg_mode0::out_par_values0];
     }
     else {
-        if (nlhs < out_arg::N_OUT_Arguments - 2) {
+        if (nlhs < static_cast<mwSize>(out_arg::N_OUT_Arguments) - 2) {
             return;
         }
         // retrieve map to set-up output parameters of the resulting structure
@@ -1045,7 +1045,7 @@ void BinningArg::return_results(mxArray* plhs[], mwSize nlhs)
 };
 
 // take input array, and allocate new one if input is empty or duplicate input if input is not empty
-mxArray* duplicate_or_allocate_array(mxArray const* const origin_ptr, mwSize nDims, mwSize* dim_ptr)
+static mxArray* duplicate_or_allocate_array(mxArray const* const origin_ptr, mwSize nDims, mwSize const *const dim_ptr)
 {
     mxArray* target_ptr(nullptr);
     if (mxIsEmpty(origin_ptr)) {
@@ -1062,7 +1062,7 @@ mxArray* duplicate_or_allocate_array(mxArray const* const origin_ptr, mwSize nDi
 void BinningArg::check_and_init_accumulators(mxArray* plhs[], mxArray const* prhs[], bool force_update)
 {
     auto nDims = this->get_Matlab_n_dimensions();
-    mwSize* dim_ptr = this->get_Matlab_acc_dimensions(this->distr_size);
+    mwSize const* const dim_ptr = this->get_Matlab_acc_dimensions(this->distr_size);
     bool init_new_accumulators(false);
     if (mxIsEmpty(prhs[in_arg::npixIn]) || force_update) {
         init_new_accumulators = true;
@@ -1119,7 +1119,7 @@ void BinningArg::check_and_init_accumulators(mxArray* plhs[], mxArray const* prh
 * pointer to MATLAB array which defines dimensions for mxCreateNumericArray function
 * distr_size -- total number of elements in this numerical array (product of all its dimensions)
 **/
-mwSize* BinningArg::get_Matlab_acc_dimensions(size_t& distr_size)
+const mwSize* BinningArg::get_Matlab_acc_dimensions(size_t& distr_size)
 {
     distr_size = 1;
     this->accumulator_dims_holder.clear();
@@ -1150,7 +1150,7 @@ mwSize* BinningArg::get_Matlab_acc_dimensions(size_t& distr_size)
     return this->accumulator_dims_holder.data();
 }
 
-mwSize BinningArg::get_Matlab_n_dimensions()
+const mwSize BinningArg::get_Matlab_n_dimensions()
 {
     mwSize n_dims = (mwSize)(this->n_dims);
     if (n_dims == 0 || n_dims == 1)

@@ -234,6 +234,7 @@ public:
     };
 
 };
+
 int set_omp_scheduling(BinningArg const * const bin_arg_ptr) {
     int selected_stride = bin_arg_ptr->dynamic_omp_stride;
 #ifdef omp3_available

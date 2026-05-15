@@ -178,7 +178,7 @@ protected:
     // register with parameters map all methods which return variable results to MATLAB
     void register_output_methods();
     // setters for binning results returned to MATLAB in output structure
-    void return_npix_retained(mxArray* p1, mxArray* p2, int idx, const std::string& name);
+    const void return_npix_retained(mxArray* p1, mxArray* p2, int idx, const std::string& name);
     // setter for result of calculating pixels data range
     void return_pix_range(mxArray* p1, mxArray* p2, int idx, const std::string& name);
     // setter for possible pixels
@@ -209,9 +209,9 @@ public:
     // check if input accumulators have not been changed and initialize them appropriately
     void check_and_init_accumulators(mxArray* plhs[], mxArray const* prhs[], bool force_update = false);
     // get number of dimensions for accumulator array to allocate using MATLAB methods
-    mwSize get_Matlab_n_dimensions();
+    const mwSize get_Matlab_n_dimensions();
     // get dimensions of accumulator array to allocate using MATLAB methods
-    mwSize* get_Matlab_acc_dimensions(size_t &distr_size);
+    const mwSize* get_Matlab_acc_dimensions(size_t &distr_size);
 private:
     // map to keep list of function to process input values from MATLAB structure
     std::unordered_map<std::string, std::function<void(mxArray const* const)>> BinParInfo;
