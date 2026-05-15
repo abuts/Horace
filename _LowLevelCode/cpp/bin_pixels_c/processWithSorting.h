@@ -15,6 +15,7 @@ struct processWithSorting {
         span<size_t> bin_start;
         bin_par_ptr->init_npix1_step_cache(npix1, bin_start);
 
+        size_t num_pix(0);
         std::vector<double> qu(ctx.COORD_STRIDE);
         for (long i = 0; i < ctx.data_size; i++) {
             // drop out coordinates outside of the binning range
@@ -24,7 +25,7 @@ struct processWithSorting {
             size_t ip0 = i * ctx.PIX_STRIDE;
             if (ctx.check_pix_selection && ctx.pix_coord[ip0 + pix_flds::idet] < 0)
                 continue;
-            ctx.nPixel_retained++;
+            num_pix++;
 
             // calculate location of pixel within the image grid and add values of this pixels to the accumulators
             // It is almost like add_pixels_to_accumulators but npix1 instead of npix and types of these arrays are different
@@ -53,27 +54,11 @@ struct processWithSorting {
                 npix[i] += npix1[i]; // increase multi-call accumulators
             }
         }
-        bool align_result = ctx.bin_par_ptr->alignment_matrix.size() == 9;
-        size_t targ_pix_pos(0);
-        bool keep_unique_id = ctx.bin_par_ptr->binMode == opModes::sort_and_uid;
-        // actually sort pixels and copy selected pixels into proper locations within the target array
-        for (size_t i = 0; i < ctx.data_size; i++) {
-            if (pix_ok_bin_idx[i] < 0) // drop pixels with have not been included above
-                continue;
 
-            size_t il = (size_t)pix_ok_bin_idx[i]; // number of cell pixel should go to
-            auto cell_pix_ind = bin_start[il]++; // pixel position within the array defined by cell
-            if (align_result) {
-                // align q-coordinates and copy all other pixel data into the location requested
-                targ_pix_pos = align_and_copy_pixels<SRC, TRG>(ctx.bin_par_ptr->alignment_matrix, ctx.pix_coord, i, sorted_pix, cell_pix_ind);
-            }
-            else {
-                targ_pix_pos = copy_pixels<SRC, TRG>(ctx.pix_coord, i, sorted_pix, cell_pix_ind); // copy all pixel data into the location requested
-            }
-            if (keep_unique_id) {
-                ctx.bin_par_ptr->unique_runID.insert(uint32_t(sorted_pix[targ_pix_pos + pix_flds::irun]));
-            }
-        }
+        ctx.nPixel_retained = num_pix;
+        bool keep_unique_id = ctx.bin_par_ptr->binMode == opModes::sort_and_uid;
+        copy_pixels_to_final_arrays<SRC, TRG>(ctx.bin_par_ptr, ctx.pix_coord, num_pix,
+            keep_unique_id, pix_ok_bin_idx, bin_start);
     }
 };
 
@@ -156,10 +141,6 @@ struct processWithSortingWithOMP {
         ctx.nPixel_retained = num_pix;
         merge_tls_ranges(range_tls_stor, ctx.pix_ranges, num_OMP_threads, PIX_STRIDE);
 
-        // allocate memory for pixels to retain contributing pixels.
-        span<TRG> sorted_pix; // pointer to the actual data position.
-        ctx.bin_par_ptr->pix_ok_ptr = allocate_pix_memory<TRG>(pix_flds::PIX_WIDTH, ctx.nPixel_retained, sorted_pix);
-
         // calculate ranges of cells to place pixels
         bin_start[0] = 0;
         npix[0] += npix1[0];
@@ -170,26 +151,8 @@ struct processWithSortingWithOMP {
             }
         }
 
-        bool align_result = ctx.bin_par_ptr->alignment_matrix.size() == 9;
-        size_t targ_pix_pos(0);
         bool keep_unique_id = ctx.bin_par_ptr->binMode == opModes::sort_and_uid;
-        // actually sort pixels and copy selected pixels into proper locations within the target array
-        for (size_t i = 0; i < ctx.data_size; i++) {
-            if (pix_ok_bin_idx[i] < 0) // drop pixels with have not been included above
-                continue;
-
-            size_t il = (size_t)pix_ok_bin_idx[i]; // number of cell pixel should go to
-            auto cell_pix_ind = bin_start[il]++; // pixel position within the array defined by cell
-            if (align_result) {
-                // align q-coordinates and copy all other pixel data into the location requested
-                targ_pix_pos = align_and_copy_pixels<SRC, TRG>(ctx.bin_par_ptr->alignment_matrix, ctx.pix_coord, i, sorted_pix, cell_pix_ind);
-            }
-            else {
-                targ_pix_pos = copy_pixels<SRC, TRG>(ctx.pix_coord, i, sorted_pix, cell_pix_ind); // copy all pixel data into the location requested
-            }
-            if (keep_unique_id) {
-                ctx.bin_par_ptr->unique_runID.insert(uint32_t(sorted_pix[targ_pix_pos + pix_flds::irun]));
-            }
-        }
+        copy_pixels_to_final_arrays<SRC, TRG>(ctx.bin_par_ptr, ctx.pix_coord, num_pix,
+            keep_unique_id, pix_ok_bin_idx, bin_start);
     }
 };
