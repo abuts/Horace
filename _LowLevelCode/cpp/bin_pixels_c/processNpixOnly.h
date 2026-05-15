@@ -38,7 +38,7 @@ struct processNpixOnlyWithOMP {
 #pragma omp for schedule(runtime) reduction(+:num_pix)
 #else
 #ifdef DISABLE_DYNAMIC_SCHEDULER
-#pragma omp for schedule(static,chunk_size) reduction(+:num_pix)
+#pragma omp for schedule(static) reduction(+:num_pix)
 #else
 #pragma omp for schedule(dynamic,chunk_size) reduction(+:num_pix)
 #endif

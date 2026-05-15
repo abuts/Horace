@@ -25,9 +25,13 @@ pace_add_mex(
     NAME "${MEX_NAME}"
     SRC "${SRC_FILES}" "${HDR_FILES}"
 )
-if(${OPENMP_FOUND})
+if(OPENMP_FOUND)
   message(" ADDITIONAL CPP PARAMETERS: ${OMP_TYPES}")
   target_compile_definitions("${MEX_NAME}" PRIVATE ${OMP_TYPES})
   target_compile_options("${MEX_NAME}" PRIVATE ${OpenMP_CXX_FLAGS})
-  target_link_options("${MEX_NAME}" PRIVATE ${OpenMP_EXE_LINKER_FLAGS})
+  if (DISABLE_DYNAMIC_SCHEDULER)
+        target_link_options(${MEX_NAME} PRIVATE -static-libgomp")
+  else()
+    target_link_options("${MEX_NAME}" PRIVATE ${OpenMP_EXE_LINKER_FLAGS})  
+  endif()
 endif()
