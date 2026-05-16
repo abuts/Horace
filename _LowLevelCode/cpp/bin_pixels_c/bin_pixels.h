@@ -11,16 +11,20 @@
 template<class SRC, class TRG>
 struct processInvalidCall{
     void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
+        std::stringstream buf;
+        buf << "Axess binning does not support operational mode" << ctx.bin_par_ptr->binMode;
         mexErrMsgIdAndTxt("HORACE:bin_pixels_c:invalid_argument",
-           "Axess binning does not support this operational mode\n");
+            buf.str().c_str());
     }
 };
 // Macro to process unsupported binning and transformation modes failing gently.
 template<class SRC, class TRG>
 struct processInvalidCallWithTransf {
     void operator()(CommonBinCodeWithTransf<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
+        std::stringstream buf;
+        buf << "binning with transformation (projection) does not support operational mode" << ctx.bin_par_ptr->binMode;
         mexErrMsgIdAndTxt("HORACE:bin_pixels_c:invalid_argument",
-            "binning with transformation (projection) does not support this operational mode\n");
+            buf.str().c_str());
     }
 };
 
@@ -85,8 +89,8 @@ auto makeBinTable() {
         span<double>&,
         span<double>&);
 
-    const static size_t n_modes = static_cast<size_t>(opModes::N_OP_Modes);
-    std::array<Fn, 2 * n_modes> t{};
+    constexpr size_t N_MODES = static_cast<size_t>(opModes::N_OP_Modes);
+    std::array<Fn, 2 * N_MODES> t{};
 
     t[static_cast<size_t>(opModes::npix_only)] = &invoke<processNpixOnly<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::invalid_mode)] = &invoke<processInvalidCall<SRC, TRG>, SRC, TRG>;
@@ -98,17 +102,17 @@ auto makeBinTable() {
     t[static_cast<size_t>(opModes::nosort_sel)] = &invoke<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::siger_selected)] = &invoke<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
     // OMP calculations
-    t[static_cast<size_t>(opModes::npix_only) + n_modes]  = &invoke<processNpixOnlyWithOMP<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::invalid_mode)+n_modes] = &invoke<processInvalidCall<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::sig_err) + n_modes]    = &invoke<processSigErrWithOMP<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::npix_only) + N_MODES]  = &invoke<processNpixOnlyWithOMP<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::invalid_mode)+N_MODES] = &invoke<processInvalidCall<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::sig_err) + N_MODES]    = &invoke<processSigErrWithOMP<SRC, TRG>, SRC, TRG>;
     //TODO: no omp for this yet
-    t[static_cast<size_t>(opModes::sigerr_cell) + n_modes] = &invoke<processSigerrCell<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::sigerr_cell) + N_MODES] = &invoke<processSigerrCell<SRC, TRG>, SRC, TRG>;
 
-    t[static_cast<size_t>(opModes::sort_pix) + n_modes] = &invoke<processWithSortingWithOMP<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::sort_and_uid) + n_modes] = &invoke<processWithSortingWithOMP<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::nosort) + n_modes] = &invoke<processWithNoSortingWithOMP<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::nosort_sel) + n_modes] = &invoke<processWithNoSortSelWithOMP<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::siger_selected) + n_modes] = &invoke<processWithNoSortSelWithOMP<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::sort_pix) + N_MODES] = &invoke<processWithSortingWithOMP<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::sort_and_uid) + N_MODES] = &invoke<processWithSortingWithOMP<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::nosort) + N_MODES] = &invoke<processWithNoSortingWithOMP<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::nosort_sel) + N_MODES] = &invoke<processWithNoSortSelWithOMP<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::siger_selected) + N_MODES] = &invoke<processWithNoSortSelWithOMP<SRC, TRG>, SRC, TRG>;
 
     return t;
 };
@@ -120,8 +124,8 @@ auto makeTransfAndBinTable() {
         span<double>&,
         span<double>&);
 
-    const static size_t n_modes = static_cast<size_t>(opModes::N_OP_Modes);
-    std::array<Fn, 2 * n_modes> t{};
+    constexpr size_t N_MODES = static_cast<size_t>(opModes::N_OP_Modes);
+    std::array<Fn, 2 * N_MODES> t{};
 
     t[static_cast<size_t>(opModes::npix_only)]    = &invoke_and_transf<processNpixOnly<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::invalid_mode)] = &invoke_and_transf<processInvalidCallWithTransf<SRC, TRG>, SRC, TRG>;
@@ -133,15 +137,15 @@ auto makeTransfAndBinTable() {
     t[static_cast<size_t>(opModes::nosort_sel)]   = &invoke_and_transf<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
     t[static_cast<size_t>(opModes::siger_selected)] = &invoke_and_transf<processWithNoSortSel<SRC, TRG>, SRC, TRG>;
     // OMP calculations
-    t[static_cast<size_t>(opModes::npix_only) + n_modes]    = &invoke_and_transf<processNpixOnlyWithOMP<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::invalid_mode) + n_modes] = &invoke_and_transf<processInvalidCallWithTransf<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::sig_err) + n_modes]      = &invoke_and_transf<processSigErrWithOMP<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::sigerr_cell) + n_modes]  = &invoke_and_transf<processInvalidCallWithTransf<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::sort_pix) + n_modes]     = &invoke_and_transf<processWithSortingWithOMP<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::sort_and_uid) + n_modes] = &invoke_and_transf<processWithSortingWithOMP<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::nosort) + n_modes]       = &invoke_and_transf<processWithNoSortingWithOMP<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::nosort_sel) + n_modes]   = &invoke_and_transf<processWithNoSortSelWithOMP<SRC, TRG>, SRC, TRG>;
-    t[static_cast<size_t>(opModes::siger_selected) + n_modes] = &invoke_and_transf<processWithNoSortSelWithOMP<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::npix_only) + N_MODES]    = &invoke_and_transf<processNpixOnlyWithOMP<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::invalid_mode) + N_MODES] = &invoke_and_transf<processInvalidCallWithTransf<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::sig_err) + N_MODES]      = &invoke_and_transf<processSigErrWithOMP<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::sigerr_cell) + N_MODES]  = &invoke_and_transf<processInvalidCallWithTransf<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::sort_pix) + N_MODES]     = &invoke_and_transf<processWithSortingWithOMP<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::sort_and_uid) + N_MODES] = &invoke_and_transf<processWithSortingWithOMP<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::nosort) + N_MODES]       = &invoke_and_transf<processWithNoSortingWithOMP<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::nosort_sel) + N_MODES]   = &invoke_and_transf<processWithNoSortSelWithOMP<SRC, TRG>, SRC, TRG>;
+    t[static_cast<size_t>(opModes::siger_selected) + N_MODES] = &invoke_and_transf<processWithNoSortSelWithOMP<SRC, TRG>, SRC, TRG>;
 
     return t;
 };
