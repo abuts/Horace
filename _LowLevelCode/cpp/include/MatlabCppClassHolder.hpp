@@ -52,7 +52,7 @@ mxArray* class_handle<T>::export_handler_toMatlab()
         mexLock();
     }
     // create MATLAB variable and store pointer to the instance
-    // of the target class in this variable 
+    // of the target class in this variable
     // to ensure that class remains valid and loaded in memory
     // during multiple transitions between C++ and MATLAB codes.
     //==================================================================================
@@ -78,7 +78,7 @@ mxArray* class_handle<T>::export_handler_toMatlab()
         The dereference *pData = ... writes that integer into the MATLAB array's memory.
 
     Essentially, you store the pointer value of the current C++ object as an integer inside a MATLAB variable.
-    MATLAB doesn't understand C++ objects directly, but you can pass the numeric representation of the pointer back 
+    MATLAB doesn't understand C++ objects directly, but you can pass the numeric representation of the pointer back
     to MATLAB and later recover it (with another MEX call that converts the integer back into a pointer).
     */
     return out;
