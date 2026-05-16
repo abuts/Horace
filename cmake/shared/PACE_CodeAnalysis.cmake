@@ -68,9 +68,15 @@ if (cppcheck)
   add_custom_target(analyse-cppcheck
     COMMENT "- Performing C++ analysis (CppCheck)..."
     BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/cppcheck.xml"
-    COMMAND cppcheck --enable=all --inconclusive --xml --xml-version=2
-                     -I "${CMAKE_SOURCE_DIR}/_LowLevelCode/cpp" "${CMAKE_SOURCE_DIR}/_LowLevelCode/"
-                     2> "${CMAKE_CURRENT_BINARY_DIR}/cppcheck.xml"
+    COMMAND cppcheck
+        --project=${CMAKE_BINARY_DIR}/compile_commands.json
+        --enable=warning,performance,portability
+        --inconclusive
+        --inline-suppr
+        --xml --xml-version=2
+        --suppress=missingIncludeSystem
+        "${CMAKE_SOURCE_DIR}/_LowLevelCode/"
+        2> "${CMAKE_CURRENT_BINARY_DIR}/cppcheck.xml"
     WORKING_DIRECTORY
     USES_TERMINAL
     )

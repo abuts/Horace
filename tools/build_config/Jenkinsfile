@@ -139,17 +139,18 @@ pipeline {
           }
           if (isUnix()) {
             sh '''
-              module load python/\$PYTHON_VERSION &&
-              export PATH=${PATH}:~/.local/bin &&
-              module load cmake/\$CMAKE_VERSION &&
-              module load matlab/\$MATLAB_MODULE &&
-              module load gcc/\$GCC_VERSION &&
-              module load cppcheck/\$CPPCHECK_VERSION &&
+              module load python/\$PYTHON_VERSION
+              export PATH="${PATH}:$HOME$/.local/bin"
+              module load cmake/\$CMAKE_VERSION
+              module load matlab/\$MATLAB_MODULE
+              module load gcc/\$GCC_VERSION
+              module load cppcheck/\$CPPCHECK_VERSION
               ./tools/build_config/build.sh \
-                --cmake_flags \"-DHorace_RELEASE_TYPE=\$RELEASE_TYPE\" \
-                --matlab_release \$MATLAB_VERSION \
+                --cmake_flags "-DHorace_RELEASE_TYPE=$RELEASE_TYPE -DCMAKE_EXPORT_COMPILE_COMMANDS=ON" \
+                --matlab_release $MATLAB_VERSION \
                 --print_versions \
                 --configure
+              ls -l build/compile_commands.json
               '''
           } else {
             powershell '''

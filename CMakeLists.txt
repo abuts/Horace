@@ -17,7 +17,8 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Set our options
 option(BUILD_TESTS "Build the C++ tests" OFF)
-
+# to control CPP check warnings and enhance analysis
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Set CMake policies
 if(POLICY CMP0074)
