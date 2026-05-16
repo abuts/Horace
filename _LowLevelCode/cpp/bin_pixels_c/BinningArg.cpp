@@ -482,9 +482,9 @@ void BinningArg::set_check_pix_selection(mxArray const* const pField)
 }
 //===================================================================================
 // return unique run-id(s) identified during calculations
-void BinningArg::return_unique_runid(mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name)
+void BinningArg::return_unique_runid(mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name)
 {
-    mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
+    mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
     mxArray* unique_runid_ptr(nullptr);
     if (this->unique_runID.size() == 0) {
         unique_runid_ptr = mxCreateNumericMatrix(0, 0, mxUINT32_CLASS, mxREAL);
@@ -503,34 +503,34 @@ void BinningArg::return_unique_runid(mxArray* pFieldName, mxArray* pFieldValue, 
         // sort data on unique_runid
         std::sort(unique_runid.begin(), unique_runid.end());
     }
-    mxSetCell(pFieldValue, fld_idx, unique_runid_ptr);
+    mxSetCell(value_ptr, fld_idx, unique_runid_ptr);
 };
 //
 // return number of pixels retained in binning
-const void BinningArg::return_npix_retained(mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name)
+const void BinningArg::return_npix_retained(mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name)
 {
-    mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
-    mxSetCell(pFieldValue, fld_idx, mxCreateDoubleScalar(this->n_pix_retained));
+    mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
+    mxSetCell(value_ptr, fld_idx, mxCreateDoubleScalar(this->n_pix_retained));
 };
 
 // return pixel data which belong to binning range if such data were calculated in appropriate mode requested
-void BinningArg::return_pix_range(mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name)
+void BinningArg::return_pix_range(mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name)
 {
     mxArray* pix_range;
-    mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
+    mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
     if (this->pix_data_range_ptr == nullptr) {
         pix_range = mxCreateDoubleMatrix(2, 0, mxREAL);
     }
     else {
         pix_range = this->pix_data_range_ptr;
     }
-    mxSetCell(pFieldValue, fld_idx, pix_range);
+    mxSetCell(value_ptr, fld_idx, pix_range);
     this->pix_data_range_ptr = nullptr;
 };
 // return pixel obtained after binning and may be sorting. Sets up empty matrix if algorithm have not been using pixels
-void BinningArg::return_pix_ok_data(mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name)
+void BinningArg::return_pix_ok_data(mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name)
 {
-    mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
+    mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
     mxArray* pix_ok(nullptr);
     if (this->pix_ok_ptr) {
         pix_ok = this->pix_ok_ptr;
@@ -538,13 +538,13 @@ void BinningArg::return_pix_ok_data(mxArray* pFieldName, mxArray* pFieldValue, i
     else {
         pix_ok = mxCreateDoubleMatrix(0, 0, mxREAL);
     }
-    mxSetCell(pFieldValue, fld_idx, pix_ok);
+    mxSetCell(value_ptr, fld_idx, pix_ok);
     this->pix_ok_ptr = nullptr;
 };
 // return array of pixels indices, which specify position of pixels within image cell
-void BinningArg::return_pix_img_idx(mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name)
+void BinningArg::return_pix_img_idx(mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name)
 {
-    mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
+    mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
     mxArray* pix_img_idx(nullptr);
     if (this->pix_img_idx_ptr) {
         pix_img_idx = this->pix_img_idx_ptr;
@@ -552,13 +552,13 @@ void BinningArg::return_pix_img_idx(mxArray* pFieldName, mxArray* pFieldValue, i
     else {
         pix_img_idx = mxCreateNumericMatrix(0, 0, mxINT64_CLASS, mxREAL);
     }
-    mxSetCell(pFieldValue, fld_idx, pix_img_idx);
+    mxSetCell(value_ptr, fld_idx, pix_img_idx);
     this->pix_img_idx_ptr = nullptr;
 };
 // return array of pixels indices, which specify position of pixels within image cell
-void BinningArg::return_is_pix_selected(mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name)
+void BinningArg::return_is_pix_selected(mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name)
 {
-    mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
+    mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
     mxArray* is_pix_selected(nullptr);
     if (this->is_pix_selected_ptr) {
         is_pix_selected = this->is_pix_selected_ptr;
@@ -566,7 +566,7 @@ void BinningArg::return_is_pix_selected(mxArray* pFieldName, mxArray* pFieldValu
     else {
         is_pix_selected = mxCreateLogicalMatrix(0, 0);
     }
-    mxSetCell(pFieldValue, fld_idx, is_pix_selected);
+    mxSetCell(value_ptr, fld_idx, is_pix_selected);
     this->is_pix_selected_ptr = nullptr;
 };
 
@@ -828,80 +828,80 @@ void BinningArg::parse_changed_bin_inputs(mxArray const* pAllParStruct)
 void BinningArg::return_test_inputs(mxArray* plhs[], int nlhs)
 {
     // define functions which would convert binning parameters into MATLAB data
-    this->OutParList["coord_in"] = [this](mxArray* pFieldName, mxArray* pFieldValue,
+    this->OutParList["coord_in"] = [this](mxArray* name_ptr, mxArray* value_ptr,
         int fld_idx, const std::string& field_name) {
-            mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
-            mxSetCell(pFieldValue, fld_idx, mxDuplicateArray(this->coord_ptr));
+            mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
+            mxSetCell(value_ptr, fld_idx, mxDuplicateArray(this->coord_ptr));
         };
 
-    this->OutParList["binning_mode"] = [this](mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name) {
+    this->OutParList["binning_mode"] = [this](mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name) {
         auto mode = double(this->binMode); //
-        mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
-        mxSetCell(pFieldValue, fld_idx, mxCreateDoubleScalar(mode));
+        mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
+        mxSetCell(value_ptr, fld_idx, mxCreateDoubleScalar(mode));
         };
     //
-    this->OutParList["num_threads"] = [this](mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name) {
+    this->OutParList["num_threads"] = [this](mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name) {
         auto n_threads = double(this->num_threads);
-        mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
-        mxSetCell(pFieldValue, fld_idx, mxCreateDoubleScalar(n_threads));
+        mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
+        mxSetCell(value_ptr, fld_idx, mxCreateDoubleScalar(n_threads));
         };
-    this->OutParList["data_range"] = [this](mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name) {
+    this->OutParList["data_range"] = [this](mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name) {
         std::vector<double>& range = this->data_range;
         auto pRange = mxCreateDoubleMatrix(2, 4, mxREAL);
         double* const pData = (double*)mxGetPr(pRange);
         for (auto i = 0; i < range.size(); i++) {
             pData[i] = range[i];
         }
-        mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
-        mxSetCell(pFieldValue, fld_idx, pRange);
+        mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
+        mxSetCell(value_ptr, fld_idx, pRange);
         };
-    this->OutParList["dimensions"] = [this](mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name) {
+    this->OutParList["dimensions"] = [this](mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name) {
         auto n_dims = double(this->n_dims);
-        mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
-        mxSetCell(pFieldValue, fld_idx, mxCreateDoubleScalar(n_dims));
+        mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
+        mxSetCell(value_ptr, fld_idx, mxCreateDoubleScalar(n_dims));
         };
-    this->OutParList["bins_all_dims"] = [this](mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name) {
+    this->OutParList["bins_all_dims"] = [this](mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name) {
         auto pNBins = mxCreateNumericMatrix(1, 4, mxUINT32_CLASS, mxREAL);
         auto pData = (uint32_t*)mxGetPr(pNBins);
         for (auto i = 0; i < this->nbins_all_dims.size(); i++) {
             pData[i] = (uint32_t)this->nbins_all_dims[i];
         }
-        mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
-        mxSetCell(pFieldValue, fld_idx, pNBins);
+        mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
+        mxSetCell(value_ptr, fld_idx, pNBins);
         };
-    this->OutParList["test_input_parsing"] = [this](mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name) {
+    this->OutParList["test_input_parsing"] = [this](mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name) {
         auto test_inputs = this->test_inputs;
-        mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
-        mxSetCell(pFieldValue, fld_idx, mxCreateLogicalScalar(test_inputs));
+        mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
+        mxSetCell(value_ptr, fld_idx, mxCreateLogicalScalar(test_inputs));
         };
-    this->OutParList["force_double"] = [this](mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name) {
+    this->OutParList["force_double"] = [this](mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name) {
         auto force_double = this->force_double;
-        mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
-        mxSetCell(pFieldValue, fld_idx, mxCreateLogicalScalar(force_double));
+        mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
+        mxSetCell(value_ptr, fld_idx, mxCreateLogicalScalar(force_double));
         };
-    this->OutParList["ignore_nan"] = [this](mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name) {
+    this->OutParList["ignore_nan"] = [this](mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name) {
         auto ignore_nan = this->ignore_nan;
-        mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
-        mxSetCell(pFieldValue, fld_idx, mxCreateLogicalScalar(ignore_nan));
+        mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
+        mxSetCell(value_ptr, fld_idx, mxCreateLogicalScalar(ignore_nan));
         };
-    this->OutParList["ignore_inf"] = [this](mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name) {
+    this->OutParList["ignore_inf"] = [this](mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name) {
         auto ignore_inf = this->ignore_inf;
-        mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
-        mxSetCell(pFieldValue, fld_idx, mxCreateLogicalScalar(ignore_inf));
+        mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
+        mxSetCell(value_ptr, fld_idx, mxCreateLogicalScalar(ignore_inf));
         };
 
-    this->OutParList["pix_candidates"] = [this](mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name) {
+    this->OutParList["pix_candidates"] = [this](mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name) {
         auto all_pix_ptr = this->all_pix_ptr;
-        mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
-        mxSetCell(pFieldValue, fld_idx, mxDuplicateArray(all_pix_ptr));
+        mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
+        mxSetCell(value_ptr, fld_idx, mxDuplicateArray(all_pix_ptr));
         };
-    this->OutParList["check_pix_selection"] = [this](mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name) {
+    this->OutParList["check_pix_selection"] = [this](mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name) {
         auto check_selection = this->check_pix_selection;
-        mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
-        mxSetCell(pFieldValue, fld_idx, mxCreateLogicalScalar(check_selection));
+        mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
+        mxSetCell(value_ptr, fld_idx, mxCreateLogicalScalar(check_selection));
         };
-    this->OutParList["alignment_matr"] = [this](mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name) {
-        mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
+    this->OutParList["alignment_matr"] = [this](mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name) {
+        mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
         mxArray* al_matr(nullptr);
         if (this->alignment_matrix.size() == 0) {
             al_matr = mxCreateDoubleMatrix(0, 0, mxREAL);
@@ -913,11 +913,11 @@ void BinningArg::return_test_inputs(mxArray* plhs[], int nlhs)
                 dataPtr[i] = this->alignment_matrix[i];
             }
         }
-        mxSetCell(pFieldValue, fld_idx, al_matr);
+        mxSetCell(value_ptr, fld_idx, al_matr);
         };
 
-    this->OutParList["q_to_img"] = [this](mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name) {
-        mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
+    this->OutParList["q_to_img"] = [this](mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name) {
+        mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
         mxArray* tr_matr(nullptr);
         if (this->transf_matrix.size() == 0) {
             tr_matr = mxCreateDoubleMatrix(0, 0, mxREAL);
@@ -939,11 +939,11 @@ void BinningArg::return_test_inputs(mxArray* plhs[], int nlhs)
                 }
             }
         }
-        mxSetCell(pFieldValue, fld_idx, tr_matr);
+        mxSetCell(value_ptr, fld_idx, tr_matr);
         };
 
-    this->OutParList["u_offset"] = [this](mxArray* pFieldName, mxArray* pFieldValue, int fld_idx, const std::string& field_name) {
-        mxSetCell(pFieldName, fld_idx, mxCreateString(field_name.c_str()));
+    this->OutParList["u_offset"] = [this](mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name) {
+        mxSetCell(name_ptr, fld_idx, mxCreateString(field_name.c_str()));
         mxArray* pu_offset(nullptr);
         if (this->u_offset.size() == 0) {
             pu_offset = mxCreateDoubleMatrix(0, 0, mxREAL);
@@ -956,7 +956,7 @@ void BinningArg::return_test_inputs(mxArray* plhs[], int nlhs)
                 dataPtr[i] = this->u_offset[i];
             }
         }
-        mxSetCell(pFieldValue, fld_idx, pu_offset);
+        mxSetCell(value_ptr, fld_idx, pu_offset);
         };
 
     this->OutParList["npix_retained"] = [this](mxArray* p1, mxArray* p2, int idx, const std::string& name) { this->return_npix_retained(p1, p2, idx, name); };
@@ -971,16 +971,16 @@ void BinningArg::return_test_inputs(mxArray* plhs[], int nlhs)
     /* ********************************************************************************
      * retrieve binning parameters form BinningArg class and copy them into output array
      ** ********************************************************************************/
-    mxArray* pFieldNames(nullptr);
-    mxArray* pFieldValues(nullptr);
+    mxArray* name_ptrs(nullptr);
+    mxArray* value_ptrs(nullptr);
 
     auto number_of_fields = this->OutParList.size();
     if (this->binMode == opModes::npix_only) {
         if (nlhs == out_arg_mode0::N_OUT_Arguments0) {
             plhs[out_arg_mode0::out_par_names0] = mxCreateCellMatrix(1, mwSize(number_of_fields));
             plhs[out_arg_mode0::out_par_values0] = mxCreateCellMatrix(1, mwSize(number_of_fields));
-            pFieldNames = plhs[out_arg_mode0::out_par_names0];
-            pFieldValues = plhs[out_arg_mode0::out_par_values0];
+            name_ptrs = plhs[out_arg_mode0::out_par_names0];
+            value_ptrs = plhs[out_arg_mode0::out_par_values0];
         }
         else {
             return;
@@ -989,15 +989,15 @@ void BinningArg::return_test_inputs(mxArray* plhs[], int nlhs)
     else {
         plhs[out_arg::out_par_names] = mxCreateCellMatrix(1, mwSize(number_of_fields));
         plhs[out_arg::out_par_values] = mxCreateCellMatrix(1, mwSize(number_of_fields));
-        pFieldNames = plhs[out_arg::out_par_names];
-        pFieldValues = plhs[out_arg::out_par_values];
+        name_ptrs = plhs[out_arg::out_par_names];
+        value_ptrs = plhs[out_arg::out_par_values];
     }
     //
     int fld_idx(0);
     for (auto iter = this->OutParList.begin(); iter != this->OutParList.end(); iter++) {
         // call appropriate field-processing function and set up appropriate MATLAB values
         // from the values of the BinningArg fields
-        iter->second(pFieldNames, pFieldValues, fld_idx, iter->first);
+        iter->second(name_ptrs, value_ptrs, fld_idx, iter->first);
         fld_idx++;
     }
 };
@@ -1008,8 +1008,8 @@ void BinningArg::return_results(mxArray* plhs[], mwSize nlhs)
     mwSize number_of_fields(0);
     auto out_func_map = this->out_handlers[opModes::npix_only];
 
-    mxArray* pFieldNames(nullptr);
-    mxArray* pFieldValues(nullptr);
+    mxArray* name_ptrs(nullptr);
+    mxArray* value_ptrs(nullptr);
 
     if (this->binMode == opModes::npix_only) {
         if (nlhs < static_cast<mwSize>(out_arg_mode0::N_OUT_Arguments0) - 2) {
@@ -1018,8 +1018,8 @@ void BinningArg::return_results(mxArray* plhs[], mwSize nlhs)
         number_of_fields = out_func_map->size();
         plhs[out_arg_mode0::out_par_names0] = mxCreateCellMatrix(1, number_of_fields);
         plhs[out_arg_mode0::out_par_values0] = mxCreateCellMatrix(1, number_of_fields);
-        pFieldNames = plhs[out_arg_mode0::out_par_names0];
-        pFieldValues = plhs[out_arg_mode0::out_par_values0];
+        name_ptrs = plhs[out_arg_mode0::out_par_names0];
+        value_ptrs = plhs[out_arg_mode0::out_par_values0];
     }
     else {
         if (nlhs < static_cast<mwSize>(out_arg::N_OUT_Arguments) - 2) {
@@ -1031,15 +1031,15 @@ void BinningArg::return_results(mxArray* plhs[], mwSize nlhs)
         number_of_fields = out_func_map->size();
         plhs[out_arg::out_par_names] = mxCreateCellMatrix(1, number_of_fields);
         plhs[out_arg::out_par_values] = mxCreateCellMatrix(1, number_of_fields);
-        pFieldNames = plhs[out_arg::out_par_names];
-        pFieldValues = plhs[out_arg::out_par_values];
+        name_ptrs = plhs[out_arg::out_par_names];
+        value_ptrs = plhs[out_arg::out_par_values];
     }
 
     int fld_idx(0);
     for (auto iter = out_func_map->begin(); iter != out_func_map->end(); iter++) {
         // call appropriate field-processing function and set up appropriate MATLAB values
         // from the values of the BinningArg fields
-        iter->second(pFieldNames, pFieldValues, fld_idx, iter->first);
+        iter->second(name_ptrs, value_ptrs, fld_idx, iter->first);
         fld_idx++;
     }
 };

@@ -60,7 +60,7 @@ enum opModes {
 };
 
 // define the map type to keep functions which set up output parameters in a structure, specific for given binning mode;
-using OutHandlerMap = std::unordered_map<std::string, std::function<void(mxArray* p1, mxArray* p2, int idx, const std::string& name)>>;
+using OutHandlerMap = std::unordered_map<std::string, std::function<void(mxArray* value_ptr, mxArray* value_ptr, int idx, const std::string& name)>>;
 
 /* class describes all parameters used by binning procedure
  * use Matlab pointers for all transient array, which may change from call to call to mex function
@@ -178,17 +178,17 @@ protected:
     // register with parameters map all methods which return variable results to MATLAB
     void register_output_methods();
     // setters for binning results returned to MATLAB in output structure
-    const void return_npix_retained(mxArray* p1, mxArray* p2, int idx, const std::string& name);
+    const void return_npix_retained(mxArray* name_ptr, mxArray* value_ptr, int idx, const std::string& name);
     // setter for result of calculating pixels data range
-    void return_pix_range(mxArray* p1, mxArray* p2, int idx, const std::string& name);
+    void return_pix_range(mxArray* name_ptr, mxArray* value_ptr, int idx, const std::string& name);
     // setter for possible pixels
-    void return_pix_ok_data(mxArray* p1, mxArray* p2, int idx, const std::string& name);
+    void return_pix_ok_data(mxArray* name_ptr, mxArray* value_ptr, int idx, const std::string& name);
     // setter to return unique run_id,.calculated in the call
-    void return_unique_runid(mxArray* p1, mxArray* p2, int idx, const std::string& name);
+    void return_unique_runid(mxArray* name_ptr, mxArray* value_ptr, int idx, const std::string& name);
     // setter to return pixels indices within the image cell
-    void return_pix_img_idx(mxArray* p1, mxArray* p2, int fld_idx, const std::string& name);
+    void return_pix_img_idx(mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& name);
     // setter to return array containing true for selected pixels and false if they have not been selected
-    void return_is_pix_selected(mxArray* p1, mxArray* p2, int fld_idx, const std::string& name);
+    void return_is_pix_selected(mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& name);
     //
 public:
     BinningArg(); // construction
@@ -216,7 +216,7 @@ private:
     // map to keep list of function to process input values from MATLAB structure
     std::unordered_map<std::string, std::function<void(mxArray const* const)>> BinParInfo;
     // map to keep list of functions to process output values in case of testing parameters parsing
-    std::unordered_map<std::string, std::function<void(mxArray* p1, mxArray* p2, int idx, const std::string& name)>> OutParList;
+    std::unordered_map<std::string, std::function<void(mxArray* name_ptr, mxArray* value_ptr, int idx, const std::string& name)>> OutParList;
     // holder for actual array dimensions to allocate
     std::vector<mwSize> accumulator_dims_holder;
     // helper function to calculate binning sizes in all non-unit directions
