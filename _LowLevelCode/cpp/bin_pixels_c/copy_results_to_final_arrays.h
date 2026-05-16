@@ -80,8 +80,8 @@ void inline copy_results_to_final_arrays_dyn(BinningArg* const bin_par_ptr, span
 
     // actually move pixels and copy indices to the target array
     size_t targ_pix_pos(0);
-    size_t targ_pix_array_pos(0);
-    for (idx_accum & sel_idx : pix_contribuion) {
+    size_t targ_pix_array_pos;
+    for (const idx_accum & sel_idx : pix_contribuion) {
 
         pix_img_idx[targ_pix_pos] = sel_idx.img_idx + 1; // MATLB indices start from 1 and these -- from 0
 
@@ -137,7 +137,7 @@ void inline copy_results_to_final_arraysWithOMP(int n_thread,
 
     // actually move pixels and copy indices to the target array
     size_t targ_pix_pos(npix_thread_contibution_start[n_thread]);
-    size_t targ_pix_array_pos(0);
+    size_t targ_pix_array_pos;
     for (size_t i = 0; i < tls_indices[n_thread].size();++i) {
         const idx_accum &info = tls_indices[n_thread][i];
         // number of image cell pixel should go to

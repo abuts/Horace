@@ -112,7 +112,7 @@ public:
     };
 
     // Constructor which defines all binning parameters
-    CommonBinCode(BinningArg* const bin_par_ptr) :
+    explicit CommonBinCode(BinningArg* const bin_par_ptr) :
         bin_par_ptr(bin_par_ptr),
         distribution_size(bin_par_ptr->n_grid_points()),
         COORD_STRIDE(bin_par_ptr->in_coord_width),
@@ -160,16 +160,16 @@ public:
     const bool ignore_inf;
     bool ignore_something;
     bool ignore_all;
-    CommonBinCodeWithTransf(BinningArg* const bin_par_ptr) :
+    explicit CommonBinCodeWithTransf(BinningArg* const bin_par_ptr) :
         CommonBinCode<SRC, TRG>(bin_par_ptr),
+        transf_matrix(bin_par_ptr->transf_matrix),
         diag_transf(bin_par_ptr->diag_transf),
         apply_offset(bin_par_ptr->apply_offset),
+        u_offset(bin_par_ptr->u_offset),
         transf_matrix_width(bin_par_ptr->transf_matrix_width),
         ignore_nan(bin_par_ptr->ignore_nan),
         ignore_inf(bin_par_ptr->ignore_inf)
     {
-        transf_matrix = span<double>(bin_par_ptr->transf_matrix);
-        u_offset = span<double>(bin_par_ptr->u_offset);
         ignore_something = ignore_nan || ignore_inf;
         ignore_all = ignore_nan && ignore_inf;
     }
@@ -207,7 +207,7 @@ public:
                 q_shifted[upixn] = (double)this->pix_coord[ic0 + upixn];
             }
         }
-        double accum(0);
+        double accum;
         auto trmw = this->transf_matrix_width;
         for (size_t upixn = 0; upixn < this->COORD_STRIDE; upixn++) {
             if (upixn < trmw) {
@@ -235,7 +235,7 @@ public:
 
 };
 
-int set_omp_scheduling(BinningArg const * const bin_arg_ptr) {
+int set_omp_scheduling(BinningArg const* const bin_arg_ptr) {
     int selected_stride = bin_arg_ptr->dynamic_omp_stride;
 #ifdef omp3_available
     if (selected_stride > 0) {
@@ -255,7 +255,7 @@ int set_omp_scheduling(BinningArg const * const bin_arg_ptr) {
 *  in a way, convenient for multiple threads to copy these pixels into resulting array.
 */
 void  balance_copying_load(size_t num_pixels, std::vector<std::vector<idx_accum> >& tls_contribution,
-    std::vector<std::vector<idx_accum> > & balanced_idx, std::vector<size_t >& thread_contribution_res_start) {
+    std::vector<std::vector<idx_accum> >& balanced_idx, std::vector<size_t >& thread_contribution_res_start) {
 
     size_t num_OMP_threads = tls_contribution.size();
     balanced_idx.resize(num_OMP_threads);
@@ -277,10 +277,10 @@ void  balance_copying_load(size_t num_pixels, std::vector<std::vector<idx_accum>
         size_t target = block_size + (t < reminder ? 1 : 0);
         balanced_idx[t].reserve(target);
     }
-    
+
     size_t thr_idx = 0;
     for (auto& src_vec : tls_contribution) {
-        for (auto &elem :src_vec) {
+        for (auto& elem : src_vec) {
             while (balanced_idx[thr_idx].size() ==
                 balanced_idx[thr_idx].capacity())
             {
