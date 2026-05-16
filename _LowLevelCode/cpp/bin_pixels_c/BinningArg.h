@@ -60,7 +60,7 @@ enum opModes {
 };
 
 // define the map type to keep functions which set up output parameters in a structure, specific for given binning mode;
-using OutHandlerMap = std::unordered_map<std::string, std::function<void(mxArray* value_ptr, mxArray* value_ptr, int idx, const std::string& name)>>;
+using OutHandlerMap = std::unordered_map<std::string, std::function<void(mxArray* name_ptr, mxArray* value_ptr, int idx, const std::string& name)>>;
 
 /* class describes all parameters used by binning procedure
  * use Matlab pointers for all transient array, which may change from call to call to mex function
