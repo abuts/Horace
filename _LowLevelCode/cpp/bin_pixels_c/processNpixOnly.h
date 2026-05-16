@@ -34,16 +34,15 @@ struct processNpixOnlyWithOMP {
 #pragma omp parallel     \
         firstprivate(qu)
         {
+#ifdef DISABLE_DYNAMIC_SCHEDULER
+#pragma omp for schedule(static,chunk_size) reduction(+:num_pix)
+#else
 #ifdef omp3_available
 #pragma omp for schedule(runtime) reduction(+:num_pix)
-#else
-#ifdef DISABLE_DYNAMIC_SCHEDULER
-#pragma omp for schedule(static) reduction(+:num_pix)
 #else
 #pragma omp for schedule(dynamic,chunk_size) reduction(+:num_pix)
 #endif
 #endif
-
             for (long i = 0; i < ctx.data_size; i++) {
                 // drop out coordinates outside of the binning range
                 if (ctx.out_of_ranges(i, qu))

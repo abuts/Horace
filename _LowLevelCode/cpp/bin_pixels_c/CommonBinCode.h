@@ -248,7 +248,6 @@ int set_omp_scheduling(BinningArg const * const bin_arg_ptr) {
 #else
     if (selected_stride < 0)
         selected_stride = 0;
-
 #endif
     return selected_stride;
 };
