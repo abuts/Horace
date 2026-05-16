@@ -303,7 +303,7 @@ void BinningArg::set_nbins_all_dims(mxArray const* const pField)
         mexErrMsgIdAndTxt("HORACE:bin_pixels_c:invalid_argument",
             buf.str().c_str());
     }
-    auto pData = (uint32_t*)mxGetPr(pField);
+    auto pData = reinterpret_cast<uint32_t*>(mxGetPr(pField));
     this->nbins_all_dims.assign(pData, pData + bins_length);
 };
 // holder for the information about unique run_id-s present in the data. Set procedure is non-standard
@@ -848,7 +848,7 @@ void BinningArg::return_test_inputs(mxArray* plhs[], int nlhs)
     this->OutParList["data_range"] = [this](mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name) {
         std::vector<double>& range = this->data_range;
         auto pRange = mxCreateDoubleMatrix(2, 4, mxREAL);
-        double* const pData = (double*)mxGetPr(pRange);
+        double* const pData = mxGetPr(pRange);
         for (auto i = 0; i < range.size(); i++) {
             pData[i] = range[i];
         }
@@ -862,7 +862,7 @@ void BinningArg::return_test_inputs(mxArray* plhs[], int nlhs)
         };
     this->OutParList["bins_all_dims"] = [this](mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& field_name) {
         auto pNBins = mxCreateNumericMatrix(1, 4, mxUINT32_CLASS, mxREAL);
-        auto pData = (uint32_t*)mxGetPr(pNBins);
+        auto pData = reinterpret_cast<uint32_t*>(mxGetPr(pNBins));
         for (auto i = 0; i < this->nbins_all_dims.size(); i++) {
             pData[i] = (uint32_t)this->nbins_all_dims[i];
         }
