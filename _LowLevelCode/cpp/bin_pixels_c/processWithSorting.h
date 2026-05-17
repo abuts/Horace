@@ -1,5 +1,6 @@
 #pragma once
 #include <include/CommonCode.h>
+#include "copy_results_to_final_arrays.h"
 
 template<class SRC, class TRG>
 struct processWithSorting {
