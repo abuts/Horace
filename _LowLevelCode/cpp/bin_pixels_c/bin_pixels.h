@@ -85,7 +85,8 @@ auto makeBinTable() {
         span<double>&);
 
     constexpr size_t N_MODES = static_cast<size_t>(opModes::N_OP_Modes);
-    std::array<Fn, 2 * N_MODES> t{};
+    constexpr size_t ALL_MODES = 2 * N_MODES; // should satisfy cppcheck which does not recognize
+    std::array<Fn, ALL_MODES > t{}; // this constant expression
 
     t[static_cast<size_t>(opModes::npix_only)] = &invoke<processNpixOnly<SRC, TRG>, CTX>;
     t[static_cast<size_t>(opModes::invalid_mode)] = &invoke<processInvalidCall<SRC, TRG>, CTX>;

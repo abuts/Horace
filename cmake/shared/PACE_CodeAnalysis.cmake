@@ -75,7 +75,6 @@ if (cppcheck)
         --inline-suppr
         --xml --xml-version=2
         --suppress=missingIncludeSystem
-        "${CMAKE_SOURCE_DIR}/_LowLevelCode/"
         2> "${CMAKE_CURRENT_BINARY_DIR}/cppcheck.xml"
     WORKING_DIRECTORY
     USES_TERMINAL
