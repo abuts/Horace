@@ -44,7 +44,7 @@ InputOutputTypes process_types(bool float_pix, InputIndexesType index_type, bool
 template<class ST, class N, class TG>
 void sort_pixels_by_bins( TG * const pPixelSorted, size_t nPixelsSorted, double *const pPixRange,
     std::vector<const void *> &PixelData, std::vector<size_t> &NPixels,
-    std::vector<const void *> &PixelIndexes, std::vector<size_t> NIndexes,
+    std::vector<const void *> &PixelIndexes, const std::vector<size_t> &NIndexes,
     double const *const pCellDens, size_t distribution_size,
     size_t *const ppInd) {
 

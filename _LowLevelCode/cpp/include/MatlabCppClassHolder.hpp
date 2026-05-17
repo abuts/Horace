@@ -23,6 +23,28 @@ public:
     class_handle(uint32_t CLASS_SIGNATURE) : _signature(CLASS_SIGNATURE), _name(typeid(T).name()), class_ptr(new T()),
         num_locks(0) {
     }
+    // forbud copy contstructor
+    class_handle(const class_handle&) = delete;
+    class_handle& operator=(const class_handle&) = delete;
+
+    //Allow move
+    class_handle(class_handle&& other) noexcept
+        : _signature(other._signature),
+        _name(std::move(other._name)),
+        class_ptr(other.class_ptr),
+        num_locks(other.num_locks)
+    {
+        other.class_ptr = nullptr;
+    }
+
+    class_handle& operator=(class_handle&& other) noexcept {
+        if (this != &other) {
+            delete class_ptr;
+            class_ptr = other.class_ptr;
+            other.class_ptr = nullptr;
+        }
+        return *this;
+    }
 
     ~class_handle() {
         clear_mex_locks();
