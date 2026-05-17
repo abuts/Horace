@@ -75,7 +75,6 @@ void invoke(CTX& ctx, span<double>& npix, span<double>& s, span<double>& e) {
     Cmd{}(ctx, npix, s, e);
 }
 
-
 // Define function table which contains various binning sub-algorithms
 template<typename CTX, typename SRC, typename TRG>
 auto makeBinTable() {

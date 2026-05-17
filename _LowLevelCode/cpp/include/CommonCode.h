@@ -120,7 +120,7 @@ void inline calc_pix_ranges(span<double>& pix_ranges, span<const SRC> &pix_data,
         pix_ranges[2 * j + 1] = std::max(pix_ranges[2 * j + 1], (double)pix_data[ip0 + j]);
     }
 };
-// merge together all partial ranges, calculated by threads
+// merge together all partial pixel ranges, calculated by threads
 void inline merge_tls_ranges(std::vector<std::vector<double>> &tls_ranges,span<double>& pix_ranges,size_t n_threads, size_t PIX_STRIDE)
 {
     for (int i = 0; i < n_threads; i++) {
@@ -131,30 +131,38 @@ void inline merge_tls_ranges(std::vector<std::vector<double>> &tls_ranges,span<d
     }
 };
 
-// allocate pixels memory to keep with MATLAB and use in C++ code
+/* allocate pixels memory to keep with MATLAB and use in C++ code
+* Parameters:
+* PIX_WIDTH    -- number of elements in a pixel. Usually constant
+* n_pixels     -- number of pixels to allocate memory for.
+* mem_wrap     -- span container, wrapping raw pointer to MATLAB array
+*                 with pixels memory
+* Returns:
+* Pointer to MATLAB array with appropriate type of memory.
+*/
 template<class TRG> 
-mxArray* allocate_pix_memory(size_t PIX_WIDTH, size_t N_ELEMENTS, span<TRG>& mem_wrap)
+mxArray* allocate_pix_memory(size_t PIX_WIDTH, size_t n_pixels, span<TRG>& mem_wrap)
 { 
     mxArray* mxData_ptr(nullptr);
     TRG* data_ptr(nullptr);
     std::string mem_name;
     if constexpr (std::is_same_v<TRG, double>) {
-        mxData_ptr = mxCreateDoubleMatrix(PIX_WIDTH, N_ELEMENTS, mxREAL);
+        mxData_ptr = mxCreateDoubleMatrix(PIX_WIDTH, n_pixels, mxREAL);
         if (mxData_ptr)
             data_ptr = mxGetPr(mxData_ptr);
         mem_name = "resulting binned pixels of type 'double'";
     } else if constexpr (std::is_same_v<TRG, float>) {
-        mxData_ptr = mxCreateNumericMatrix(PIX_WIDTH, N_ELEMENTS, mxSINGLE_CLASS, mxREAL);
+        mxData_ptr = mxCreateNumericMatrix(PIX_WIDTH, n_pixels, mxSINGLE_CLASS, mxREAL);
         if (mxData_ptr)
             data_ptr = reinterpret_cast<float*>(mxGetPr(mxData_ptr));
         mem_name = "resulting binned pixels of type 'signle'";
     } else if constexpr (std::is_same_v<TRG, mxInt64>) {
-        mxData_ptr = mxCreateNumericMatrix(PIX_WIDTH, N_ELEMENTS, mxINT64_CLASS, mxREAL);
+        mxData_ptr = mxCreateNumericMatrix(PIX_WIDTH, n_pixels, mxINT64_CLASS, mxREAL);
         if (mxData_ptr)
             data_ptr = reinterpret_cast<mxInt64 *>(mxGetPr(mxData_ptr));
         mem_name = "resulting array of indices of type 'UINT64'";
     } else if constexpr(std::is_same_v<TRG, mxLogical>) {
-        mxData_ptr = mxCreateLogicalMatrix(PIX_WIDTH, N_ELEMENTS);
+        mxData_ptr = mxCreateLogicalMatrix(PIX_WIDTH, n_pixels);
         if (mxData_ptr)
             data_ptr = mxGetLogicals(mxData_ptr);
         mem_name = "resulting array of logical indices";
@@ -164,11 +172,11 @@ mxArray* allocate_pix_memory(size_t PIX_WIDTH, size_t N_ELEMENTS, span<TRG>& mem
     }
     if (mxData_ptr == nullptr) {
         std::stringstream buf;
-        buf << "Can not allocate memory for: " << N_ELEMENTS << mem_name;
+        buf << "Can not allocate memory for: " << n_pixels << mem_name;
         mexErrMsgIdAndTxt("HORACE:bin_pixels_c:runtime_error",
             buf.str().c_str());
     }
-    mem_wrap = span<TRG>(data_ptr, PIX_WIDTH * N_ELEMENTS);
+    mem_wrap = span<TRG>(data_ptr, PIX_WIDTH * n_pixels);
     return mxData_ptr;
 };
 

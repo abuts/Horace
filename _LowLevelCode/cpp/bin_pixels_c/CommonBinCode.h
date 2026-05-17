@@ -7,8 +7,8 @@
 template<class SRC, class TRG>
 class CommonBinCode {
 public:
-    BinningArg* const bin_par_ptr;
-    const size_t distribution_size;
+    BinningArg* const bin_par_ptr; // pointer to class containing input/output parameters used by all binning modes
+    const size_t distribution_size; //linear size of N-Dimensional image
 
     const size_t COORD_STRIDE;  // size of coordinates dimension (4 or 3 accoring to input coordinates)
     const size_t PIX_STRIDE;    // size of pixel data dimension (9 according to input coordinates)
@@ -28,8 +28,9 @@ public:
 
     // initialize space for calculating pixel data ranges if necessary
     span<double> pix_ranges;    // actual range of binned pixels 
-    bool check_pix_selection;   //
-    long data_size;
+    bool check_pix_selection;   // if true, check if pixel has been selected by previous
+    //                            binning operations and ignore it if it was
+    long data_size;             //the same as number of input pixels to bin/distribute
 
     // check if the coordinates of pixel number i belong within the pixel ranges provided.
     virtual bool out_of_ranges(long i, std::vector<double>& qi)
@@ -96,7 +97,7 @@ public:
         return il;
     };
     // calculate pixel contribution into image presented in the form of special 
-    // structure (sub-image).
+    // structure (sub-image calculated by single OMP thread).
     size_t add_pix_to_tls_accum(const std::vector<double>& qu, size_t pix_in_pix_pos,
         std::vector<bin_accum>& acc)
     {
@@ -147,7 +148,9 @@ public:
     };
     virtual ~CommonBinCode() = default;
 };
-
+// child of CommonBinCode different by out_of_ranges procedure. The procedute calculates
+// coordinates of pixels after transformation (defined by linear projection) and 
+// check if these coordinates come within the ranges.
 template<class SRC, class TRG>
 class CommonBinCodeWithTransf : public CommonBinCode<SRC, TRG> {
 public:
