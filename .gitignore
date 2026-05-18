@@ -4,7 +4,7 @@
 .idea/*
 
 ### Files/Directories ###
-build/*
+build/
 build_2019/*
 # CMake generated file
 _LowLevelCode/cpp/utility/version.h
