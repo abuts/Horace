@@ -41,15 +41,15 @@ enum InputIndexesType {
 InputOutputTypes process_types(bool float_pix, InputIndexesType index_type, bool double_out);
 
 //
-template<class ST, class N, class TG>
-void sort_pixels_by_bins( TG * const pPixelSorted, size_t nPixelsSorted, double *const pPixRange,
+template<class SRC, class N, class TRG>
+void sort_pixels_by_bins( TRG * const pPixelSorted, size_t nPixelsSorted, double *const pPixRange,
     std::vector<const void *> &PixelData, std::vector<size_t> &NPixels,
     std::vector<const void *> &PixelIndexes, const std::vector<size_t> &NIndexes,
     double const *const pCellDens, size_t distribution_size,
     size_t *const ppInd) {
 
     const size_t PIX_STRIDE = static_cast<size_t>(pix_flds::PIX_WIDTH);
-    span<TG> pixel_sorted(pPixelSorted, nPixelsSorted* PIX_STRIDE);
+    span<TRG> pixel_sorted(pPixelSorted, nPixelsSorted* PIX_STRIDE);
 
     ppInd[0] = 0;
     for (size_t i = 1; i < distribution_size; i++) {   // calculate the ranges of the cell arrays
@@ -75,9 +75,9 @@ void sort_pixels_by_bins( TG * const pPixelSorted, size_t nPixelsSorted, double 
         const N* pCellInd = reinterpret_cast<const N*>(PixelIndexes[nblock]);
         if (pCellInd == nullptr)continue;
 
-        auto pPixData= reinterpret_cast<const ST *>(PixelData[nblock]);
+        auto pPixData= reinterpret_cast<const SRC *>(PixelData[nblock]);
         if (pPixData == nullptr)continue;
-        auto pix_data = span<const ST>(pPixData, NPixels[nblock]);
+        auto pix_data = span<const SRC>(pPixData, NPixels[nblock]);
 
         // sort pixels according to cells
         for (size_t j = 0; j < nBlockInd ; j++) {
@@ -86,11 +86,9 @@ void sort_pixels_by_bins( TG * const pPixelSorted, size_t nPixelsSorted, double 
 
             if (calc_pix_range) {
                 size_t pixpos = PIX_STRIDE*j;
-                calc_pix_ranges<ST>(pix_range, pix_data,pixpos,PIX_STRIDE);
+                calc_pix_ranges<SRC>(pix_range, pix_data,pixpos,PIX_STRIDE);
             }
-            copy_pixels<ST, TG>(pix_data, j, pixel_sorted, cell_pix_ind); // copy all pixel data into the location requested
+            copy_pixels<SRC, TRG>(pix_data, j, pixel_sorted, cell_pix_ind); // copy all pixel data into the location requested
         }
     }
-
-
 }
