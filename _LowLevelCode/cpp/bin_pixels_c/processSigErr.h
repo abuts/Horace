@@ -1,5 +1,6 @@
 #pragma once
 #include <include/CommonCode.h>
+// calculate npix, signal and error image-contribution from various types of pixel data
 template<class SRC, class TRG>
 struct processSigErr {
     void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {
@@ -19,6 +20,7 @@ struct processSigErr {
         }
     }
 };
+
 template<class SRC, class TRG>
 struct processSigErrWithOMP {
     void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {

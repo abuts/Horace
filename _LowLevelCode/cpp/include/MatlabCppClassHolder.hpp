@@ -41,7 +41,12 @@ public:
         if (this != &other) {
             delete class_ptr;
             class_ptr = other.class_ptr;
+            _signature = other._signature;
+            num_locks = other.num_locks;
+
             other.class_ptr = nullptr;
+            other._signature = 0;
+            other.num_locks = 0;
         }
         return *this;
     }
