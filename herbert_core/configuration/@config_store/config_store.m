@@ -479,7 +479,7 @@ classdef config_store < handle
                 % various Horace version(s)
                 ver = herbert_version('-num');
                 if ver >= 400
-                    ver_string = '_v4';
+                    ver_string = ['_v',num2str(ver)];
                 else
                     ver_string = '';
                 end
