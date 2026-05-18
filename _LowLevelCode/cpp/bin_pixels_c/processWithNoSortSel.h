@@ -1,7 +1,10 @@
 #pragma once
 #include <include/CommonCode.h>
 #include "copy_results_to_final_arrays.h"
-
+/*Calculate npix, signal and error image-contribution from various types of pixel data.
+* In addition to that, return array of pixels contributed to image and array of the
+* indices describing these pixels positions in the image plus logical array
+* indicating if the pixel is contributing to image or not. */
 template<class SRC, class TRG>
 struct processWithNoSortSel {
 

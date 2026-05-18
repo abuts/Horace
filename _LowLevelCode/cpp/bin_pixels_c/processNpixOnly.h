@@ -1,5 +1,6 @@
 #pragma once
 #include <include/CommonCode.h>
+// calculate npix image-contribution from various types of pixel data
 template<class SRC, class TRG>
 struct processNpixOnly {
     void operator()(CommonBinCode<SRC, TRG>& ctx, span<double>& npix, span<double>& s, span<double>& e) const {

@@ -1,7 +1,10 @@
 #pragma once
 #include <include/CommonCode.h>
 #include "copy_results_to_final_arrays.h"
-
+/*calculate npix, signal and error image - contribution from various types of pixel data.
+* In addition to that, return array of pixels contributed to image and array of the
+* indices describing these pixels positions in the image.
+*/
 template<class SRC, class TRG>
 struct processWithNoSorting {
 
@@ -9,9 +12,10 @@ struct processWithNoSorting {
         // access working bufer persistent between calls to this function:
         const auto bin_par_ptr = ctx.bin_par_ptr;
 
+        // pixel contribution cache
         std::vector<idx_accum> pix_contribution;
         pix_contribution.reserve(ctx.data_size);
-        // pixel rejection cache
+        // pixel rejection cache. Old style algorithm
         //span<mxInt64> pix_ok_bin_idx;
         //bin_par_ptr->init_pix_ok_cache(pix_ok_bin_idx);
 
