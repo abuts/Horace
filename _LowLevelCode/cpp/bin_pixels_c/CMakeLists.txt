@@ -12,7 +12,7 @@ set(
     "CommonBinCode.h"
     "processNpixOnly.h"
     "processSigErr.h"
-    "processSigErrCell.h"    
+    "processSigerrCell.h"
     "processWithSorting.h"
     "processWithNoSorting.h"
     "processWithNoSortSel.h"
