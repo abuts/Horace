@@ -95,8 +95,10 @@ void combine_sqw(ProgParameters& param, std::vector<sqw_reader>& fileReaders, co
     //---------------------------------------------------------------------------------------------------------------
     bool interrupted(false);
     //int count(0);
-    std::mutex log_mutex;
-    std::unique_lock<std::mutex> l(log_mutex);
+    std::mutex log_mutex; // this mutex intentionaly not locks other thread as
+    std::unique_lock<std::mutex> l(log_mutex); // conditional variable
+    // logging_ready should not lock other thread but wait on its own lock until
+    // may be released from the worker thread which wants to report progress.
     int c_sensitivity(2000); // msc
     while (!Buff.is_write_job_completed()) {
 
