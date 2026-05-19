@@ -54,8 +54,7 @@ public:
         return(buf_size / PIX_SIZE);
     }
 
-    // logging mutex
-    std::mutex log_mutex;
+
     // logging semaphore
     bool do_logging;
     std::condition_variable logging_ready;

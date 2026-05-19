@@ -94,9 +94,10 @@ void combine_sqw(ProgParameters& param, std::vector<sqw_reader>& fileReaders, co
     // Threads have been launched so logging run talking to Matlab session and displaying progress
     //---------------------------------------------------------------------------------------------------------------
     bool interrupted(false);
-    int c_sensitivity(2000); // msc
     //int count(0);
-    std::unique_lock<std::mutex> l(Buff.log_mutex);
+    std::mutex log_mutex;
+    std::unique_lock<std::mutex> l(log_mutex);
+    int c_sensitivity(2000); // msc
     while (!Buff.is_write_job_completed()) {
 
         Buff.logging_ready.wait_for(l, std::chrono::milliseconds(c_sensitivity), [&Buff]() {return Buff.do_logging; });

@@ -14,6 +14,8 @@ exchange_buffer::exchange_buffer(size_t b_size, size_t num_bins_2_process, size_
     c_start = std::clock();
     time(&t_start);
     t_prev = t_start;
+
+
 };
 
 
@@ -111,12 +113,10 @@ void exchange_buffer::check_logging() {
         }
 
         this->break_point += this->break_step;
-        {
-            std::lock_guard<std::mutex> g(this->log_mutex);
+        if (!this->do_logging) {
             this->do_logging = true;
+            this->logging_ready.notify_one();
         }
-        this->logging_ready.notify_one();
-
 
     }
 
@@ -124,12 +124,11 @@ void exchange_buffer::check_logging() {
 /* Sets internal variables of exchange buffer to state, indicating end of operations*/
 void exchange_buffer::set_write_job_completed() {
     this->write_job_completed = true;
-    this->break_point += this->break_step;
-    {
-        std::lock_guard<std::mutex> g(this->log_mutex);
+    if (!this->do_logging) {
         this->do_logging = true;
+        // release possible logging
+        this->logging_ready.notify_one();
     }
-    this->logging_ready.notify_one();
 }
 /* runs on main thread and prints log messages when instructed by write thread
 (due to the problem with Matlab if logging is run on worker thread) */
