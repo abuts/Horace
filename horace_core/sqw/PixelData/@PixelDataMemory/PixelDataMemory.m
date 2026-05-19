@@ -159,6 +159,18 @@ classdef (InferiorClasses = {?DnDBase,?IX_dataset,?sigvar}) PixelDataMemory  < P
             % Return the size of single pixel expressed in bytes.
             sz = obj.DEFAULT_NUM_PIX_FIELDS*8;
         end
+        function [obj,idx] = sort(obj,varargin)
+            % rough sorting routine which arranges pixels according to
+            % their experiment indices if nothing is provided or according
+            % to the list of input indices if these are provided
+            if nargin>1 && isnumeric(varargin{1})
+                idx = varargin{1};
+            else
+                s_idx = [abs(obj.all_indexes);obj.u1];
+                [~,idx] = sortrows(s_idx');
+            end
+            obj.data_ = obj.data_(:,idx);
+        end
     end
 
     methods

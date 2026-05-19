@@ -17,7 +17,8 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Set our options
 option(BUILD_TESTS "Build the C++ tests" OFF)
-
+# to control CPP check warnings and enhance analysis
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Set CMake policies
 if(POLICY CMP0074)
@@ -64,7 +65,7 @@ set(LOCAL_INIT_DIR "${CMAKE_BINARY_DIR}/local_init")
 find_package(OpenMP)
 include(PACE_FindMatlab)
 #
-message(" MATLAB CURRENT VERSION: ${MATLAB_CURRENT_VERSION}")
+message(" MATLAB CURRENT VERSION: ${MATLAB_CURRENT_VERSION}; Used Release: ${Matlab_RELEASE}")
 set(BUILD_HDF_MEX_PLUGIN TRUE)
 if ((${MATLAB_CURRENT_VERSION} VERSION_LESS_EQUAL "7.11") OR (${MATLAB_CURRENT_VERSION} VERSION_GREATER "9.4"))
     set(BUILD_HDF_MEX_PLUGIN FALSE)

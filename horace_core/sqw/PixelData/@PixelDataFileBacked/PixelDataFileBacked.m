@@ -395,16 +395,6 @@ classdef (InferiorClasses = {?DnDBase,?IX_dataset,?sigvar}) PixelDataFileBacked 
 
         end
 
-        function data_range = get_data_range(obj,varargin)
-            % overloadable data range getter
-            if nargin == 1
-                data_range = obj.data_range_;
-            else
-                idx = obj.field_index(varargin{1});
-                data_range = obj.data_range_(:,idx);
-            end
-        end
-
         function num_pix = get_num_pixels(obj)
             % num_pixels getter
             num_pix = obj.num_pixels_;

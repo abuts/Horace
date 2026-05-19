@@ -4,7 +4,6 @@
 #include <include/CommonCode.h>
 #include <include/MatlabCppClassHolder.hpp>
 #include <map>
-#include <unordered_set>
 #include <numeric>
 #include <string>
 #include <utility/version.h>
@@ -18,8 +17,6 @@ enum InOutTransf {
 
 // enumerate input arguments of the mex function
 enum in_arg {
-    mex_code_hldrIn, // pointer to the class shared with Matlab and containing persistent input arguments and binning arrays
-    // storage of the mex-function.
     npixIn, // image array containing number of pixels contributing into each bin. Actually used as indicator of first call to binning code
     signalIn, // image array containing signals
     errorIn, //  image array containing errors
@@ -28,7 +25,6 @@ enum in_arg {
 };
 // enumerate output arguments of the mex function
 enum out_arg {
-    mex_code_hldrOut, // pointer to the class shared with Matlab and containing persistent input arguments and binning arrays
     npix, // pointer to modified npix array
     Signal, // pointer to modified signal array
     Error, // pointer to modified error array
@@ -37,7 +33,6 @@ enum out_arg {
     N_OUT_Arguments
 };
 enum out_arg_mode0 {
-    mex_code_hldrOut0, // pointer to the class shared with Matlab and containing persistent
     npix0, // pointer to modified npix array
     out_par_names0, // pointer to cellarray with the names  of other possible output parameters
     out_par_values0, // pointer to cellarray with the values of other possible output parameters
@@ -49,21 +44,23 @@ enum opModes {
     npix_only = 0, // calculate npix array only binning coordinates over
     invalid_mode = 1, // this mode is not supported by binning routine
     sig_err = 2, // calculate npix, signal and error
-    sigerr_cell = 3, // signal and error for binning are presented in cellarrays of data rather then pixel data array
+    sigerr_cell = 3, // signal and error for binning are presented in cellarrays of
+    //                 data rather then pixel data array
     sort_pix = 4, // in additional to binning, return pixels sorted by bins
     sort_and_uid = 5, // in additional to binning and sorting, return unique pixels id
-    nosort = 6, // do binning but do not sort pixels but return array which defines pixels position
-    //              within the image grid
-    nosort_sel = 7, // like 6, but return logical array which specifies what pixels have been selected
-    //                   and what were rejected by binning operations
-    siger_selected = 8, // the same as sig_err but return logical array of selected pixels instead of pix_ok array
+    nosort = 6, // do binning but do not sort pixels but return array which defines
+    //             pixels position within the image grid.
+    nosort_sel = 7, // like 6, but in addition, return logical array which specifies
+    //                what pixels have been selected and what were rejected by binning operations
+    siger_selected = 8, // the same as sig_err (no pixel returning) but return 
+    //                   logical array indicating selected pixels instead of pix_ok array
     test_inputs = 9, // do not do calculations but just return parsed inputs for
-    //                  unit testing
+    //                  unit testing.
     N_OP_Modes = 10 // total number of modes code operates in. Provided for checks
 };
 
 // define the map type to keep functions which set up output parameters in a structure, specific for given binning mode;
-using OutHandlerMap = std::unordered_map<std::string, std::function<void(mxArray* p1, mxArray* p2, int idx, const std::string& name)>>;
+using OutHandlerMap = std::unordered_map<std::string, std::function<void(mxArray* name_ptr, mxArray* value_ptr, int idx, const std::string& name)>>;
 
 /* class describes all parameters used by binning procedure
  * use Matlab pointers for all transient array, which may change from call to call to mex function
@@ -72,6 +69,18 @@ using OutHandlerMap = std::unordered_map<std::string, std::function<void(mxArray
  */
 class BinningArg {
 public:
+    // Properties,used by projection binning
+    bool transform_pixels;  // if binning is performed over pixel data to transform before binning operation,
+    // i.e. four properties below are defined and have to be applied before pixel data are 
+    bool diag_transf;       // if transformation matrix below is a diagonal matrix
+    std::vector<double> transf_matrix; // if defined, contains 3x3 matrix to use for pixel transformation the pixels
+    bool apply_offset;    // if offset has non-zero value and should be applied to data
+    std::vector<double> u_offset;      // if defined, 1D array of offsets to extract from pixel coordinates before transforming them
+    int  transf_matrix_width;    // 3 or 4 depending on transformation
+    bool ignore_nan;
+    bool ignore_inf;
+    //==========================================================================================
+    // Properties used by axes binning and projection binning 
     opModes binMode; // the operation mode, binning routine would operate
     InOutTransf InOutTypeTransf; // what input pixel types provided and output pixel types requested
     size_t n_dims; // number of DnD object dimensions. changes from 0 to 4 and differs from Matlab arrays dimensions (from 2 to 4)
@@ -97,6 +106,8 @@ public:
     bool force_double;
     // logical variable with enables test mode returning input to outputs if
     bool test_inputs;
+    // size of chunk used in dynamic OMP scheduling. Negative value enables static scheduling
+    int dynamic_omp_stride;
     //********************************************************************************
     // Properties which contain results, obtained in various binning modes
     //********************************************************************************
@@ -110,7 +121,7 @@ public:
     // resulting range of pixels
     mxArray* pix_data_range_ptr;
     mxArray* pix_ok_ptr; // pointer to array of all pixels retained after binning
-    std::unordered_set<uint32_t> unique_runID; // set containing unique run_id-s of the
+    std::unordered_set<uint32_t> unique_runID; // set containing unique run_id-s of the contributing pixels
     mxArray* pix_img_idx_ptr; // pointer to array of pixel indices within the image cell 
     mxArray* is_pix_selected_ptr; // pointer to logical array containing true where pixel 
     //                               was selected for binning and false otherwise
@@ -140,13 +151,20 @@ public:
         return product;
     }
 
+
 protected:
     // register with parameters map all methods which accept input parameters from MATLAB
     void register_input_methods();
     // setters for all binning properties retrieved from MATLAB
+    void set_transf_matrix(mxArray const* const pField); // input transformation matrix used in line_proj binning
+    void set_u_offset(mxArray const* const pField); // input offset vector used in line_proj binning
+    void set_ignore_nan(mxArray const* const pField); // input offset vector used in line_proj binning
+    void set_ignore_inf(mxArray const* const pField); // input offset vector used in line_proj binning
+    //
     void set_coord_in(mxArray const* const pField); //   // Input pixels coordinates to bin. May be empty in modes where they are produced from pixels coordinates
     void set_binning_mode(mxArray const* const pField); // what parameters calculate during the binning
     void set_num_threads(mxArray const* const pField); // how many computational threads to deploy for calculations
+    void set_dynamic_omp_stride(mxArray const* const pField); // ?hunk size for dynamic scheduler or disable for static
     void set_data_range(mxArray const* const pField); // the range of data to bin in
     void set_dimensions(mxArray const* const pField); // number of dimensions the binning should be performed on
     void set_nbins_all_dims(mxArray const* const pField); //
@@ -160,22 +178,26 @@ protected:
     // register with parameters map all methods which return variable results to MATLAB
     void register_output_methods();
     // setters for binning results returned to MATLAB in output structure
-    void return_npix_retained(mxArray* p1, mxArray* p2, int idx, const std::string& name);
+    const void return_npix_retained(mxArray* name_ptr, mxArray* value_ptr, int idx, const std::string& name);
     // setter for result of calculating pixels data range
-    void return_pix_range(mxArray* p1, mxArray* p2, int idx, const std::string& name);
+    void return_pix_range(mxArray* name_ptr, mxArray* value_ptr, int idx, const std::string& name);
     // setter for possible pixels
-    void return_pix_ok_data(mxArray* p1, mxArray* p2, int idx, const std::string& name);
+    void return_pix_ok_data(mxArray* name_ptr, mxArray* value_ptr, int idx, const std::string& name);
     // setter to return unique run_id,.calculated in the call
-    void return_unique_runid(mxArray* p1, mxArray* p2, int idx, const std::string& name);
+    void return_unique_runid(mxArray* name_ptr, mxArray* value_ptr, int idx, const std::string& name);
     // setter to return pixels indices within the image cell
-    void return_pix_img_idx(mxArray* p1, mxArray* p2, int fld_idx, const std::string& name);
+    void return_pix_img_idx(mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& name);
     // setter to return array containing true for selected pixels and false if they have not been selected
-    void return_is_pix_selected(mxArray* p1, mxArray* p2, int fld_idx, const std::string& name);
+    void return_is_pix_selected(mxArray* name_ptr, mxArray* value_ptr, int fld_idx, const std::string& name);
     //
 public:
     BinningArg(); // construction
     // process binning arguments input values for new binning arguments cycle
     void parse_bin_inputs(mxArray const* pAllParStruct);
+    // initialize caches used in old-style pixel-selection algorithm
+    void init_pix_ok_cache(span<mxInt64>& pix_ok_bin_idx);
+    // initialize cahces used in old-style pixel sorting over bins
+    void init_npix1_step_cache(span<size_t>& npix1, span<size_t>& npix_bin_start);
     // process binning arguments which have changed during following call to binning procedure
     void parse_changed_bin_inputs(mxArray const* pAllParStruct);
     // generate test output which would echo input values
@@ -187,15 +209,14 @@ public:
     // check if input accumulators have not been changed and initialize them appropriately
     void check_and_init_accumulators(mxArray* plhs[], mxArray const* prhs[], bool force_update = false);
     // get number of dimensions for accumulator array to allocate using MATLAB methods
-    mwSize get_Matlab_n_dimensions();
+    const mwSize get_Matlab_n_dimensions();
     // get dimensions of accumulator array to allocate using MATLAB methods
-    mwSize* get_Matlab_acc_dimensions(size_t &distr_size);
-
+    const mwSize* get_Matlab_acc_dimensions(size_t &distr_size);
 private:
     // map to keep list of function to process input values from MATLAB structure
     std::unordered_map<std::string, std::function<void(mxArray const* const)>> BinParInfo;
     // map to keep list of functions to process output values in case of testing parameters parsing
-    std::unordered_map<std::string, std::function<void(mxArray* p1, mxArray* p2, int idx, const std::string& name)>> OutParList;
+    std::unordered_map<std::string, std::function<void(mxArray* name_ptr, mxArray* value_ptr, int idx, const std::string& name)>> OutParList;
     // holder for actual array dimensions to allocate
     std::vector<mwSize> accumulator_dims_holder;
     // helper function to calculate binning sizes in all non-unit directions

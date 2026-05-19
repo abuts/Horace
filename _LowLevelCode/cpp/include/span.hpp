@@ -19,9 +19,13 @@ public:
     constexpr span(pointer ptr, size_type count) noexcept
         : ptr_(ptr), size_(count) {}
 
+    constexpr span(std::vector<T> &in) noexcept
+        : ptr_(in.data()), size_(in.size()) {}
+
+
     constexpr pointer data() const noexcept { return ptr_; }
     constexpr size_type size() const noexcept { return size_; }
-    constexpr bool empty() const noexcept { return size_ == 0; }
+    constexpr bool empty() const noexcept { return (size_ == 0 || ptr_ == nullptr); }
 
     constexpr reference operator[](size_type i) const noexcept {
         return ptr_[i];

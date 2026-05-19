@@ -23,6 +23,33 @@ public:
     class_handle(uint32_t CLASS_SIGNATURE) : _signature(CLASS_SIGNATURE), _name(typeid(T).name()), class_ptr(new T()),
         num_locks(0) {
     }
+    // forbud copy contstructor
+    class_handle(const class_handle&) = delete;
+    class_handle& operator=(const class_handle&) = delete;
+
+    //Allow move
+    class_handle(class_handle&& other) noexcept
+        : _signature(other._signature),
+        _name(std::move(other._name)),
+        class_ptr(other.class_ptr),
+        num_locks(other.num_locks)
+    {
+        other.class_ptr = nullptr;
+    }
+
+    class_handle& operator=(class_handle&& other) noexcept {
+        if (this != &other) {
+            delete class_ptr;
+            class_ptr = other.class_ptr;
+            _signature = other._signature;
+            num_locks = other.num_locks;
+
+            other.class_ptr = nullptr;
+            other._signature = 0;
+            other.num_locks = 0;
+        }
+        return *this;
+    }
 
     ~class_handle() {
         clear_mex_locks();
@@ -52,7 +79,7 @@ mxArray* class_handle<T>::export_handler_toMatlab()
         mexLock();
     }
     // create MATLAB variable and store pointer to the instance
-    // of the target class in this variable 
+    // of the target class in this variable
     // to ensure that class remains valid and loaded in memory
     // during multiple transitions between C++ and MATLAB codes.
     //==================================================================================
@@ -78,7 +105,7 @@ mxArray* class_handle<T>::export_handler_toMatlab()
         The dereference *pData = ... writes that integer into the MATLAB array's memory.
 
     Essentially, you store the pointer value of the current C++ object as an integer inside a MATLAB variable.
-    MATLAB doesn't understand C++ objects directly, but you can pass the numeric representation of the pointer back 
+    MATLAB doesn't understand C++ objects directly, but you can pass the numeric representation of the pointer back
     to MATLAB and later recover it (with another MEX call that converts the integer back into a pointer).
     */
     return out;

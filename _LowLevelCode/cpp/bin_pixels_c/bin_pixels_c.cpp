@@ -45,7 +45,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[])
     if (bin_par_ptr->class_ptr->test_inputs) {
         // return input back if test_inputs == true is encountered
 
-        int max_nlhs(4);
+        int max_nlhs(0);
         if (bin_par_ptr->class_ptr->binMode == opModes::npix_only) {
             max_nlhs =(int)out_arg_mode0::N_OUT_Arguments0;
         } else {
@@ -64,8 +64,12 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[])
     try {
         auto distr_size = bin_par_ptr->class_ptr->distr_size;
         span<double> npix(mxGetPr(bin_par_ptr->class_ptr->npix_ptr), distr_size);
-        span<double> signal(mxGetPr(bin_par_ptr->class_ptr->signal_ptr),distr_size);
-        span<double> error(mxGetPr(bin_par_ptr->class_ptr->error_ptr),distr_size);
+        span<double> signal;
+        span<double> error;
+        if (bin_par_ptr->class_ptr->binMode > opModes::npix_only) {
+            signal = span<double>(mxGetPr(bin_par_ptr->class_ptr->signal_ptr), distr_size);
+            error  = span<double>(mxGetPr(bin_par_ptr->class_ptr->error_ptr), distr_size);
+        }
         auto transfType = bin_par_ptr->class_ptr->InOutTypeTransf;
 
         size_t num_pixels_retained(0);
@@ -131,10 +135,10 @@ bool find_special_inputs(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prh
                 bin_par_ptr->clear_mex_locks();
             }
         } else {
-            std::stringstream buf;
-            buf << "single char input for bin_pixels_c function may be 'clear' or 'reset' (in single dashes ') Got: " << key;
+            std::stringstream err_buf;
+            err_buf << "single char input for bin_pixels_c function may be 'clear' or 'reset' (in single dashes ') Got: " << key;
             mexErrMsgIdAndTxt("HORACE:bin_pixels_c:invalid_argument",
-                buf.str().c_str());
+                err_buf.str().c_str());
         }
     }
     return false;
@@ -146,9 +150,8 @@ bool find_special_inputs(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prh
 void parse_inputs(mxArray* plhs[], mxArray const* prhs[], std::unique_ptr<class_handle<BinningArg>>& bin_arg_holder)
 {
     // retrieve auto-ptr to old binning calculations
-    auto pBinHolder = get_handler_fromMatlab<BinningArg>(prhs[in_arg::mex_code_hldrIn], CODE_SIGNATURE, false);
     bool force_update(false);
-    if (pBinHolder == nullptr || bin_arg_holder == nullptr) {
+    if (bin_arg_holder == nullptr) {
         // create new bin_arguments holder with random signature
         std::random_device rd;
         std::mt19937 gen(rd());
@@ -159,8 +162,6 @@ void parse_inputs(mxArray* plhs[], mxArray const* prhs[], std::unique_ptr<class_
         force_update = true;
 
     }
-    plhs[out_arg::mex_code_hldrOut] = bin_arg_holder->export_handler_toMatlab();
-
     auto bin_arg_ptr = bin_arg_holder->class_ptr;
     if (bin_arg_ptr->new_binning_arguments_present(prhs)) {
         force_update = true;
@@ -169,10 +170,3 @@ void parse_inputs(mxArray* plhs[], mxArray const* prhs[], std::unique_ptr<class_
     bin_arg_ptr->check_and_init_accumulators(plhs, prhs,force_update);
     return;
 };
-
-
-//#undef OMP_VERSION_3
-//#undef C_MUTEXES
-
-
-

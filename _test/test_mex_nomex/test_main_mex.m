@@ -138,7 +138,7 @@ classdef test_main_mex < TestCase
             % check that the GetMD5 code is present in the mex functions
             % and that the check for this is correctly set up
             mex_list = check_horace_mex;
-            assertEqual( numel(mex_list), 12 );
+            assertEqual( numel(mex_list), 11 );
             assertTrue(any(cellfun(@(x)strncmp(x,'GetMD5',6),mex_list)));
 
         end

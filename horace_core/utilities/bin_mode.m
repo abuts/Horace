@@ -1,7 +1,7 @@
 classdef bin_mode < uint32
     % Enumeration class describes various bin modes AxesBlockBase.bin_pixels
     % algorithm. The numbering and names selected to coinside with C++ mex
-    % routine
+    % routine, except N_OP_Modes, which is MATLAB's agreement
     enumeration
         npix_only    (0) % calculate npix array binning input coordinates over range provided
         invalid_mode (1) % this mode is not supported by binning routine
@@ -14,12 +14,12 @@ classdef bin_mode < uint32
         nosort_sel   (7) % like nosort, but return logical array which specifies what pixels have been selected
         %                  and what were rejected by binning operations
         sigerr_sel   (8) % like sig_err but also return logical array of selected pixels
-        N_OP_Modes   (9) % total number of modes code operates in. Provided for checks
+        N_OP_Modes   (10) % total number of modes code operates in. Provided for checks
     end
     methods(Static)
-        function mode = from_narg(num_arguments,test_inputs,sigerr_and_selected,varargin)
+        function mode = from_narg(num_arguments,test_inputs,sigerr_and_selected,nosort,varargin)
             % retrieve binning mode from number of arguments, requested to
-            % process
+            % process and format of some input arguments or their absence.
 
             if test_inputs
                 num_arguments = num_arguments-1; % test inputs adds one output artument to requested inputs
@@ -42,16 +42,19 @@ classdef bin_mode < uint32
                 num_arguments = 0; % assume 0 as an exception for npix_only mode
             end
             mode = bin_mode(num_arguments);
-            if mode >= bin_mode.sigerr_cell % mode 4 and mode 3 both have 3 outputs and differ
+            if mode >= bin_mode.sigerr_cell % mode 3(sigerr_cell) and mode 2(sigerr) both have 3 outputs and differ
                 % by input arguments. All higher modes are defined by nargout+1 formula
                 mode = bin_mode(num_arguments+1);
             end
             if mode == bin_mode.sig_err && ~isempty(varargin) && iscell(varargin{end}) % mode sig_err and sigerr_cell have equal number of outputs
                 mode = bin_mode.sigerr_cell; % and differ by type of input
             end
-            if ~ismember(uint32(mode),[0,2,3,4,5,6,7])
+            if mode == bin_mode.sort_and_uid && nosort % sort and uid and nosort have the same number of outputs.
+                mode = bin_mode.nosort;
+            end
+            if ~ismember(uint32(mode),[0,2,3,4,5,6,7,8])
                 error('HORACE:bin_mode:invalid_argument',...
-                    'Binning modes return 1,3,4,5,6 or 7 output arguments. Provided: %d ', ...
+                    'Binning modes return 1,3,4,5,6 7 or 8 output arguments. Provided: %d ', ...
                     num_arguments+1);
             end
         end

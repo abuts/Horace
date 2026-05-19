@@ -11,7 +11,6 @@ set(MEX_FUNCTIONS
     "GetMD5"
     "cpp_communicator"
     "serialiser"
-    "accumulate_cut_c"
     "bin_pixels_c"
     "calc_projections_c"
     "combine_sqw"
@@ -22,6 +21,9 @@ set(MEX_FUNCTIONS
     "file_parameters"
      ${HDF_READER}
 )
+if(OPENMP_FOUND AND UNIX AND Matlab_RELEASE STREQUAL "R2018b")
+    set(OMP_TYPES DISABLE_DYNAMIC_SCHEDULER)
+endif()
 foreach(_mex_func ${MEX_FUNCTIONS})
     add_subdirectory("${_mex_func}")
 endforeach(_mex_func)

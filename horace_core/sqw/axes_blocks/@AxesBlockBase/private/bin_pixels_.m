@@ -73,7 +73,6 @@ pix_ok = [];
 pix_indx = [];
 selected = [];
 
-
 bin_array_size  = obj.nbins_all_dims; % arrays of this size will be allocated too
 ndims           = obj.dimensions;
 data_range      = obj.img_range;
@@ -185,7 +184,7 @@ if ndims == 0
     end
 else
     for i=1:ndata
-        out{i} = out{i}+accumarray(pix_indx,bin_values{i}(ok),size(npix));
+        out{i} = out{i}+accumarray(pix_indx,double(bin_values{i}(ok)),size(npix));
     end
 end
 s = out{1};

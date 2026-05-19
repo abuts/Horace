@@ -7,6 +7,7 @@
 #include <matrix.h>
 #include <vector>
 #include <cmath>
+#include <unordered_set>
 #include <iostream>
 #include <sstream>
 #include <memory>
@@ -21,6 +22,10 @@ inline void omp_set_num_threads(int nThreads) {};
 #define omp_get_thread_num()  0
 #else
 #include <omp.h>
+#endif
+
+#if defined(_OPENMP) && _OPENMP >= 200805
+#define omp3_available
 #endif
 
 // check span supported
@@ -42,26 +47,11 @@ extern bool utIsInterruptPending();
 extern bool ioFlush(void);
 #endif
 
-// something strange is happening with parallel pixels copying. Let's
-// disable if for the time being
-//#define SINGLE_PATH
-# if __GNUC__ > 4 || (__GNUC__ == 4)&&(__GNUC_MINOR__ > 4)
-#define  OMP_VERSION_3
-//#define C_MUTEXES
-#else
-#define C_MUTEXES
-#endif
-//
-#ifdef SINGLE_PATH
-#undef OMP_VERSION_3
-#undef C_MUTEXES
-#endif
-
 
 enum pix_flds
 {
     u1 = 0, //      -|
-    u2 = 1, //       |  Coordinates of pixel in the pixel projection axes
+    u2 = 1, //       |  Coordinates of pixel in the pixel projection axes. A constants within code rely on this set-up
     u3 = 2, //       |
     u4 = 3, //      -|
     irun = 4, //        Run index in the header block from which pixel came
@@ -74,7 +64,7 @@ enum pix_flds
 
 // Copy pixels from source to target array
 template<class SRC,class TRG> 
-inline size_t copy_pixels(SRC const* const pixel_data, long source_pos, TRG * const pix_sorted_ptr, size_t targ_pos)
+inline size_t copy_pixels(span<const SRC> pixel_data, long source_pos, span<TRG> pix_sorted, size_t targ_pos)
 {
     //
     targ_pos *= pix_flds::PIX_WIDTH; // each position in a grid cell corresponds to a pixel of the size PIX_WIDTH;
@@ -82,13 +72,13 @@ inline size_t copy_pixels(SRC const* const pixel_data, long source_pos, TRG * co
     source_pos *= pix_flds::PIX_WIDTH;
 
     for (size_t i = 0; i < pix_flds::PIX_WIDTH; i++) {
-        pix_sorted_ptr[targ_pos + i] = static_cast<TRG>(pixel_data[source_pos + i]);
+        pix_sorted[targ_pos + i] = static_cast<TRG>(pixel_data[source_pos + i]);
     }
     return targ_pos;
 };
 // Align and copy pixels from source to target array template <class SRC, class TRG>
 template <class SRC, class TRG>
-inline size_t align_and_copy_pixels(std::vector<double> &al_matr,SRC const* const pixel_data, long source_pos, TRG* const pix_sorted_ptr, size_t targ_pos)
+inline size_t align_and_copy_pixels(const std::vector<double> &al_matr,span<const SRC> pixel_data, long source_pos, span<TRG> pix_sorted, size_t targ_pos)
 {
     //
     targ_pos *= pix_flds::PIX_WIDTH; // each position in a grid cell corresponds to a pixel of the size PIX_WIDTH;
@@ -99,24 +89,14 @@ inline size_t align_and_copy_pixels(std::vector<double> &al_matr,SRC const* cons
         for (size_t j = 0; j < 3; j++) {
             accum += double((pixel_data[source_pos + j])) * al_matr[j*3+i];
         }
-        pix_sorted_ptr[targ_pos + i] = static_cast<TRG>(accum);
+        pix_sorted[targ_pos + i] = static_cast<TRG>(accum);
     }
 
     for (size_t i = 3; i < pix_flds::PIX_WIDTH; i++) {
-        pix_sorted_ptr[targ_pos + i] = static_cast<TRG>(pixel_data[source_pos + i]);
+        pix_sorted[targ_pos + i] = static_cast<TRG>(pixel_data[source_pos + i]);
     }
     return targ_pos;
 };
-/*
-void vec_to_mat_multiply() {
-    // Multiply: result[j] = sum over i of vec[i] * A[i][j]
-    for (size_t j = 0; j < M; ++j) {
-        for (size_t i = 0; i < N; ++i) {
-            result[j] += vec[i] * mat[i * M + j]; // A[i][j] = mat[i * M + j]
-        }
-    }
-}
-*/
 
 /* Initialize pixel ranges for calculating correct range.
  *  This means assigning to min/max holders values which are completely invalid, namely
@@ -133,38 +113,56 @@ inline void init_min_max_range_calc(span<double>& pix_ranges, size_t PIX_STRIDE)
 
 // identify range of all pixel coordinates for given initial pixels position
 template <class SRC>
-void inline calc_pix_ranges(span<double>& pix_ranges, SRC const* const pix_data_ptr, size_t PIX_STRIDE, size_t i)
+void inline calc_pix_ranges(span<double>& pix_ranges, span<const SRC> &pix_data,size_t ip0,size_t PIX_STRIDE)
 {
-    size_t ip0 = i * PIX_STRIDE;
     for (size_t j = 0; j < PIX_STRIDE; j++) {
-        pix_ranges[2 * j] = std::min(pix_ranges[2 * j], (double)pix_data_ptr[ip0 + j]);
-        pix_ranges[2 * j + 1] = std::max(pix_ranges[2 * j + 1], (double)pix_data_ptr[ip0 + j]);
+        pix_ranges[2 * j] = std::min(pix_ranges[2 * j], (double)pix_data[ip0 + j]);
+        pix_ranges[2 * j + 1] = std::max(pix_ranges[2 * j + 1], (double)pix_data[ip0 + j]);
+    }
+};
+// merge together all partial pixel ranges, calculated by threads
+void inline merge_tls_ranges(std::vector<std::vector<double>> &tls_ranges,span<double>& pix_ranges,size_t n_threads, size_t PIX_STRIDE)
+{
+    for (int i = 0; i < n_threads; i++) {
+        for (size_t j = 0; j < PIX_STRIDE; j++) {
+            pix_ranges[2 * j] = std::min(pix_ranges[2 * j], tls_ranges[i][2 * j]);
+            pix_ranges[2 * j + 1] = std::max(pix_ranges[2 * j + 1], tls_ranges[i][2 * j + 1]);
+        }
     }
 };
 
-// allocate pixels memory 
+/* allocate pixels memory to keep with MATLAB and use in C++ code
+* Parameters:
+* PIX_WIDTH    -- number of elements in a pixel. Usually constant
+* n_pixels     -- number of pixels to allocate memory for.
+* mem_wrap     -- span container, wrapping raw pointer to MATLAB array
+*                 with pixels memory
+* Returns:
+* Pointer to MATLAB array with appropriate type of memory.
+*/
 template<class TRG> 
-mxArray* allocate_pix_memory(size_t PIX_WIDTH, size_t N_ELEMENTS, TRG*& data_ptr)
+mxArray* allocate_pix_memory(size_t PIX_WIDTH, size_t n_pixels, span<TRG>& mem_wrap)
 { 
     mxArray* mxData_ptr(nullptr);
+    TRG* data_ptr(nullptr);
     std::string mem_name;
     if constexpr (std::is_same_v<TRG, double>) {
-        mxData_ptr = mxCreateDoubleMatrix(PIX_WIDTH, N_ELEMENTS, mxREAL);
+        mxData_ptr = mxCreateDoubleMatrix(PIX_WIDTH, n_pixels, mxREAL);
         if (mxData_ptr)
             data_ptr = mxGetPr(mxData_ptr);
         mem_name = "resulting binned pixels of type 'double'";
     } else if constexpr (std::is_same_v<TRG, float>) {
-        mxData_ptr = mxCreateNumericMatrix(PIX_WIDTH, N_ELEMENTS, mxSINGLE_CLASS, mxREAL);
+        mxData_ptr = mxCreateNumericMatrix(PIX_WIDTH, n_pixels, mxSINGLE_CLASS, mxREAL);
         if (mxData_ptr)
             data_ptr = reinterpret_cast<float*>(mxGetPr(mxData_ptr));
         mem_name = "resulting binned pixels of type 'signle'";
     } else if constexpr (std::is_same_v<TRG, mxInt64>) {
-        mxData_ptr = mxCreateNumericMatrix(PIX_WIDTH, N_ELEMENTS, mxINT64_CLASS, mxREAL);
+        mxData_ptr = mxCreateNumericMatrix(PIX_WIDTH, n_pixels, mxINT64_CLASS, mxREAL);
         if (mxData_ptr)
             data_ptr = reinterpret_cast<mxInt64 *>(mxGetPr(mxData_ptr));
         mem_name = "resulting array of indices of type 'UINT64'";
     } else if constexpr(std::is_same_v<TRG, mxLogical>) {
-        mxData_ptr = mxCreateLogicalMatrix(PIX_WIDTH, N_ELEMENTS);
+        mxData_ptr = mxCreateLogicalMatrix(PIX_WIDTH, n_pixels);
         if (mxData_ptr)
             data_ptr = mxGetLogicals(mxData_ptr);
         mem_name = "resulting array of logical indices";
@@ -174,13 +172,13 @@ mxArray* allocate_pix_memory(size_t PIX_WIDTH, size_t N_ELEMENTS, TRG*& data_ptr
     }
     if (mxData_ptr == nullptr) {
         std::stringstream buf;
-        buf << "Can not allocate memory for: " << N_ELEMENTS << mem_name;
+        buf << "Can not allocate memory for: " << n_pixels << mem_name;
         mexErrMsgIdAndTxt("HORACE:bin_pixels_c:runtime_error",
             buf.str().c_str());
     }
+    mem_wrap = span<TRG>(data_ptr, PIX_WIDTH * n_pixels);
     return mxData_ptr;
 };
-
 
 // nullify input mxArray (used as accumulator)
 inline void nullify_array(const mxArray* mxData_ptr) {
@@ -210,131 +208,40 @@ T getMatlabScalar(const mxArray* pPar, const char* const fieldName) {
     }
     return static_cast<T>(*mxGetPr(pPar));
 };
-
-
-
-class omp_storage
-    /** Class to manage dynamical storage used in OMP loops
-    with various sources depending on the size of the storage and
-    number of OMP threads  */
-
-{
-public:
-    /* if memory allocated for multithreaded execution */
-    bool is_mutlithreaded;
-    /* pointers to the places, where thread data are stored
-    depending on condition, this are either final destination or
-    place on heap or on stack */
-    double* pSignal, * pError, * pNpix;
-
-    omp_storage(int num_OMP_Threads, size_t distribution_size, double* s, double* e, double* npix) :
-        distr_size(distribution_size), data_size(0), num_threads(num_OMP_Threads), largeMemory(NULL)
-    {
-        this->init_storage(num_OMP_Threads, distribution_size, s, e, npix);
-    };
-    /* Initialize OMP storage
-      *@param num_OMP_Threads   -- number of OMP threads to use
-      *@param distribution_size -- linear size of the distribution (Product of all dimensions)
-      *@param s     -- array of pixels signals (size of distribution_size)
-      *@param e     -- array of pixels errors (size of distribution_size)
-      *@param npix  -- array of number of pixels in each cell (size of distribution_size)
-    */
-    void init_storage(int num_OMP_Threads, size_t distribution_size, double* s, double* e, double* npix) {
-        num_threads = num_OMP_Threads;
-        size_t new_data_size = 3 * num_threads * distribution_size;
-        distr_size = distribution_size;
-
-        if (num_threads > 1) {
-            is_mutlithreaded = true;
-            bool allocate_memory = true;
-            if (largeMemory) {
-                if (new_data_size == data_size) {
-                    allocate_memory = false;
-                }
-                else {
-                    allocate_memory = true;
-                    if (se_vec_stor.size() == 0) {
-                        mxFree(largeMemory);
-                        largeMemory = NULL;
-                    }
-                    else {
-                        se_vec_stor.resize(0);
-                    }
-                }
-            }
-            if (allocate_memory) {
-                // allocate storage for particular threads
-                try {
-                    se_vec_stor.assign(new_data_size, 0.);
-                    largeMemory = &se_vec_stor[0];
-                }
-                catch (...) // no space on stack try heap,
-                {
-                    largeMemory = (double*)mxCalloc(new_data_size, sizeof(double));
-                    if (!largeMemory)throw("Can not allocate memory for processing data on threads. Decrease number of threads");
-                    for (size_t i = 0; i < new_data_size; i++) {
-                        largeMemory[i] = 0;
-                    }
-
-                }
-            }
-            else { // Nullify existing memory
-                for (size_t i = 0; i < new_data_size; i++) {
-                    largeMemory[i] = 0;
-                }
-            }
-            pSignal = largeMemory;
-            pError = largeMemory + num_threads * distribution_size;
-            pNpix = pError + num_threads * distribution_size;
-
-        }
-        else {
-            is_mutlithreaded = false;
-            pSignal = s;
-            pError = e;
-            pNpix = npix;
-            num_threads = 1;
-        }
-        data_size = new_data_size;
-
-
-
+/* Accumulators used in tls storage to keep part of image, calculated by every
+** OMP thread */
+struct bin_accum{
+    size_t npix;
+    double s;
+    double e;
+    bin_accum(size_t val) :
+        npix(val),s(double(val)),e(double(val))
+    {}
+};
+// structure used in storing contributing pixel indices within TLS storage
+struct idx_accum {
+    int pix_idx;    // position of contributed index in original pixel array 
+    size_t img_idx; // index of pixel position in image array calculated through binning
+    idx_accum():
+        pix_idx(-1), img_idx(0)
+    {}
+    idx_accum(int pix_idx, size_t img_idx) {
+        this->pix_idx = pix_idx;
+        this->img_idx = img_idx;
     }
+};
 
-    void add_signal(const double& signal, const double& error, int n_thread, size_t index)
-    {
-        /*  signal_stor[n_thread][il] += ;
-        stor.error_stor[n_thread][il] += ;
-        stor.ind_stor[n_thread][il]++; */
-
-        size_t ind = n_thread * distr_size + index;
-        pSignal[ind] += signal;
-        pError[ind] += error;
-        pNpix[ind] += 1;
+template<class T>
+void init_tls_storage(size_t num_OMP_threads, size_t distribution_size,std::vector<std::vector<T> > &tls_storage) {
+    try {
+        tls_storage.resize(num_OMP_threads,
+            std::vector<T>(distribution_size, 0)
+        );
     }
-
-    void combine_storage(double* const s, double* const e, double* const npix, long i) {
-        for (int ns = 0; ns < num_threads; ns++) {
-            size_t ind = ns * distr_size + i;
-            s[i] += pSignal[ind];
-            e[i] += pError[ind];
-            npix[i] += pNpix[ind];
-        }
+    catch (...) {
+        std::stringstream buf;
+        buf << "Can not allocate TLS for size: " << distribution_size << " distribution.\nDecrease number of threads or perform serial calculations";
+        mexErrMsgIdAndTxt("HORACE:bin_pixels_c:runtime_error",
+            buf.str().c_str());
     }
-
-    ~omp_storage() {
-        if (largeMemory && se_vec_stor.size() == 0) {
-            mxFree(largeMemory);
-            largeMemory = NULL;
-        }
-    }
-
-private:
-    size_t distr_size;
-    size_t data_size;
-    int    num_threads;
-
-    std::vector<double > se_vec_stor;
-    double* largeMemory;
-
 };

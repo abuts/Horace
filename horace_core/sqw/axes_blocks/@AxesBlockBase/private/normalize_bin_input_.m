@@ -1,5 +1,5 @@
 function [npix,s,e,pix_cand,unique_runid,use_mex]=...
-    normalize_bin_input_(obj,force_3Dbinning,pix_coord,mode_to_bin,varargin)
+    normalize_bin_input_(obj,force_3Dbinning,pix_coord_size,mode_to_bin,varargin)
 % verify inputs of the bin_pixels function and convert various
 % forms of the inputs of this function into a common form, where the missing
 % inputs are presented as empty outputs or zero-values arrays of the
@@ -10,8 +10,8 @@ function [npix,s,e,pix_cand,unique_runid,use_mex]=...
 % force_3Dbinning -- if true, always neglect energy dimension in the
 %              binning array
 %
-% pix_coord -- [3,npix] or [4,npix] or [4x3] numeric array of the pixel
-%               coordinates. If
+% pix_coord_size -- size of numeric array of the pixel coordinates to bin
+%
 % mode_to_bin
 %          -- operation mode specifying what the following routine should
 %              process. The mode is defined by number of output arguments.
@@ -80,12 +80,9 @@ function [npix,s,e,pix_cand,unique_runid,use_mex]=...
 % >>[npix,s,e,pix_ok,unque_runid,pix_indx] = bin_pixels(obj,coord,npix,s,e,pix_candidates,unque_runid)
 %                                        8(inputs)
 %                      normalize_bin_input_(obj,coord,mode,npix,s,e,pix_candidates,unque_runid)
-if ~isnumeric(pix_coord)
-    error('HORACE:AxesBlockBase:invalid_argument',...
-        'first argument of the routine have to be 4xNpix or 3xNpix numeric array of pixel coordinates')
-end
 
-if ~(size(pix_coord,1) == 4 || (mode_to_bin == bin_mode.npix_only && size(pix_coord,1) == 3))
+
+if ~(pix_coord_size(1) == 4 || (mode_to_bin == bin_mode.npix_only && pix_coord_size(1) == 3))
     error('HORACE:AxesBlockBase:invalid_argument',...
         'first argument of the routine have to be 4xNpix or 3xNpix array of pixel coordinates')
 end
@@ -112,7 +109,7 @@ else
             'Calculating signal and error requests providing full pixel information, and this information is missing')
     end
     pix_cand  = varargin{4};
-    if ~(isa(pix_cand,'PixelDataBase') || (iscell(pix_cand) && numel(pix_cand{1}) == size(pix_coord,2)))
+    if ~(isa(pix_cand,'PixelDataBase') || (iscell(pix_cand) && numel(pix_cand{1}) == pix_coord_size(2)))
         error('HORACE:AxesBlockBase:invalid_argument',...
             '7-th argument of the function must be instance of PixelData class or cell array thereof. It is: %s',...
             class(pix_coord));

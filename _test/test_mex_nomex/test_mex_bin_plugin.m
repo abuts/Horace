@@ -32,14 +32,14 @@ classdef test_mex_bin_plugin < TestCase
                 skipTest('MEX not enabled')
             end
             try
-                ver = mex_bin_plugin();
+                bin_ver = mex_bin_plugin();
                 valid = true;
             catch
                 valid = false;
             end
             
             assertTrue(valid);
-            assertEqual(ver,horace_version)
+            assertEqual(bin_ver,horace_version)
         end
     end
 

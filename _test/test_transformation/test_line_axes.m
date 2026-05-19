@@ -215,9 +215,9 @@ classdef test_line_axes < TestCase
 
             assertEqual(numel(unique_runid1),1);
             [~,~,~,pix_ok,unique_runid2] = ab.bin_pixels(pix_data,npix1,s1,e1,pix,unique_runid1);
-            assertEqual(unique_runid1,unique_runid2);
+            assertEqualToTol(unique_runid1,unique_runid2);
             assertEqual(pix_ok,pix_ok1);
-            assertEqual(unique_runid2,uint32(1));
+            assertEqualToTol(unique_runid2,1);
             %
         end
         
@@ -716,7 +716,6 @@ classdef test_line_axes < TestCase
             assertEqual(pix_candidates,pix);
             assertTrue(isempty(argi));
         end
-
         %
         function test_1Dbin_inputs_1par_nomex(~)
             clConf = set_temporary_config_options('hor_config','use_mex',false);
