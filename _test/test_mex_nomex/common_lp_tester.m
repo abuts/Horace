@@ -93,7 +93,7 @@ if ~test_mode
         assertEqualToTol(acc_nomex{j},acc_mex{j},'tol',[1.e-9,1.e-9])
         assertEqualToTol(acc_nomex{j},acc_omp{j},'tol',[1.e-9,1.e-9])
     end
-    add_acc_pos = [5];
+    add_acc_pos = 5;
     for j=4:n_tout
         if n_accum>3 && ismember(j,add_acc_pos) % accumulator
             continue;

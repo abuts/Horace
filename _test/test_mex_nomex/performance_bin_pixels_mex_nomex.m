@@ -424,7 +424,7 @@ classdef performance_bin_pixels_mex_nomex
             %  [npix,s,e] = lp.bin_pixels(AB,pix,npix,s,e);
             [lp,AB,pix,n_points] = obj.prepare_lp_bin_data();
             [t_nomex,t_mex,t_omp] = common_lp_tester( ...
-                "*** Mex/nomex proj performance mode0 (bin pix, calc npix):", ...
+                "*** Mex/nomex proj performance mode2 (bin pix, calc npix):", ...
                 false, ... performance mode
                 lp,AB,pix,3, ... n_accum
                 0, ...  n_add_outputs
@@ -468,7 +468,7 @@ classdef performance_bin_pixels_mex_nomex
             [lp,AB,pix,n_points]=obj.prepare_lp_bin_data();
             [t_nomex,t_mex,t_omp] = common_lp_tester( ...
                 "*** Mex/nomex proj performance mode0 (bin pix, calc npix):", ...
-                false, ... performance mode
+                false, ... test mode
                 lp,AB,pix,1, ... n_accum
                 0, ...  n_add_outputs
                 obj.n_threads, ...
@@ -489,7 +489,7 @@ classdef performance_bin_pixels_mex_nomex
             [AB,n_points]=obj.prepare_clean_bin_data();
             [t_nomex,t_mex,t_omp] = common_ab_tester( ...
                 "*** Mex/nomex performance mode0 (bin coord, calc npix):", ...
-                false, ... performance mode
+                false, ... test mode
                 AB,1, ... n_accum
                 0, ...  n_add_inputs
                 0, ...  n_add_outputs
@@ -505,6 +505,48 @@ classdef performance_bin_pixels_mex_nomex
             % REFERENCE Data ndlt1737
             %*** first step:    nomex: 0.51(sec)  mex: 0.22(sec);  omp: 0.037(sec); Acc :  2.3/  14/ 6.1
             %*** Avrg per step: nomex: 0.51(sec)  mex: 0.22(sec);  omp: 0.037(sec); Acc :  2.3/  14/ 5.9
+        end
+        function [t_omp1,t_omp] = check_omp_scaling(obj)
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
+
+            [lp,AB,pix,n_points]=obj.prepare_lp_bin_data();
+            pix.run_idx  =  500+floor(100*rand(1,n_points));
+            al_matr = rotvec_to_rotmat([10,20,15]);
+
+            n_threads_max = 30;
+            n_repeats = 5;
+            t_omp1 = zeros(1,n_threads_max);
+            t_omp  = zeros(1,n_threads_max);
+            for ns = 1:n_threads_max
+                t_omp_all = threads_impact_tester( ...
+                    "*** Proj mex/nomex performance mode7 (bin nosort + unique runid + img idx):", ...
+                    true, ... test mode
+                    lp,AB,pix, ...
+                    4, ... n_accum
+                    2, ... n_add_outputs
+                    ns, ... number of thread to test.
+                    n_repeats, ... n_repeats
+                    al_matr);
+                % t_omp_all = threads_impact_tester( ...
+                %     "*** Mex/nomex proj performance mode2 (bin pix, calc npix):", ...
+                %     true, ... test_mode
+                %     lp,AB,pix, ...
+                %     3, ... n_accum
+                %     0, ...  n_add_outputs
+                %     ns, ...
+                %     n_repeats ... n_repeats
+                %     );
+                % 
+                t_omp1(ns) = t_omp_all(1);
+                t_omp(ns) = sum(t_omp_all)/n_repeats;
+                dt = t_omp_all-t_omp(ns);
+                mm = min_max(dt);
+                fprintf( ...
+                    '*** n_threads = %d; first step:  %4.2g(sec); avrg: %4.2g(sec)%4.2g+%4.2g; Acc : %4.2g/%4.2g\n', ...
+                    ns,t_omp1(ns),t_omp(ns),mm(1),mm(2), ...
+                    t_omp1(1)/t_omp1(ns),t_omp1(1)/t_omp(ns));
+            end
+
         end
         function [t_nomex,t_mex,t_omp] = profile_proj_mex_nomex_mode8_nosort_id_idx_sel(obj)
             if obj.no_mex
