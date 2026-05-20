@@ -514,20 +514,6 @@ regions are folded onto each other:
    transformations may modify the data ranges in unexpected ways, making the
    resulting transformed *sqw* file into complete nonsense!
 
-Better designed symmetry operation for the case above  will have a look:
-
-.. code-block:: matlab
-
-   function wout = user_symmetrisation_routine(win)
-
-   %fold about line (1,1,0) in HK plane
-   wout = symmetrise_sqw(win, {SymopReflection([1,1,0], [0,0,1]),...   %fold about line (1,1,0) in HK plane
-                               SymopReflection([-1,1,0],[0,0,1]),...   %fold about line (-1,1,0) in HK plane
-                               SymopReflection([1,0,1], [0,1,0]),...   %fold about line (1,0,1) in HL plane
-                               SymopReflection([1,0,-1],[0,1,0])});    %fold about line (1,0,-1) in HL plane 
-
-Due to saving on internal binning, this code will work 50% faster. 
-
 .. note::
 
    Due to a quirk in MATLAB's function loading, in order to work with parallel Horace
@@ -554,18 +540,20 @@ Due to saving on internal binning, this code will work 50% faster.
    end
 
 
-Alternatively with an array of ``Symop`` objects this could be done in one step
-as:
+Defining a cellarray of ``Symop`` objects would allow one to perform
+symmetry operation above in one step as:
 
-.. code-block:: matlab
+  .. code-block:: matlab 
+  
+     sym = {SymopReflection([1,1,0], [0,0,1]),...  %fold about line (1,1,0) in HK plane
+            SymopReflection([-1,1,0],[0,0,1]),...  %fold about line (-1,1,0) in HK plane
+            SymopReflection([1,0,1], [0,1,0]),...  %fold about line (1,0,1) in HL plane
+            SymopReflection([1,0,-1],[0,1,0])};    %fold about line (1,0,-1) in HL plane 
+    gen_sqw(spefile, par_file, sym_sqw_file, efix, emode, alatt, angdeg,...
+            u, v, psi, omega, dpsi, gl, gs, 'transform_sqw', @(x)(symmetrise_sqw(x,sym)))
 
-   sym = [SymopReflection([1,1,0], [0,0,1])
-          SymopReflection([-1,1,0],[0,0,1])
-          SymopReflection([1,0,1], [0,1,0])
-          SymopReflection([1,0,-1],[0,1,0])];
-   gen_sqw (spefile, par_file, sym_sqw_file, efix, emode, alatt, angdeg,...  u, v, psi, omega, dpsi, gl,
-            gs, 'transform_sqw', @(x)(symmetrise_sqw(x,sym)))
-
+Due to saving on binning at forming intermediate ``sqw`` objects,
+this code will work 50% faster.
 
 Cutting
 =======
@@ -664,7 +652,9 @@ according to the symmetry operations as though the |SQW| had been symmetrised.
 
 .. Note::
 
-    By design, you may apply only single symmetry transformation to pixels within a cut. Its done intentionally, to avoid double counting and wrong statistics in cases like the image below, where you cut with ``SymopRotation`` by 90deg with a command like: ``w2 = cut(an_sqw,line_proj([-1,1,0],[-1,-1,0]),[-2,0.01,2],[-0.2.0.01,0.2],[],[],SymopRotation([0,0,1],90)`` and do not want to count pixels contributed into red-crossed area twice. Multiple users have been caught not realizing that.
+    By design, you may apply only single symmetry transformation to pixels within a cut. Its done intentionally, to avoid double counting and wrong statistics in cases like the image below, where you cut with ``SymopRotation`` by 90deg with a command like: ``w2 = cut(an_sqw,line_proj([-1,1,0],[-1,-1,0]),[-2,0.01,2],[-0.2.0.01,0.2],[],[],SymopRotation([0,0,1],90)`` and do not want to count pixels contributed into red-crossed area twice. Multiple users have been caught not realizing that. Mental model for ``cut`` with symmetries is different from 
+    ``symmeterise_sqw``. In the later, you define transformation and the transformation defines irreducible zone to place data in. 
+    For cut, you define "Irreducible zone" and transformation identify symmetry-related zones, to pick-up data and place them into selected zone.
 
 .. figure:: ../images/Symops_cut_overlap.png
    :align: center
