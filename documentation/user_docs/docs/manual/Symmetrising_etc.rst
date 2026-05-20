@@ -595,7 +595,14 @@ according to the symmetry operations as though the |SQW| had been symmetrised.
   selected region. If you, e.g. select cut region in the ranges ``[-0.8...0.8]`` reflection
   operation would reflect it into itself, so resulting cut will look exactly like 
   the initial cut, despite pixels contributing to this cut are reflected inside
-  the object (left side to the right and right side to the left).
+  the object (left side to the right and right side to the left).  Multiple users have been caught not realizing that. 
+  
+  Mental model for operatihg ``cut`` with symmetries is opposite to ``symmeterise_sqw``. 
+  For the later, you define a transformation over the object and the transformation defines irreducible
+  zone to place data in. 
+  For a ``cut``, you define "Irreducible zone" by selecting cut ranges 
+  and the transformation identify symmetry-related ranges, to pick-up data and
+  place them into the range of your choice.
 
 .. code-block:: matlab
 
@@ -652,9 +659,7 @@ according to the symmetry operations as though the |SQW| had been symmetrised.
 
 .. Note::
 
-    By design, you may apply only single symmetry transformation to pixels within a cut. Its done intentionally, to avoid double counting and wrong statistics in cases like the image below, where you cut with ``SymopRotation`` by 90deg with a command like: ``w2 = cut(an_sqw,line_proj([-1,1,0],[-1,-1,0]),[-2,0.01,2],[-0.2.0.01,0.2],[],[],SymopRotation([0,0,1],90)`` and do not want to count pixels contributed into red-crossed area twice. Multiple users have been caught not realizing that. Mental model for ``cut`` with symmetries is different from 
-    ``symmeterise_sqw``. In the later, you define transformation and the transformation defines irreducible zone to place data in. 
-    For cut, you define "Irreducible zone" and transformation identify symmetry-related zones, to pick-up data and place them into selected zone.
+    By design, you may apply only single symmetry transformation to pixels within a cut. Its done intentionally, to avoid double counting and wrong statistics in cases like the image below, where you cut with ``SymopRotation`` by 90deg with a command like: ``w2 = cut(an_sqw,line_proj([-1,1,0],[-1,-1,0]),[-2,0.01,2],[-0.2.0.01,0.2],[],[],SymopRotation([0,0,1],90)`` and do not want to count pixels contributed into red-crossed area twice.
 
 .. figure:: ../images/Symops_cut_overlap.png
    :align: center
