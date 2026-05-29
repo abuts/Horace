@@ -597,7 +597,7 @@ according to the symmetry operations as though the |SQW| had been symmetrised.
   the initial cut, despite pixels contributing to this cut are reflected inside
   the object (left side to the right and right side to the left).  Multiple users have been caught not realizing that. 
   
-  Mental model for operatihg ``cut`` with symmetries is opposite to ``symmeterise_sqw``. 
+  Mental model for operating ``cut`` with symmetries is opposite to ``symmeterise_sqw``. 
   For the later, you define a transformation over the object and the transformation defines irreducible
   zone to place data in. 
   For a ``cut``, you define "Irreducible zone" by selecting cut ranges 
