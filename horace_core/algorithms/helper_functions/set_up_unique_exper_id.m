@@ -1,6 +1,5 @@
-function run_files = update_duplicated_rf_id(run_files)
-% Processes the list of runfiles and if some files have duplicated
-% run-id-s, modify these id-s to be unique.
+function run_files = set_up_unique_exper_id(run_files)
+% Processes the list of runfiles and assign 
 %
 % Input:
 % run_files  - cellarray of rundata class instances with some run_id

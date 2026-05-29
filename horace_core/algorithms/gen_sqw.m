@@ -359,10 +359,9 @@ if nindx==1
         disp('--------------------------------------------------------------------------------')
     end
 else
-    if opt.replicate && ~spe_unique
-        % expand run_ids for replicated files to make run_id-s unique
-        run_files = update_duplicated_rf_id(run_files);
-    end
+    % set up exper_id-s to make unique binding: pixel<->contributing run
+    run_files = set_up_unique_exper_id(run_files);
+    
     keep_par_cl_running = ~opt.tmp_only || nargout>3;
 
     % Generate unique temporary sqw files, one for each of the spe files
