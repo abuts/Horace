@@ -365,6 +365,9 @@ classdef rundata < serializable
         function id = get.exper_id(obj)
             if isempty(obj.exper_id_)
                 id = obj.run_id;
+                if isnan(id) || isempty(id)
+                    id = 1;
+                end
             else
                 id = obj.exper_id_;
             end

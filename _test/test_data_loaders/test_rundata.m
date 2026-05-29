@@ -550,7 +550,7 @@ classdef test_rundata < TestCase
         function test_exp_id_empty(~)
             rd = rundata();
             id =  rd.exper_id;
-            assertTrue(isempty(id));
+            assertEqual(id,1);
         end
         function test_run_id_empty(~)
             rd = rundata();

@@ -279,7 +279,7 @@ empty_par_files = cellfun(@isempty,par_file);
 if any(empty_par_files) && sum(spe_exist) ~= n_all_spe_files % missing rf may need to use different
     % par file (what is currently there) from what will be there later
     % NB might be easier to do any(spe_exist==0)
-    empty_par_files = find(empty_par_files);
+    %empty_par_files = find(empty_par_files);
 
     % Get detector parameters from a known spe
     iex1 = indx(1);
@@ -347,9 +347,6 @@ if nindx==1
     end
     if ~isempty(opt.transform_sqw)
         run_files{1}.transform_sqw = opt.transform_sqw;
-    end
-    if isnan(run_files{1}.run_id)
-        run_files{1}.run_id = 1;
     end
     [w,grid_size,data_range] = run_files{1}.calc_sqw(grid_size_in,pix_db_range);
     verify_pix_range_est(data_range(:,1:4),pix_range_est,log_level);
