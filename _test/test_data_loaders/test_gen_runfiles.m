@@ -454,6 +454,5 @@ classdef test_gen_runfiles< TestCase
             assertEqual(rd{1}.efix,rd{2}.efix);
         end
 
-
     end
 end

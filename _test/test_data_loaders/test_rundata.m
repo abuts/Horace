@@ -303,7 +303,7 @@ classdef test_rundata < TestCase
                 'HERBERT:loaders_factory:invalid_argument');
         end
 
-        function test_save_rundata_nxspe(obj)   
+        function test_save_rundata_nxspe(obj)
             test_file = fullfile(tmp_dir,'test_save_rundata_nxspe.nxspe');
             if is_file(test_file)
                 delete(test_file);
@@ -314,9 +314,9 @@ classdef test_rundata < TestCase
             run.saveNXSPE(test_file);
             [mess,wid] = lastwarn;
             assertEqual(mess,'nothing to save');
-            assertEqual(wid,'HERBERT:saveNXSPE:invalid_argument');            
+            assertEqual(wid,'HERBERT:saveNXSPE:invalid_argument');
 
-            
+
             lat = oriented_lattice();
             lat.psi = 10;
             run.lattice = lat;
@@ -324,10 +324,10 @@ classdef test_rundata < TestCase
             run.saveNXSPE(test_file);
             [mess,wid] = lastwarn;
             assertEqual(mess,'nothing to save');
-            assertEqual(wid,'HERBERT:saveNXSPE:invalid_argument');            
-            
-            run.par_file_name = f_name(obj,'demo_par.PAR');            
-            
+            assertEqual(wid,'HERBERT:saveNXSPE:invalid_argument');
+
+            run.par_file_name = f_name(obj,'demo_par.PAR');
+
             f=@()run.saveNXSPE(test_file);
             assertExceptionThrown(f,'HERBERT:load_nxspe:invalid_argument');
 
@@ -339,8 +339,8 @@ classdef test_rundata < TestCase
             run.efix = 150;
             f=@()run.saveNXSPE(test_file);
             assertExceptionThrown(f,'HERBERT:load_nxspe:invalid_argument');
-            
-            
+
+
             run.data_file_name = fullfile(obj.test_data_path,'MAP10001.spe');
 
             f=@()run.saveNXSPE(test_file);
@@ -534,6 +534,24 @@ classdef test_rundata < TestCase
             assertTrue(isnan(id));
         end
 
+        function test_defined_exp_id_ne_run_id(~)
+            rd = rundata();
+            rd.run_id = 1;
+            rd.exper_id = 2;
+            assertEqual(rd.run_id,1);
+            assertEqual(rd.exper_id,2);
+        end
+        function test_empty_exp_id_eq_runid(~)
+            rd = rundata();
+            rd.run_id = 10;
+            id =  rd.exper_id;
+            assertEqual(id,10);
+        end
+        function test_exp_id_empty(~)
+            rd = rundata();
+            id =  rd.exper_id;
+            assertTrue(isempty(id));
+        end
         function test_run_id_empty(~)
             rd = rundata();
             id =  rd.run_id;

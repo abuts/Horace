@@ -48,6 +48,12 @@ classdef rundata < serializable
         % the number (id) uniquely identifying the particular experiment
         % (run) which is the source of this object data.
         run_id;
+        % helper property, which identifies number of contributing rundata
+        % file in the list of other rundata files, participated in sqw
+        % object generation. if the property have not been set explicitly, 
+        % it is equal to run_id. Property is not saveable as makes sence
+        % only if used in gen_sqw
+        exper_id;
         % fully defined rundata need all necessary requested fields to be
         % defined. When data loaded from nxspe, alatt, angdeg,
         % and may be psi can remain undefined and need to be defined
@@ -88,6 +94,8 @@ classdef rundata < serializable
         sample_ = IX_null_sample();
         %
         run_id_ = [];
+        %
+        exper_id_ = [];
         %
         isvalid_ = false; % empty rundata is invalid if allow_invalid is true
         allow_invalid_ = true; % we can construct invalid rundata
@@ -338,7 +346,6 @@ classdef rundata < serializable
             else
                 mess = '';
             end
-
         end
         %
         function id = get.run_id(obj)
@@ -352,15 +359,18 @@ classdef rundata < serializable
             id = find_run_id_(obj);
         end
         function obj = set.run_id(obj,val)
-            if isempty(val)
-                obj.run_id_ = [];
-                return;
+            obj = check_and_set_id_prop(obj,val,'run_id_');
+        end
+        %
+        function id = get.exper_id(obj)
+            if isempty(obj.exper_id_)
+                id = obj.run_id;
+            else
+                id = obj.exper_id_;
             end
-            if ~isnumeric(val) || ~isscalar(val)
-                error('HERBERT:rundata:invalid_argument',...
-                    ' run_id can be only single numeric value')
-            end
-            obj.run_id_ = val;
+        end
+        function obj = set.exper_id(obj,val)
+            obj = check_and_set_id_prop(obj,val,'exper_id_');
         end
         %
         function loader=get.loader(obj)
@@ -596,5 +606,22 @@ classdef rundata < serializable
                 obj.lattice_.do_check_combo_arg = lval;
             end
         end
+    end
+    methods(Access=private)
+        function obj = check_and_set_id_prop(obj,val,name)
+            % helper setter used in setting run_id or exper_id
+            if isempty(val)
+                obj.(name)= [];
+                return;
+            end
+            if ~isnumeric(val) || ~isscalar(val)
+                error('HERBERT:rundata:invalid_argument',...
+                    'property %s can have only single numeric value', ...
+                    name(1:end-1));
+            end
+            obj.(name) = val;
+
+        end
+
     end
 end

@@ -269,7 +269,7 @@ else
     rundata_par = {};
 end
 if ~isempty(opt.transform_sqw)
-    rundata_par = {rundata_par{:},'transform_sqw',opt.transform_sqw};
+    rundata_par = [rundata_par(:);'transform_sqw';opt.transform_sqw];
 end
 
 
