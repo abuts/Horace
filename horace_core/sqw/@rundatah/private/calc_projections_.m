@@ -78,8 +78,9 @@ if use_mex
         try
             c=neutron_constants;
             k_to_e = c.c_k_to_emev;  % used by calc_projections_c;
-
-            data = struct('S',obj.S,'ERR',obj.ERR,'en',obj.en,'run_id',obj.run_id);
+            % 2026/05/29 -- run-id is replaced by exper_id, which is unique
+            % unique reference from pixel to the IX_dataset used in generating this pixel.
+            data = struct('S',obj.S,'ERR',obj.ERR,'en',obj.en,'run_id',obj.exper_id);
             % ensure the detpar struct is in row order for the
             % calc_projections_c call below
             det  = obj.get_det_par_rows();
@@ -145,8 +146,8 @@ if ~use_mex
                 energy_idx = ones(1,ne*ndet);
             end
             sig_var =[obj.S(:)';((obj.ERR(:)).^2)'];
-            run_id = ones(1,numel(detector_idx))*obj.run_id;
-            pix = PixelDataBase.create([ucoords;run_id;detector_idx;energy_idx;sig_var]);
+            exper_id = ones(1,numel(detector_idx))*obj.exper_id;
+            pix = PixelDataBase.create([ucoords;exper_id;detector_idx;energy_idx;sig_var]);
             pix_img_range=pix.data_range;
     end
 end

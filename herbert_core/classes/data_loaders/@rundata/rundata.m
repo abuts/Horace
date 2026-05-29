@@ -50,7 +50,7 @@ classdef rundata < serializable
         run_id;
         % helper property, which identifies number of contributing rundata
         % file in the list of other rundata files, participated in sqw
-        % object generation. if the property have not been set explicitly, 
+        % object generation. if the property have not been set explicitly,
         % it is equal to run_id. Property is not saveable as makes sence
         % only if used in gen_sqw
         exper_id;
@@ -365,7 +365,7 @@ classdef rundata < serializable
         function id = get.exper_id(obj)
             if isempty(obj.exper_id_)
                 id = obj.run_id;
-                if isnan(id) || isempty(id)
+                if  isempty(id) || isnan(id)
                     id = 1;
                 end
             else
@@ -623,8 +623,6 @@ classdef rundata < serializable
                     name(1:end-1));
             end
             obj.(name) = val;
-
         end
-
     end
 end

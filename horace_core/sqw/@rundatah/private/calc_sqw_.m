@@ -46,7 +46,6 @@ axes_bl = instproj.get_proj_axes_block(pix_db_range_in,grid_size_in);
 
 if delay_binning
     [pix,det0,axes_bl]  = instproj.convert_rundata_to_pix(obj,axes_bl);
-    run_id = unique(pix.run_idx);
     data.npix(1) = pix.num_pixels; % set up (incorrect) relationship with
     %  pixels placing them artificially in single bin to use for special
     %  rebinning later
@@ -55,14 +54,17 @@ else
     % bin_pixels. It converts rundata to pixels and bins them using standard
     % aProjectionBase binning procedure.
     % In addition to that, recalculates line_axes img_range if
-    % the range has not been defined before:
-    [data.npix,data.s,data.e,pix,run_id,det0,axes_bl] = ...
+    % the range has not been defined before: 
+    %npix,   s,    e,        pix,exper_id,det0,axes_bl
+    [data.npix,data.s,data.e,pix,~,det0,axes_bl] = ...
         instproj.bin_pixels(axes_bl,obj,data.npix,data.s,data.e);
     [data.s, data.e] = normalize_signal(data.s, data.e, data.npix);
 end
 data.axes.img_range = axes_bl.img_range; % the range the data are binned on
 
-exp_info.expdata(1).run_id = run_id(1);
+% This all done in calc_sqw_data_and_header
+%exp_info.expdata(1).run_id   = run_id(1);
+%exp_info.expdata(1).exper_id = obj.exper_id;
 
 data_range = pix.data_range; % the range pixels have
 
@@ -121,7 +123,7 @@ proj = line_proj('alatt',lat.alatt,'angdeg',lat.angdeg, 'type','aaa');
 
 sqw_data = DnDBase.dnd(axes_bl,proj);
 
-expdata = IX_experiment([fn,fe], [fp,filesep],obj.run_id, ...
+expdata = IX_experiment([fn,fe], [fp,filesep],obj.run_id,obj.exper_id, ...
     obj.efix,obj.emode,obj.en,lat);
 
 detpar = obj.det_par;

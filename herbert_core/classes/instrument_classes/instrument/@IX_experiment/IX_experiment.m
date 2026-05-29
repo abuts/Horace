@@ -24,11 +24,12 @@ classdef IX_experiment < Goniometer
         filename; % name of the file which was the source of data for this
         %         % experiment
         filepath; % path where the experiment data were initially stored
-        run_id;   % the identifier, which uniquely defines this experiment
-        %         % this identifier is also stored within the PixelData,
+        run_id;   % the identifier, which uniquely defines instrument run
+        exper_id; % the identifier, which uiquely identifies this experiment.
+        %         % This identifier is also stored within the PixelData,
         %         % providing connection between the particular pixel and
-        %         % the experiment info
-
+        %         % the particuar experiment info, pointing to appropriate
+        %         IX_experiment
         emode;
         efix;
         en;  % array of all energy transfers, present in the experiment
@@ -59,6 +60,7 @@ classdef IX_experiment < Goniometer
         filename_=''
         filepath_='';
         run_id_ = NaN;
+        exper_id_ = 1;
         emode_ = 0;
         en_ = zeros(0,1);
         efix_ = 0;
@@ -114,16 +116,23 @@ classdef IX_experiment < Goniometer
             id =obj.run_id_;
         end
         function obj = set.run_id(obj,val)
-            if ~isnumeric(val) || numel(val)>1
-                error('HERBERT:IX_experiment:invalid_argument',...
-                    'run_id can have only single numeric value. It is %s containing %d elements',...
-                    class(val),numel(val))
-            end
-            obj.run_id_ = val;
+            obj = check_and_set_id_prop(obj,val,'run_id_');
         end
+
+        function id = get.exper_id(obj)
+            if isempty(obj.exper_id_) % for compartibility
+                id =obj.run_id_;      % with old data containing run_id only.
+            else
+                id =obj.exper_id_;
+            end
+        end
+        function obj = set.exper_id(obj,val)
+            obj = check_and_set_id_prop(obj,val,'exper_id_');
+        end
+
         function ids = get_run_ids(obj)
             % retrieve all run_ids, which may be present in the array of
-            % rundata objects. 
+            % rundata objects.
             n_obj = numel(obj);
             ids = zeros(1,n_obj);
             for in=1:n_obj
@@ -139,7 +148,7 @@ classdef IX_experiment < Goniometer
             % used for finding particular element's position given its
             % run_id
             ind = 1:numel(obj);
-            ids = arrayfun(@(in)(obj(in).run_id_),ind);
+            ids = arrayfun(@(in)(obj(in).exper_id),ind);
             idmap = fast_map(ids,ind);
         end
         %
@@ -391,7 +400,7 @@ classdef IX_experiment < Goniometer
     properties(Constant,Access=private)
         % fields, which fully define IX_experiment part of the public
         % interface to the class
-        fields_to_save_ = {'filename','filepath','run_id','efix','emode','en'};
+        fields_to_save_ = {'filename','filepath','run_id','exper_id','efix','emode','en'};
     end
     methods
         function flds = saveableFields(obj)
@@ -420,7 +429,7 @@ classdef IX_experiment < Goniometer
 
         function ver  = classVersion(~)
             % return the version of the IX-experiment class
-            ver = 3;
+            ver = 4;
         end
         function obj = check_combo_arg(obj)
             % verify interdependent variables and the validity of the
@@ -446,6 +455,9 @@ classdef IX_experiment < Goniometer
                 % and recalculated on sqw object level
                 S.run_id = NaN;
 
+            end
+            if ver < 4
+                S.exper_id = S.run_id;
             end
             % version 3 does not save/load u_to_rlu, ulen, ulabel
             % These fields are redundant for instr_proj and moved
@@ -485,5 +497,17 @@ classdef IX_experiment < Goniometer
             obj = IX_experiment();
             obj = loadobj@serializable(S,obj);
         end
+    end
+    methods(Access=private)
+        function obj = check_and_set_id_prop(obj,val,name)
+            % helper setter used in setting run_id or exper_id
+            if ~isnumeric(val) || ~isscalar(val)
+                error('HERBERT:rundata:invalid_argument',...
+                    'property %s can have only single numeric value', ...
+                    name(1:end-1));
+            end
+            obj.(name) = val;
+        end
+
     end
 end
