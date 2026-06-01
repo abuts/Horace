@@ -51,7 +51,7 @@ function run_build() {
   local build_dir=$1
 
   echo -e "\nRunning build step..."
-  build_cmd="cmake --build ${build_dir}"
+  build_cmd="cmake --build --verbose ${build_dir}"
   echo_and_run "${build_cmd}"
 }
 

@@ -150,13 +150,6 @@ pipeline {
                 --matlab_release $MATLAB_VERSION \
                 --print_versions \
                 --configure
-              ls -l build/compile_commands.json
-
-              echo "Checking libstdc++ version symbols"
-              LIBSTDCPP=$(g++ -print-file-name=libstdc++.so)
-              echo "libstdc++ path: $LIBSTDCPP"
-
-              strings "$LIBSTDCPP" | grep GLIBCXX_3.4 || true
               '''
           } else {
             powershell '''
