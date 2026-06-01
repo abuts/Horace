@@ -62,14 +62,14 @@ function(pace_add_cpp_unit_test)
     # Create the test executable
     add_executable("${TEST_NAME}" "${TEST_SOURCES}")
     target_include_directories("${TEST_NAME}" PRIVATE "${CXX_SOURCE_DIR}")
-    target_link_libraries("${TEST_NAME}" gtest_main "${TEST_LIBRARIES}")
+    target_link_libraries("${TEST_NAME}" PRIVATE gtest_main "${TEST_LIBRARIES}")
     set_target_properties("${TEST_NAME}" PROPERTIES
         FOLDER "Tests"
         RUNTIME_OUTPUT_DIRECTORY "${TESTS_BIN_DIR}"
     )
     # If MEX_TEST flag was passed to function, link to Matlab libraries
     if("${TEST_MEX_TEST}")
-        target_link_libraries("${TEST_NAME}" "${Matlab_LIBRARIES}")
+        target_link_libraries("${TEST_NAME}" PRIVATE "${Matlab_LIBRARIES}")
         target_include_directories(
             "${TEST_NAME}" PRIVATE "${Matlab_INCLUDE_DIRS}")
     endif()
