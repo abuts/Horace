@@ -31,3 +31,6 @@ pace_add_cpp_unit_test(
     MEX_TEST
 )
 target_include_directories("${TEST_NAME}" PRIVATE "${MPI_CXX_INCLUDE_PATH}")
+target_link_options("${TEST_NAME}" PRIVATE
+    "-Wl,--no-as-needed"
+)
