@@ -49,7 +49,17 @@ function run_configure() {
 
 function run_build() {
   local build_dir=$1
-
+  echo -e "\nInvestigating enviroment:"
+  g++ -print-file-name=libstdc++.so.6
+  echo -e "\nlooking for libstdc:\n"  
+  find /usr -name 'libstdc++.so.6' 2>/dev/null  
+  
+  echo -e "\nrun readelf for libstdc:\n"    
+  readelf --version-info /opt/rh/gcc-toolset-13/root/usr/lib64/libstdc++.so.6 | grep GLIBCXX_3.4.26
+  
+  echo -e "\n looking for MATLAB stdc\n"
+  ldd /opt/modules-common/software/MATLAB/R2024a/bin/glnxa64/libut.so | grep stdc++
+  
   echo -e "\nRunning build step..."
   build_cmd="cmake --build ${build_dir} -v"
   echo_and_run "${build_cmd}"
