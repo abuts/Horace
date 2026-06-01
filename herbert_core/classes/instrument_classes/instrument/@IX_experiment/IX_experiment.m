@@ -60,7 +60,7 @@ classdef IX_experiment < Goniometer
         filename_=''
         filepath_='';
         run_id_ = NaN;
-        exper_id_ = 1;
+        exper_id_ = [];
         emode_ = 0;
         en_ = zeros(0,1);
         efix_ = 0;
@@ -423,7 +423,7 @@ classdef IX_experiment < Goniometer
             % the list of properties which define IX_experiment uniqueness
             % if hashes, build on these properties values are the same,
             % IX_experiments are considered the same
-            flds= {'filename','cu','cv','efix',...
+            flds= {'filename','cu','cv','run_id','efix',...
                 'psi', 'omega', 'dpsi', 'gl', 'gs'};
         end
 
@@ -457,7 +457,16 @@ classdef IX_experiment < Goniometer
 
             end
             if ver < 4
-                S.exper_id = S.run_id;
+                if isnan(S.run_id)
+                    S.exper_id = 1;
+                    wartining('HORACE:sqw:undefined_run_id', ...
+                        ['IX_experiment stored on disk does not have correct run-id(s)\n' ...
+                        'It is likely that relationship between IX_experiment and pixels are broken and resolution convolution does not work correctly\n' ...
+                        'Check https://pace-neutrons.github.io/Horace/unstable/manual/Data_diagnostics.html#instrument-view-cut\n' ...
+                        'on how to diagnose this issue.'])
+                else
+                    S.exper_id = S.run_id;
+                end
             end
             % version 3 does not save/load u_to_rlu, ulen, ulabel
             % These fields are redundant for instr_proj and moved
