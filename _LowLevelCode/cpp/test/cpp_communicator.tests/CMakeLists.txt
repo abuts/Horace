@@ -23,6 +23,8 @@ set(LIBS
     "${Matlab_MX_LIBRARY}"
 )
 
+target_include_directories("${TEST_NAME}" PRIVATE "${MPI_CXX_INCLUDE_PATH}")
+target_link_libraries("${TEST_NAME}" PRIVATE "${MPI_CXX_LIBRARIES}")
 
 pace_add_cpp_unit_test(
     NAME "${TEST_NAME}"
@@ -30,5 +32,3 @@ pace_add_cpp_unit_test(
     LIBRARIES "${LIBS}"
     MEX_TEST
 )
-target_include_directories("${TEST_NAME}" PRIVATE "${MPI_CXX_INCLUDE_PATH}")
-target_link_libraries("${TEST_NAME}" PRIVATE stdc++ "${MPI_CXX_LIBRARIES}")
