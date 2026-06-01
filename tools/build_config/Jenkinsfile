@@ -151,6 +151,7 @@ pipeline {
                 --print_versions \
                 --configure
               ls -l build/compile_commands.json
+              strings $(g++ -print-file-name=libstdc++.so) | grep GLIBCXX_3.4
               '''
           } else {
             powershell '''
