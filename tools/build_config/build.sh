@@ -52,13 +52,11 @@ function run_build() {
   echo -e "\nInvestigating enviroment:"
   g++ -print-file-name=libstdc++.so.6
   echo -e "\nlooking for libstdc:\n"  
-  find /usr -name 'libstdc++.so.6' 2>/dev/null  
-  
-  echo -e "\nrun readelf for libstdc:\n"    
-  readelf --version-info /opt/rh/gcc-toolset-13/root/usr/lib64/libstdc++.so.6 | grep GLIBCXX_3.4.26
-  
+  find /usr -name 'libstdc++.so.6' 2>/dev/null || true
+  echo -e "\nrun readelf for libstdc:\n"
+  readelf --version-info /opt/rh/gcc-toolset-13/root/usr/lib64/libstdc++.so.6 | grep GLIBCXX_3.4.26  || true
   echo -e "\n looking for MATLAB stdc\n"
-  ldd /opt/modules-common/software/MATLAB/R2024a/bin/glnxa64/libut.so | grep stdc++
+  ldd /opt/modules-common/software/MATLAB/R2024a/bin/glnxa64/libut.so | grep stdc++ || true
   
   echo -e "\nRunning build step..."
   build_cmd="cmake --build ${build_dir} -v"
