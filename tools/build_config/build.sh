@@ -48,26 +48,25 @@ function run_configure() {
 }
 
 function run_build() {
-  echo "MATLAB ROOT: $MATLAB_ROOT"
+  #echo "MATLAB ROOT: $MATLAB_ROOT"
   local build_dir=$1
-  echo -e "\nInvestigating enviroment:"
-  LIBSTDCPP=$(g++ -print-file-name=libstdc++.so.6)
-  echo "LIBSTDCPP: $LIBSTDCPP"
+  #echo -e "\nInvestigating enviroment:"
+  #LIBSTDCPP=$(g++ -print-file-name=libstdc++.so.6)
+  #echo "LIBSTDCPP: $LIBSTDCPP"
  
   
-  echo -e "\nrun readelf for libstdc:"
-  readelf --version-info "$LIBSTDCPP" | grep GLIBCXX_3.4.26 || true
+  #echo -e "\nrun readelf for libstdc:"
+  #readelf --version-info "$LIBSTDCPP" | grep GLIBCXX_3.4.26 || true
   
-  echo -e "\n looking for MATLAB stdc\n"
-  ldd "${MATLAB_ROOT}/bin/glnxa64/libut.so" | grep stdc++ || true
-  export LD_LIBRARY_PATH="${MATLAB_ROOT}/bin/glnxa64:${MATLAB_ROOT}/sys/os/glnxa64":${LD_LIBRARY_PATH:-}
-  echo -e "LD_LIBRARY PATH: $LD_LIBRARY_PATH"
-  echo -e "\nrun readelf for MATLAB libstdc:"
-  readelf --version-info "${MATLAB_ROOT}/sys/os/glnxa64/libstdc++.so.6" | grep GLIBCXX_3.4.26 || true
-
+  #echo -e "\n looking for MATLAB stdc\n"
+  #ldd "${MATLAB_ROOT}/bin/glnxa64/libut.so" | grep stdc++ || true
+  #export LD_LIBRARY_PATH="${MATLAB_ROOT}/bin/glnxa64:${MATLAB_ROOT}/sys/os/glnxa64":${LD_LIBRARY_PATH:-}
+  #echo -e "LD_LIBRARY PATH: $LD_LIBRARY_PATH"
+  #echo -e "\nrun readelf for MATLAB libstdc:"
+  #readelf --version-info "${MATLAB_ROOT}/sys/os/glnxa64/libstdc++.so.6" | grep GLIBCXX_3.4.26 || true
   
   echo -e "\nRunning build step..."
-  build_cmd="cmake --build ${build_dir} -v"
+  build_cmd="cmake --build ${build_dir}"
   echo_and_run "${build_cmd}"
 }
 
