@@ -62,6 +62,9 @@ function run_build() {
   ldd "${MATLAB_ROOT}/bin/glnxa64/libut.so" | grep stdc++ || true
   export LD_LIBRARY_PATH="${MATLAB_ROOT}/bin/glnxa64:${MATLAB_ROOT}/sys/os/glnxa64":${LD_LIBRARY_PATH:-}
   echo -e "LD_LIBRARY PATH: $LD_LIBRARY_PATH"
+  echo -e "\nrun readelf for MATLAB libstdc:"
+  readelf --version-info "${MATLAB_ROOT}/sys/os/glnxa64/libstdc++.so.6" | grep GLIBCXX_3.4.26 || true
+
   
   echo -e "\nRunning build step..."
   build_cmd="cmake --build ${build_dir} -v"
