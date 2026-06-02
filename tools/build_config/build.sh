@@ -60,7 +60,8 @@ function run_build() {
   
   echo -e "\n looking for MATLAB stdc\n"
   ldd "${MATLAB_ROOT}/bin/glnxa64/libut.so" | grep stdc++ || true
-  export LD_LIBRARY_PATH="${MATLAB_ROOT}/bin/glnxa64/":${LD_LIBRARY_PATH:-}
+  export LD_LIBRARY_PATH="${MATLAB_ROOT}/bin/glnxa64:${MATLAB_ROOT}/sys/os/glnxa64":${LD_LIBRARY_PATH:-}
+  echo -e "LD_LIBRARY PATH: $LD_LIBRARY_PATH"
   
   echo -e "\nRunning build step..."
   build_cmd="cmake --build ${build_dir} -v"
