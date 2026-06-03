@@ -16,6 +16,9 @@ endif()
 
 include(PACE_AddCppUnitTest)
 
+
+#if (UNIX AND DEFINED ENV{JENKINS_URL} AND DEFINED ENV{JENKINS_HOME} AND "${Matlab_RELEASE}" STREQUAL "R2024a")
+
 set(TEST_DIRECTORIES
     "cpp_communicator.tests"
     "utility.tests"
@@ -24,6 +27,8 @@ set(TEST_DIRECTORIES
     "mex_bin_plugin.tests"
     "sort_pixels_by_bins.tests"
 )
+
 foreach(_test_dir ${TEST_DIRECTORIES})
     add_subdirectory("${_test_dir}")
 endforeach(_test_dir)
+

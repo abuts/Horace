@@ -61,6 +61,9 @@ function(pace_add_cpp_unit_test)
 
     # Create the test executable
     add_executable("${TEST_NAME}" "${TEST_SOURCES}")
+    if(UNIX)
+      target_link_directories("${TEST_NAME}" PRIVATE "${Matlab_ROOT_DIR}/sys/os/glnxa64")
+    endif()
     target_include_directories("${TEST_NAME}" PRIVATE "${CXX_SOURCE_DIR}")
     target_link_libraries("${TEST_NAME}" PRIVATE gtest_main "${TEST_LIBRARIES}")
     set_target_properties("${TEST_NAME}" PROPERTIES

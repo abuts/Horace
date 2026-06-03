@@ -65,9 +65,8 @@ function run_build() {
   #echo -e "\nrun readelf for MATLAB libstdc:"
   #readelf --version-info "${MATLAB_ROOT}/sys/os/glnxa64/libstdc++.so.6" | grep GLIBCXX_3.4.26 || true
 
-  
   #echo -e "\nRunning build step..."
-  build_cmd="cmake --build ${build_dir} -v"
+  build_cmd="cmake --build ${build_dir}"
   echo_and_run "${build_cmd}"
 }
 
