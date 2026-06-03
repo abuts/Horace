@@ -25,7 +25,7 @@ Including this flag will link the test executable to the Matlab mex libraries.
 Example
 ^^^^^^^
 
-horace_add_unit_test(
+pace_add_unit_test(
     NAME "mytest.test"
     SOURCES "${MY_SRC_FILES}" "${MY_HDR_FILES}"
     LIBRARIES "${MY_LIB1}" "${MY_LIB2}"
@@ -61,9 +61,6 @@ function(pace_add_cpp_unit_test)
 
     # Create the test executable
     add_executable("${TEST_NAME}" "${TEST_SOURCES}")
-    if(UNIX)
-      target_link_directories("${TEST_NAME}" PRIVATE "${Matlab_ROOT_DIR}/sys/os/glnxa64")
-    endif()
     target_include_directories("${TEST_NAME}" PRIVATE "${CXX_SOURCE_DIR}")
     target_link_libraries("${TEST_NAME}" PRIVATE gtest_main "${TEST_LIBRARIES}")
     set_target_properties("${TEST_NAME}" PROPERTIES
