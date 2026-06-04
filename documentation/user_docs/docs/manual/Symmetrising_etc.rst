@@ -680,10 +680,11 @@ Combining
 
 .. code-block:: matlab
 
-   wout=combine_sqw(win)
+   wout=combine_sqw(win);
+   out=combine_sqw(w1,w2,w3,...,wN);
 
 
-Combine two ``sqw`` objects (``w1`` and ``w2``) of the same dimensionality into
+Combine two or more ``sqw`` objects (``w1`` and ``w2``) of the same dimensionality into
 a single ``sqw`` object in order to improve statistics and (optionally) expand dataset
 range combining input dataset ranges.
 
@@ -697,6 +698,10 @@ range combining input dataset ranges.
 
    Two objects which use different projection axes can be combined. The output
    object will have the projection axes of ``w1``.
+   The cut ranges and integration ranges will be expanded to cover
+   the range of all ``sqw`` objects to combine but the binning steps of the result
+   are equal to the binning steps of the first combined ``sqw`` object.
+   
 
 Rebinning
 =========
