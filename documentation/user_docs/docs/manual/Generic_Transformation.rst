@@ -549,13 +549,13 @@ Simple script which allows to produce result presented on the right side of pict
     cut1  = cut(source,proj1,cut_ranges{:});  % cut sqw object presented on image b1)
     cut2  = cut(source,proj2,cut_ranges{:});  % cut sqw object presented on image b2)  
     % combine cut1 and cut2 together producing final result.
-    wout  = sqw_op_bin_pixels({cut1,cut2},{[proj1,proj2]},proj1,cut_ranges{:},'-combine');
+    wout  = sqw_op_bin_pixels({cut1,cut2},@move_all_to_proj,{[proj1,proj2]},proj1,cut_ranges{:},'-combine');
     plot(wout); % plot image c)
     
  
 You have to combine cuts using ``sqw_op_bin_pixels`` with `-combine` option instead of symmetry operation if you have to edit one or both 
 contributing datasets. For example, you analysing 4-dimensional dataset, with two dimensional cuts presented on fig :numref:`fig-cut_with_symop_rot` below (subplot 1) 
-and want to combine the cuts in direction 1) ``[0,1,0]`` and 2) ``[1,0,0]`` to increase statistics.
+and want to combine the cuts in direction 1) ``[0,1,0]`` and 2) ``[1,0,0]`` to improve statistics and resolution.
 
 .. _fig-cut_with_symop_rot:
 
@@ -574,6 +574,8 @@ axis ``[0,0,1]`` passing through ``[1,1,0]`` point:
    rotOp = SymopRotation([0,0,1],90,[1,1,0]);
    CutProj = line_proj([0,1,0],[-1,0,0],'offset',[1,1,0]);
    w2_200sym = cut(src200sym,CutProj,0.02,other_ranges{:},rotOp);
+   
+Result of such operation is present on fig :numref:`fig-combine_cuts`, lef subplot.
 
 Unfortunately cut in direction  ``[1,0,0]`` contains spurion (subplot 3 on the fig :numref:`fig-cut_with_symop_rot`, spurion is marked by blue points),
 which is not very obvious but spoils the image and affects subsequent fits for this cut. In this situation you would make two separate cuts,
