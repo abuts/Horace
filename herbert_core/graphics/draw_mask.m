@@ -64,7 +64,25 @@ function [msk,varargout] = draw_mask(fig_info,varargin)
 
 persistent img_processing_toolbox_present;
 if isempty(img_processing_toolbox_present)
-    img_processing_toolbox_present = license('test','image_toolbox');
+    try
+        ss = poly2mask(1:2,2:3,2,2);
+        img_processing_toolbox_present = true;
+    catch err
+        img_processing_toolbox_present = false;
+        if strcmp(err.identifier,'MATLAB:ErrorRecovery:UnlicensedFunction')
+            is_available = license('test','image_toolbox');
+            if is_available
+                warning('HORACE:licensing_error',[ ...
+                    'Image processing toolobox is available but not installed.\n' ...
+                    'draw_mask fails to its basic functionality. Install image processing toolbox\n' ...
+                    'to access full draw_mask functionality'])
+            else
+                warning('HORACE:licensing_error',[ ...
+                    'Image processing toolobox is not available.\n' ...
+                    'draw_mask fails to its basic functionality.']);
+            end
+        end
+    end
 end
 
 options = {'mask_vertices','-freehand_draw','-keep_area','-test_fig_info','-disable_ipt'};
