@@ -553,7 +553,7 @@ Simple script which allows to produce result presented on the right side of pict
     plot(wout); % plot image c)
     
  
-You have to combine cuts using ``sqw_op_bin_pixels`` with `-combine` option instead of symmetry operation if you have to edit one or both 
+You would prefer to combine cuts using ``sqw_op_bin_pixels`` with `-combine` option instead of symmetry operation if you have to edit one or both 
 contributing datasets. For example, you analysing 4-dimensional dataset, with two dimensional cuts presented on fig :numref:`fig-cut_with_symop_rot` below (subplot 1) 
 and want to combine the cuts in direction 1) ``[0,1,0]`` and 2) ``[1,0,0]`` to improve statistics and resolution.
 
