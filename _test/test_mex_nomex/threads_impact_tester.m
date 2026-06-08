@@ -9,13 +9,13 @@ function t_omp = threads_impact_tester( ...
 %
 % Inputs:
 % logo     -- text string describing to user what test is running.
-% test_mode -- true or false. true ised in automated testing, false
+% test_mode -- true or false. true used in automated testing, false
 %              displays progress information to user.
 % lp        -- projection class used for transforming pixels
 % AB        -- AxesBlock class used for pixel bining.
 % pix       -- PixelDataMemory class used as input for processing routine
 %              and transformed according to lp and AB above
-% n_accum   -- 1 or 3 number of accumulators used in binning depending on
+% n_accum   -- 1 or 3 number of accumulators used in binning defining the
 %              test mode. 1 correspond to calculating contribution only and
 %              3 -- calculate npix, s and err contributions. 
 % n_add_out -- number of additional output variables. Defines what flavour 
@@ -28,10 +28,7 @@ function t_omp = threads_impact_tester( ...
 % t_opm     -- array of size n_repeats, containing execution times of the
 %              appropriate binning code. 
 %
-% this will recover existing configuration after test have been
-% finished and temporary mex/nomex values will be set within
-% the loop.
-%
+
 alignment = false;
 keys = {};
 if numel(varargin)>0
