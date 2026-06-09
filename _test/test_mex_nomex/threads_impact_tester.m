@@ -3,12 +3,32 @@ function t_omp = threads_impact_tester( ...
     lp,AB,pix, ...
     n_accum,n_add_out,n_threads,n_repeats, ...
     varargin)
-% this will recover existing configuration after test have been
-% finished and temporary mex/nomex values will be set within
-% the loop.
-
-
+% Helper function used in C++ performance tests to evaluate
+% performance of different flavour of binning code running with
+% different number of threads.
 %
+% Inputs:
+% logo     -- text string describing to user what test is running.
+% test_mode -- true or false. true used in automated testing, false
+%              displays progress information to user.
+% lp        -- projection class used for transforming pixels
+% AB        -- AxesBlock class used for pixel bining.
+% pix       -- PixelDataMemory class used as input for processing routine
+%              and transformed according to lp and AB above
+% n_accum   -- 1 or 3 number of accumulators used in binning defining the
+%              test mode. 1 correspond to calculating contribution only and
+%              3 -- calculate npix, s and err contributions. 
+% n_add_out -- number of additional output variables. Defines what flavour 
+%              of binning algorithm should be tested.
+% n_threads -- number of OMP threads used by algorithm to test.
+% n_repeats -- how many times to repeat the test to collect good statistics
+%              and estimate dependence of performance on random input data
+%              and OS conditions.
+% Returns:
+% t_opm     -- array of size n_repeats, containing execution times of the
+%              appropriate binning code. 
+%
+
 alignment = false;
 keys = {};
 if numel(varargin)>0

@@ -257,7 +257,7 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
                 obj.n_threads, ...
                 n_points, ...
                 obj.n_repeats, ... n_repeats
-                false... sort pixels                
+                false... sort pixels
                 );
         end
         function [t_nomex,t_mex,t_omp] = test_mex_nomex_mode0(obj)
@@ -283,6 +283,7 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
     end
     methods(Static)
         function [AB,n_points]=prepare_clean_bin_data(nbins_all_dims)
+            % prepare input parameters for binning data using AxesBlock class
             if nargin == 0
                 nbins_all_dims = [50,1,50,1];
             end
@@ -292,6 +293,8 @@ classdef test_bin_pixels_mex_nomex_all_modes < TestCase
         end
 
         function [lp,ab,pix,n_points]=prepare_lp_bin_data()
+            % prepare input data for binning pixels using projection class
+            %
             ab = line_axes('nbins_all_dims',[50,1,50,1], ...
                 'img_range',[-1,-1,-1,0;1,0.8,1,0.8]);  % large pix contribution
             %'img_range',[0,0,0,0;1,0.8,1,0.8]);  % low pixel contribution

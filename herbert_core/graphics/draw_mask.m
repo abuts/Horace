@@ -92,7 +92,7 @@ if ~ok
     error('HORACE:draw_mask:invalid_argument',mess);
 end
 use_ipt = img_processing_toolbox_present&&~disable_ipt;
-if ~use_ipt && ~mask_vertices_provided
+if ~use_ipt && ~mask_vertices_provided && ~test_fig_info
     error('HORACE:draw_mask:invalid_argument', ...
         ['Image processing toolbox is necessary to draw mask manually.\n' ...
         ' If it is not present, provide array of mask points']);
