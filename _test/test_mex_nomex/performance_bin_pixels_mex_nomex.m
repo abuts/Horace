@@ -424,7 +424,7 @@ classdef performance_bin_pixels_mex_nomex
             %  [npix,s,e] = lp.bin_pixels(AB,pix,npix,s,e);
             [lp,AB,pix,n_points] = obj.prepare_lp_bin_data();
             [t_nomex,t_mex,t_omp] = common_lp_tester( ...
-                "*** Mex/nomex proj performance mode2 (bin pix, calc npix):", ...
+                "*** Mex/nomex proj performance mode0 (bin pix, calc npix):", ...
                 false, ... performance mode
                 lp,AB,pix,3, ... n_accum
                 0, ...  n_add_outputs
@@ -468,7 +468,7 @@ classdef performance_bin_pixels_mex_nomex
             [lp,AB,pix,n_points]=obj.prepare_lp_bin_data();
             [t_nomex,t_mex,t_omp] = common_lp_tester( ...
                 "*** Mex/nomex proj performance mode0 (bin pix, calc npix):", ...
-                false, ... test mode
+                false, ... performance mode
                 lp,AB,pix,1, ... n_accum
                 0, ...  n_add_outputs
                 obj.n_threads, ...
@@ -489,7 +489,7 @@ classdef performance_bin_pixels_mex_nomex
             [AB,n_points]=obj.prepare_clean_bin_data();
             [t_nomex,t_mex,t_omp] = common_ab_tester( ...
                 "*** Mex/nomex performance mode0 (bin coord, calc npix):", ...
-                false, ... test mode
+                false, ... performance mode
                 AB,1, ... n_accum
                 0, ...  n_add_inputs
                 0, ...  n_add_outputs
@@ -506,7 +506,7 @@ classdef performance_bin_pixels_mex_nomex
             %*** first step:    nomex: 0.51(sec)  mex: 0.22(sec);  omp: 0.037(sec); Acc :  2.3/  14/ 6.1
             %*** Avrg per step: nomex: 0.51(sec)  mex: 0.22(sec);  omp: 0.037(sec); Acc :  2.3/  14/ 5.9
         end
-        function [t_omp1,t_omp] = check_omp_scaling(obj)
+       function [t_omp1,t_omp] = check_omp_scaling(obj)
             % Method to test how C++ code performance scales with
             % number of OMP threads.
             clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
@@ -540,7 +540,7 @@ classdef performance_bin_pixels_mex_nomex
                 %     ns, ...
                 %     n_repeats ... n_repeats
                 %     );
-                %
+                % 
                 t_omp1(ns) = t_omp_all(1);
                 t_omp(ns) = sum(t_omp_all)/n_repeats;
                 dt = t_omp_all-t_omp(ns);
