@@ -146,7 +146,7 @@ example. First we generate a QE slice such as the one below</p>
 <a class="reference internal image-reference" href="../_images/Fe_slice.jpg"><img alt="../_images/Fe_slice.jpg" src="../_images/Fe_slice.jpg" style="width: 500px;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Selected QE slice</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 3.1 </span><span class="caption-text">Selected QE slice</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>We can now use <code class="docutils literal notranslate"><span class="pre">run_inspector</span></code> to plot a series of slices that come from a
@@ -155,21 +155,21 @@ single contributing dataset, shown below.</p>
 <a class="reference internal image-reference" href="../_images/Fe_slice_run_inspector_1.jpg"><img alt="../_images/Fe_slice_run_inspector_1.jpg" src="../_images/Fe_slice_run_inspector_1.jpg" style="width: 500px;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Frame 1 in run inspector</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 3.2 </span><span class="caption-text">Frame 1 in run inspector</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id3">
 <a class="reference internal image-reference" href="../_images/Fe_slice_run_inspector_11.jpg"><img alt="../_images/Fe_slice_run_inspector_11.jpg" src="../_images/Fe_slice_run_inspector_11.jpg" style="width: 500px;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Frame 11 in run inspector</span><a class="headerlink" href="#id3" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 3.3 </span><span class="caption-text">Frame 11 in run inspector</span><a class="headerlink" href="#id3" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id4">
 <a class="reference internal image-reference" href="../_images/Fe_slice_run_inspector_21.jpg"><img alt="../_images/Fe_slice_run_inspector_21.jpg" src="../_images/Fe_slice_run_inspector_21.jpg" style="width: 500px;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Frame 21 in run inspector</span><a class="headerlink" href="#id4" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 3.4 </span><span class="caption-text">Frame 21 in run inspector</span><a class="headerlink" href="#id4" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>
@@ -208,13 +208,13 @@ These artefacts will have spherical symmetry around the beam direction. To clear
 </pre></div>
 </div>
 <p>Where <em>sqw_source</em> is an source <code class="docutils literal notranslate"><span class="pre">sqw</span></code> object with pixels, and two other arguments define binning in two directions. <code class="docutils literal notranslate"><span class="pre">theta</span></code> – the angle between beam and detector directions and <code class="docutils literal notranslate"><span class="pre">En</span></code> are the energy transfer values.
-The algorithm makes the cut in the spherical coordinate system wich z-axis is aligned along the beam direction.
+The algorithm makes the cut in the spherical coordinate system which z-axis is aligned along the beam direction.
 According to Horace agreement, beam in Horace is directed along <span class="math notranslate nohighlight">\(e_{x}\)</span> coordinate or direction <span class="math notranslate nohighlight">\(\vec{u}\)</span> of the crystal (see Chapter on <a class="reference internal" href="Generating_SQW_files.html#generating-sqw-files"><span class="std std-ref">Generating SQW files</span></a> for details):</p>
 <figure class="align-center" id="id5">
 <a class="reference internal image-reference" href="../_images/kf_sphere_coordinate_system.png"><img alt="../_images/kf_sphere_coordinate_system.png" src="../_images/kf_sphere_coordinate_system.png" style="width: 500px;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Spherical coordinate system aligned with the beam and used by <code class="docutils literal notranslate"><span class="pre">instrument_view_cut</span></code>.</span><a class="headerlink" href="#id5" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 3.5 </span><span class="caption-text">Spherical coordinate system aligned with the beam and used by <code class="docutils literal notranslate"><span class="pre">instrument_view_cut</span></code>.</span><a class="headerlink" href="#id5" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>The algorithm processes whole <code class="docutils literal notranslate"><span class="pre">sqw</span></code> source so takes a while to complete. Picture below shows the result
@@ -224,7 +224,7 @@ There are various instrument artefacts clearly observable on the images. The noi
 <a class="reference internal image-reference" href="../_images/InstrumentView_issues.png"><img alt="../_images/InstrumentView_issues.png" src="../_images/InstrumentView_issues.png" style="width: 1200px;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Various issues identified on instrument view.</span><a class="headerlink" href="#id6" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 3.6 </span><span class="caption-text">Various issues identified on instrument view.</span><a class="headerlink" href="#id6" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>The best way of dealing with these kind of issues if they can not be clearly observable from a single run is to use Mantid
@@ -286,12 +286,13 @@ to add together all workspaces intended to use as Horace source data, display th
 <p>despite the cut is performed over whole instrument ranges. This indicates subtle issue in Horace <code class="docutils literal notranslate"><span class="pre">sqw</span></code> files,
 where they lost synchronization between pixels information and information about crystal orientation.
 To clarify this issue exactly, one may run <code class="docutils literal notranslate"><span class="pre">instrument_view_cut</span></code> with <code class="docutils literal notranslate"><span class="pre">-check_correspondence</span></code> option.</p>
-<div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">wout</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">instrument_view_cut</span><span class="p">(</span><span class="n">source_sqw</span><span class="p">,[</span><span class="mi">0</span><span class="p">,</span><span class="mf">0.2</span><span class="p">,</span><span class="mi">140</span><span class="p">],[],</span><span class="s">&#39;-check_correspondence&#39;</span><span class="p">);</span>
+<div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="n">wout</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">instrument_view_cut</span><span class="p">(</span><span class="n">source_sqw</span><span class="p">,[</span><span class="mi">0</span><span class="p">,</span><span class="mi">140</span><span class="p">],[],</span><span class="s">&#39;-check_correspondence&#39;</span><span class="p">);</span>
 <span class="nb">plot</span><span class="p">(</span><span class="n">wout</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>This option force 2D cut in <span class="math notranslate nohighlight">\(|k_{f}|\)</span> - <span class="math notranslate nohighlight">\(dE\)</span> coordinates. As these values are connected by
-arithmetic relationship, the cut in these coordinates should represent a line. If one see a 2-dimensional image instead,
+<p>This option force 2D cut in <span class="math notranslate nohighlight">\(|k_{f}|\)</span> - <span class="math notranslate nohighlight">\(dE\)</span> coordinates. Binning in <span class="math notranslate nohighlight">\(\theta\)</span> direction is ignored
+but integration range in <span class="math notranslate nohighlight">\(\theta\)</span> direction is respected. As  <span class="math notranslate nohighlight">\(|k_{f}|\)</span> - <span class="math notranslate nohighlight">\(dE\)</span> are connected by
+arithmetic relationship, the cut in these coordinates should become a line. If one see a 2-dimensional image instead,
 the correspondence between pixel information describing neutron “pseudo-events” and experiment information describing
 runs and crystal orientation is violated. The following figure represents two <code class="docutils literal notranslate"><span class="pre">sqw</span></code> datasets, where the first one
 was build with correct correspondence between experiment and pixels information and the second one – where
@@ -300,11 +301,11 @@ this correspondence have been broken.</p>
 <a class="reference internal image-reference" href="../_images/InstrumetViewCut_kf_dE_coordinates.png"><img alt="../_images/InstrumetViewCut_kf_dE_coordinates.png" src="../_images/InstrumetViewCut_kf_dE_coordinates.png" style="width: 1200px;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Correct – a) and broken – b) relationship between experiment information and pixels information.</span><a class="headerlink" href="#id7" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 3.7 </span><span class="caption-text">Correct – a) and broken – b) relationship between experiment information and pixels information.</span><a class="headerlink" href="#id7" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<p>The dataset with broken pixel-experiment correspondence can be cut, sliced and multifitted, but Tobyfit would not
-produce correct result on it. To use Tobyfit, one needs to rebuild such <code class="docutils literal notranslate"><span class="pre">sqw</span></code> dataser using Horace-4. If you do not
+<p>The dataset with broken pixel-experiment correspondence can be cut, sliced and multi-fitted, but Tobyfit would not
+produce correct result on it. To use Tobyfit, one needs to rebuild such <code class="docutils literal notranslate"><span class="pre">sqw</span></code> dataset using Horace-4. If you do not
 have original data to reproduce such <code class="docutils literal notranslate"><span class="pre">sqw</span></code> dataset and need to use Tobyfit, contact <a class="reference external" href="mailto:HoraceHelp&#37;&#52;&#48;stfc&#46;ac&#46;uk">HoraceHelp<span>&#64;</span>stfc<span>&#46;</span>ac<span>&#46;</span>uk</a>. The team should
 be able to help you rebuilding such <code class="docutils literal notranslate"><span class="pre">sqw</span></code> dataset.</p>
 </section>
@@ -322,7 +323,7 @@ be able to help you rebuilding such <code class="docutils literal notranslate"><
 
   <div role="contentinfo">
     <p>&#169; Copyright 2006-2026, STFC RAL.
-      <span class="lastupdated">Last updated on Feb 4, 2026, 11:12:22 AM.
+      <span class="lastupdated">Last updated on Jun 8, 2026, 11:21:17 AM.
       </span></p>
   </div>
 
