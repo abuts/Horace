@@ -359,8 +359,10 @@ if nindx==1
         disp('--------------------------------------------------------------------------------')
     end
 else
-    % set up exper_id-s to make unique binding: pixel<->contributing run
-    run_files = set_up_unique_exper_id(run_files);
+    if opt.replicate && ~spe_unique
+        % set up exper_id-s to make unique binding: pixel<->contributing run
+        run_files = set_up_unique_exper_id(run_files);
+    end    
     
     keep_par_cl_running = ~opt.tmp_only || nargout>3;
 
