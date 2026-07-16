@@ -240,5 +240,4 @@ end
 % more then 5 outputs apparently requested to obtain sorted pixels
 loc_unique   = unique(pix_ok.run_idx);
 unique_runid = unique([unique_runid,loc_unique]);
-
 end
