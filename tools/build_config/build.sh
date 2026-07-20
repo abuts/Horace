@@ -41,6 +41,8 @@ function run_configure() {
   cmake_cmd+=" -DCMAKE_BUILD_TYPE=${build_config}"
   cmake_cmd+=" -DBUILD_TESTING=${build_tests}"
   cmake_cmd+=" -DMatlab_RELEASE=${matlab_release}"
+  cmake_cmd+=" -DCMAKE_C_COMPILER=$(which gcc)"
+  cmake_cmd+=" -DCMAKE_CXX_COMPILER=$(which g++)"
   cmake_cmd+=" ${cmake_flags}"
 
   echo -e "\nRunning CMake configure step..."
@@ -66,7 +68,7 @@ function run_build() {
   #readelf --version-info "${MATLAB_ROOT}/sys/os/glnxa64/libstdc++.so.6" | grep GLIBCXX_3.4.26 || true
 
   #echo -e "\nRunning build step..."
-  build_cmd="cmake --build ${build_dir}"
+  build_cmd="cmake --build ${build_dir} -v"
   echo_and_run "${build_cmd}"
 }
 

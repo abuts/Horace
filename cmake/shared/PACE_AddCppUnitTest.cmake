@@ -62,16 +62,25 @@ function(pace_add_cpp_unit_test)
     # Create the test executable
     add_executable("${TEST_NAME}" "${TEST_SOURCES}")
     target_include_directories("${TEST_NAME}" PRIVATE "${CXX_SOURCE_DIR}")
-    target_link_libraries("${TEST_NAME}" PRIVATE gtest_main "${TEST_LIBRARIES}")
     set_target_properties("${TEST_NAME}" PROPERTIES
         FOLDER "Tests"
         RUNTIME_OUTPUT_DIRECTORY "${TESTS_BIN_DIR}"
     )
     # If MEX_TEST flag was passed to function, link to Matlab libraries
+    MESSAGE("TEST_LIBRARIES: ${TEST_LIBRARIES}")
     if("${TEST_MEX_TEST}")
-        target_link_libraries("${TEST_NAME}" PRIVATE "${Matlab_LIBRARIES}")
+	    #target_link_options("${TEST_NAME}" PRIVATE -nostdlib)
+        target_link_libraries("${TEST_NAME}" PRIVATE
+                 gtest_main
+		 gtest
+		"${TEST_LIBRARIES}"
+	       	"${Matlab_LIBRARIES}"
+		 stdc++
+	)
         target_include_directories(
             "${TEST_NAME}" PRIVATE "${Matlab_INCLUDE_DIRS}")
+    else()
+        target_link_libraries("${TEST_NAME}" PRIVATE gtest_main ${TEST_LIBRARIES})
     endif()
 
     # Prefix test name with cpp. to give easy regex for running only C++ tests
@@ -97,6 +106,13 @@ function(pace_add_cpp_unit_test)
                 VS_DEBUGGER_ENVIRONMENT
                     "PATH=${Matlab_DLL_DIR};%PATH%\n${_proj_root_upper}=${${PROJECT_NAME}_ROOT}"
         )
+    else()
+         get_filename_component(COMPILER_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+         set_target_properties("${TEST_NAME}"
+            PROPERTIES
+	    BUILD_RPATH "${COMPILER_DIR}/../lib64"
+        )
+
     endif()
 
 endfunction()
