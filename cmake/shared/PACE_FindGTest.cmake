@@ -88,6 +88,8 @@ endforeach()
 # The gtest/gtest_main targets carry header search path dependencies
 # automatically when using CMake 2.8.11 or later. Otherwise we have to add them
 # here ourselves.
-#if (CMAKE_VERSION VERSION_LESS 2.8.11)
+#if (CMAKE_VERSION VERSION_LESS 2.8.11) 
+# Re #1945 21/07/2026. Does not work with cmake 4.2 again? Or may be gtest version is too old for
+#  it to recognize so enabled again pending checks for newer gtest and cmake compartibility with it
 include_directories("${gtest_SOURCE_DIR}/include")
 #endif()

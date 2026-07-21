@@ -66,22 +66,6 @@ function(pace_add_cpp_unit_test)
         FOLDER "Tests"
         RUNTIME_OUTPUT_DIRECTORY "${TESTS_BIN_DIR}"
     )
-    # If MEX_TEST flag was passed to function, link to Matlab libraries
-    MESSAGE("TEST_LIBRARIES: ${TEST_LIBRARIES}")
-    if("${TEST_MEX_TEST}")
-	    #target_link_options("${TEST_NAME}" PRIVATE -nostdlib)
-        target_link_libraries("${TEST_NAME}" PRIVATE
-                 gtest_main
-		 gtest
-		"${TEST_LIBRARIES}"
-	       	"${Matlab_LIBRARIES}"
-		 stdc++
-	)
-        target_include_directories(
-            "${TEST_NAME}" PRIVATE "${Matlab_INCLUDE_DIRS}")
-    else()
-        target_link_libraries("${TEST_NAME}" PRIVATE gtest_main ${TEST_LIBRARIES})
-    endif()
 
     # Prefix test name with cpp. to give easy regex for running only C++ tests
     set(_full_test_name "cpp.${TEST_NAME}")
@@ -106,13 +90,32 @@ function(pace_add_cpp_unit_test)
                 VS_DEBUGGER_ENVIRONMENT
                     "PATH=${Matlab_DLL_DIR};%PATH%\n${_proj_root_upper}=${${PROJECT_NAME}_ROOT}"
         )
+        SET(ADD_STD_LIB "")
     else()
          get_filename_component(COMPILER_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
          set_target_properties("${TEST_NAME}"
             PROPERTIES
-	    BUILD_RPATH "${COMPILER_DIR}/../lib64"
+            BUILD_RPATH "${COMPILER_DIR}/../lib64"
         )
+        SET(ADD_STD_LIB "stdc++")
 
     endif()
+    # If MEX_TEST flag was passed to function, link to Matlab libraries
+    MESSAGE("TEST_LIBRARIES: ${TEST_LIBRARIES}")
+    if("${TEST_MEX_TEST}")
+        #target_link_options("${TEST_NAME}" PRIVATE -nostdlib)
+        target_link_libraries("${TEST_NAME}" PRIVATE
+            gtest_main
+            gtest
+            "${TEST_LIBRARIES}"
+            "${Matlab_LIBRARIES}"
+            "${ADD_STD_LIB}"
+            )
+        target_include_directories(
+            "${TEST_NAME}" PRIVATE "${Matlab_INCLUDE_DIRS}")
+    else()
+        target_link_libraries("${TEST_NAME}" PRIVATE gtest_main ${TEST_LIBRARIES})
+    endif()
+    
 
 endfunction()
