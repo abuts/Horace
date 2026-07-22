@@ -93,11 +93,17 @@ function(pace_add_cpp_unit_test)
         SET(ADD_STD_LIB "")
     else()
          get_filename_component(COMPILER_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
-         set_target_properties("${TEST_NAME}"
-            PROPERTIES
-            BUILD_RPATH "${COMPILER_DIR}/../lib64"
-        )
-        SET(ADD_STD_LIB "stdc++")
+	 set_target_properties("${TEST_NAME}"
+	    PROPERTIES
+	    BUILD_RPATH "${COMPILER_DIR}/../lib64"
+	 )
+	 #set_target_properties("${TEST_NAME}"
+	 #   PROPERTIES
+	 #   BUILD_RPATH "${Matlab_DLL_DIR}"
+	 #   )
+	SET(ADD_STD_LIB "stdc++")
+	#SET(ADD_STD_LIB "")
+
 
     endif()
     # If MEX_TEST flag was passed to function, link to Matlab libraries
