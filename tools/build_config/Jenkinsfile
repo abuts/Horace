@@ -121,19 +121,19 @@ pipeline {
         script {
           echo "Job name AAA: ${env.JOB_NAME}"
           echo "JOB_NAME length: ${env.JOB_NAME.length()}"
-          echo "JOB_NAME codepoints: ${env.JOB_NAME.codePoints().toArray().collect { Integer.toHexString(it) }.join(' ')}"
           echo "contains 2024a? ${env.JOB_NAME.contains('2024a')}"
+          echo "MATLAB module: ${env.MATLAB_MODULE}"
           
           //Jenkins pipeline from 22/07/2026 can build C++ mex/test files for MATLAB 2024a
           // with gcc-10 only (needs libstdc++.so.6.0.28) and for MATLAB 2024b-2026a 
           // with gcc-12 only (needs libstdc++.so.6.0.30). The if block below hardcodes this
           // dependency into Jenkins workflow
 
-          if (env.JOB_NAME.contains('2024a')){
+          if (env.MATLAB_MODULE.contains('2024a')){
                  env.GCC_VERSION = '10.3.0'
-          }else if (env.JOB_NAME.contains('2024b') || 
-                    env.JOB_NAME.contains('2025')  ||
-                    env.JOB_NAME.contains('2026')){
+          }else if (env.MATLAB_MODULE.contains('2024b') || 
+                    env.MATLAB_MODULE.contains('2025')  ||
+                    env.MATLAB_MODULE.contains('2026')){
                  env.GCC_VERSION = '12.3.0'
           }else{
                  env.GCC_VERSION = '10'
