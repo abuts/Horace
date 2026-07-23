@@ -124,32 +124,33 @@ pipeline {
           // with gcc-12 only (needs libstdc++.so.6.0.30). The if block below hardcodes this
           // dependency into Jenkins workflow
           if (env.NODE_LABELS.contains('2024a')){
-                 env.GCC_VERSION = '10'
-          }else if (env.NODE_LABELS.contains('2025b')){
-                 env.GCC_VERSION = '12'
+                 env.GCC_VERSION = '10.3.0'
+          }else if (env.NODE_LABELS.contains('2024b') || 
+                    env.NODE_LABELS.contains('2025')  ||
+                    env.NODE_LABELS.contains('2026')){
+                 env.GCC_VERSION = '12.3.0'
           }
 
           if (env.BUILD_DOCS?.toBoolean()) {
             // Limiting sphinxcontrib-matlabdomain version due to use of Python 3.8 features in latest
             if (isUnix()) {
               sh '''
-            module load python/\$PYTHON_VERSION &&
-            python -m pip install --user --upgrade pip &&
-            python -m pip install --user sphinx &&
-            python -m pip install --user sphinx_rtd_theme &&
-            python -m pip install --user sphinxcontrib-matlabdomain==0.14.1
-            '''
+              module load python/\$PYTHON_VERSION &&
+              python -m pip install --user --upgrade pip &&
+              python -m pip install --user sphinx &&
+              python -m pip install --user sphinx_rtd_theme &&
+              python -m pip install --user sphinxcontrib-matlabdomain==0.14.1
+              '''
             } else {
               powershell '''
-             pip install --user sphinx
-             pip install --user sphinx_rtd_theme
-             pip install --user sphinxcontrib-matlabdomain==0.14.1
-            '''
+              pip install --user sphinx
+              pip install --user sphinx_rtd_theme
+              pip install --user sphinxcontrib-matlabdomain==0.14.1
+              '''
             }
           }
           if (isUnix()) {
             sh '''
-              
               module load python/\$PYTHON_VERSION
               export PATH="${PATH}:$HOME$/.local/bin"
               module load cmake/\$CMAKE_VERSION
@@ -161,7 +162,7 @@ pipeline {
                 --matlab_release $MATLAB_VERSION \
                 --print_versions \
                 --configure
-              '''
+            '''
           } else {
             powershell '''
               ./tools/build_config/build.ps1 \
