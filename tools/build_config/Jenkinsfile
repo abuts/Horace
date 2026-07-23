@@ -372,6 +372,13 @@ pipeline {
             failIfNotNew: false,
             skipNoTestFiles: true,
             stopProcessingIfError: true
+          )
+        ]
+      )
+
+    }
+
+    success {
       post_github_status("success", "The build succeeded")
       run_integration_test(env.PR_COMMIT_SHA)
     }
