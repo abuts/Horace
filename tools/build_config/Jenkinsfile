@@ -120,25 +120,22 @@ pipeline {
       steps {
         script {
           echo "Job name AAA: ${env.JOB_NAME}"
-          
           //Jenkins pipeline from 22/07/2026 can build C++ mex/test files for MATLAB 2024a
           // with gcc-10 only (needs libstdc++.so.6.0.28) and for MATLAB 2024b-2026a 
           // with gcc-12 only (needs libstdc++.so.6.0.30). The if block below hardcodes this
-          // dependency into Jenkins workflow
+          // dependency into Jenkins workflow          
           def gccVersion = env.GCC_VERSION
           if (env.JOB_NAME.contains('2024a')){
-                 echo "setting gcc to 10.3.0"
                  gccVersion = '10.3.0'
           }else if (env.JOB_NAME.contains('2024b') || 
                     env.JOB_NAME.contains('2025')  ||
                     env.JOB_NAME.contains('2026')){
                  gccVersion = '12.3.0'
           }
-          echo "Selected GCC version => ${gccVersion}"
+
           withEnv(["GCC_VERSION=${gccVersion}"]){
           if (isUnix()) {
             sh '''
-              echo "New Script 2: gcc version: $GCC_VERSION"
               module load python/\$PYTHON_VERSION
               export PATH="${PATH}:$HOME/.local/bin"
               module load cmake/\$CMAKE_VERSION
