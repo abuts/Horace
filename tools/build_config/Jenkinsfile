@@ -119,8 +119,11 @@ pipeline {
     stage('Configure') {
       steps {
         script {
-          echo "Job name XXX: ${env.JOB_NAME}"
-          echo "Labels: ${env.NODE_LABELS}"
+          echo "Job name AAA: ${env.JOB_NAME}"
+          echo "JOB_NAME length: ${env.JOB_NAME.length()}"
+          echo "JOB_NAME codepoints: ${env.JOB_NAME.codePoints().toArray().collect { Integer.toHexString(it) }.join(' ')}"
+          echo "contains 2024a? ${env.JOB_NAME.contains('2024a')}"
+          
           //Jenkins pipeline from 22/07/2026 can build C++ mex/test files for MATLAB 2024a
           // with gcc-10 only (needs libstdc++.so.6.0.28) and for MATLAB 2024b-2026a 
           // with gcc-12 only (needs libstdc++.so.6.0.30). The if block below hardcodes this
@@ -139,7 +142,7 @@ pipeline {
             
           if (isUnix()) {
             sh '''
-              echo "New Script: gcc version: $GCC_VERSION"
+              echo "New Script 1: gcc version: $GCC_VERSION"
               module load python/\$PYTHON_VERSION
               export PATH="${PATH}:$HOME/.local/bin"
               module load cmake/\$CMAKE_VERSION
