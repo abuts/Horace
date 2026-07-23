@@ -95,7 +95,7 @@ pipeline {
     MATLAB_VERSION = utilities.get_param('MATLAB_VERSION', pli.matlab_release)
     MATLAB_MODULE = utilities.get_param('MATLAB_VERSION', pli.matlab_release.minus('R'))
     CMAKE_VERSION = utilities.get_param('CMAKE_VERSION', 'latest')
-    GCC_VERSION = utilities.get_param('GCC_VERSION', '10')
+    GCC_VERSION = utilities.get_param('GCC_VERSION', '10.3')
     PYTHON_VERSION = utilities.get_param('PYTHON_VERSION', '3.8')
     VS_VERSION = utilities.get_param('VS_VERSION', '2019')
     CPPCHECK_VERSION = utilities.get_param('CPPCHECK_VERSION', '2.13')
@@ -151,6 +151,7 @@ pipeline {
           }
           if (isUnix()) {
             sh '''
+              echo "gcc version: $GCC_VERSION"
               module load python/\$PYTHON_VERSION
               export PATH="${PATH}:$HOME$/.local/bin"
               module load cmake/\$CMAKE_VERSION
