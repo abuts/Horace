@@ -95,7 +95,7 @@ pipeline {
     MATLAB_VERSION = utilities.get_param('MATLAB_VERSION', pli.matlab_release)
     MATLAB_MODULE = utilities.get_param('MATLAB_VERSION', pli.matlab_release.minus('R'))
     CMAKE_VERSION = utilities.get_param('CMAKE_VERSION', 'latest')
-    GCC_VERSION = utilities.get_param('GCC_VERSION', '13')
+    GCC_VERSION = utilities.get_param('GCC_VERSION', '10')
     PYTHON_VERSION = utilities.get_param('PYTHON_VERSION', '3.8')
     VS_VERSION = utilities.get_param('VS_VERSION', '2019')
     CPPCHECK_VERSION = utilities.get_param('CPPCHECK_VERSION', '2.13')
@@ -119,6 +119,16 @@ pipeline {
     stage('Configure') {
       steps {
         script {
+          //Jenkins pipeline from 22/07/2026 can build C++ mex/test files for MATLAB 2024a
+          // with gcc-10 only (needs libstdc++.so.6.0.28) and for MATLAB 2024b-2026a 
+          // with gcc-12 only (needs libstdc++.so.6.0.30). The if block below hardcodes this
+          // dependency into Jenkins workflow
+          if (env.NODE_LABELS.contains('2024a')){
+                 env.GCC_VERSION = '10'
+          }else if (env.NODE_LABELS.contains('2025b')){
+                 env.GCC_VERSION = '12'
+          }
+
           if (env.BUILD_DOCS?.toBoolean()) {
             // Limiting sphinxcontrib-matlabdomain version due to use of Python 3.8 features in latest
             if (isUnix()) {
@@ -139,6 +149,7 @@ pipeline {
           }
           if (isUnix()) {
             sh '''
+              
               module load python/\$PYTHON_VERSION
               export PATH="${PATH}:$HOME$/.local/bin"
               module load cmake/\$CMAKE_VERSION
@@ -361,13 +372,6 @@ pipeline {
             failIfNotNew: false,
             skipNoTestFiles: true,
             stopProcessingIfError: true
-          )
-        ]
-      )
-
-    }
-
-    success {
       post_github_status("success", "The build succeeded")
       run_integration_test(env.PR_COMMIT_SHA)
     }
