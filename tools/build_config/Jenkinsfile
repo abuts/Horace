@@ -95,7 +95,7 @@ pipeline {
     MATLAB_VERSION = utilities.get_param('MATLAB_VERSION', pli.matlab_release)
     MATLAB_MODULE = utilities.get_param('MATLAB_VERSION', pli.matlab_release.minus('R'))
     CMAKE_VERSION = utilities.get_param('CMAKE_VERSION', 'latest')
-    GCC_VERSION = utilities.get_param('GCC_VERSION', '13')
+    GCC_VERSION = utilities.get_param('GCC_VERSION', '10')
     PYTHON_VERSION = utilities.get_param('PYTHON_VERSION', '3.8')
     VS_VERSION = utilities.get_param('VS_VERSION', '2019')
     CPPCHECK_VERSION = utilities.get_param('CPPCHECK_VERSION', '2.13')
@@ -119,28 +119,25 @@ pipeline {
     stage('Configure') {
       steps {
         script {
-          if (env.BUILD_DOCS?.toBoolean()) {
-            // Limiting sphinxcontrib-matlabdomain version due to use of Python 3.8 features in latest
-            if (isUnix()) {
-              sh '''
-            module load python/\$PYTHON_VERSION &&
-            python -m pip install --user --upgrade pip &&
-            python -m pip install --user sphinx &&
-            python -m pip install --user sphinx_rtd_theme &&
-            python -m pip install --user sphinxcontrib-matlabdomain==0.14.1
-            '''
-            } else {
-              powershell '''
-             pip install --user sphinx
-             pip install --user sphinx_rtd_theme
-             pip install --user sphinxcontrib-matlabdomain==0.14.1
-            '''
-            }
+          echo "Job name AAA: ${env.JOB_NAME}"
+          //Jenkins pipeline from 22/07/2026 can build C++ mex/test files for MATLAB 2024a
+          // with gcc-10 only (needs libstdc++.so.6.0.28) and for MATLAB 2024b-2026a 
+          // with gcc-12 only (needs libstdc++.so.6.0.30). The if block below hardcodes this
+          // dependency into Jenkins workflow          
+          def gccVersion = env.GCC_VERSION
+          if (env.JOB_NAME.contains('2024a')){
+                 gccVersion = '10.3.0'
+          }else if (env.JOB_NAME.contains('2024b') || 
+                    env.JOB_NAME.contains('2025')  ||
+                    env.JOB_NAME.contains('2026')){
+                 gccVersion = '12.3.0'
           }
+
+          withEnv(["GCC_VERSION=${gccVersion}"]){
           if (isUnix()) {
             sh '''
               module load python/\$PYTHON_VERSION
-              export PATH="${PATH}:$HOME$/.local/bin"
+              export PATH="${PATH}:$HOME/.local/bin"
               module load cmake/\$CMAKE_VERSION
               module load matlab/\$MATLAB_MODULE
               module load gcc/\$GCC_VERSION
@@ -150,8 +147,7 @@ pipeline {
                 --matlab_release $MATLAB_VERSION \
                 --print_versions \
                 --configure
-              ls -l build/compile_commands.json
-              '''
+            '''
           } else {
             powershell '''
               ./tools/build_config/build.ps1 \
@@ -162,6 +158,27 @@ pipeline {
                 -configure
           '''
           }
+          }
+
+          if (env.BUILD_DOCS?.toBoolean()) {
+            // Limiting sphinxcontrib-matlabdomain version due to use of Python 3.8 features in latest
+            if (isUnix()) {
+              sh '''
+              module load python/\$PYTHON_VERSION &&
+              python -m pip install --user --upgrade pip &&
+              python -m pip install --user sphinx &&
+              python -m pip install --user sphinx_rtd_theme &&
+              python -m pip install --user sphinxcontrib-matlabdomain==0.14.1
+              '''
+            } else {
+              powershell '''
+              pip install --user sphinx
+              pip install --user sphinx_rtd_theme
+              pip install --user sphinxcontrib-matlabdomain==0.14.1
+              '''
+            }
+          }
+
         }
       }
     }

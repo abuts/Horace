@@ -36,7 +36,7 @@ if nargin==0 || ~ischar(varargin{1})
 elseif strcmpi(varargin{1},'start')
     if nargin==2
         if isnumeric(varargin{2}) && isscalar(varargin{2})
-            start_saved=mod(1e5*cos(1e4*(start_default+2*start_default*sqrt(3.96664/pi^1.002344)*varargin{end})),1);
+            start_saved=mod(1e5*cos(1e4*(start_default+2*start_default*sqrt(3.96664/pi^1.002344)*varargin{2})),1);
         else
             error('Seed must be numeric scalar')
         end
@@ -57,7 +57,7 @@ else
 end
 
 % Get output array size
-if numel(varargin)==1
+if isscalar(varargin)
     sz=varargin{1};
     if isscalar(sz)
         sz=sz*[1,1];

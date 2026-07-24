@@ -88,7 +88,7 @@ function [tmp_file,grid_size,data_range,varargout] = gen_sqw (spe_file, par_file
 %                  [0,1,0], and [0,0,1] (see symmeterise_sqw for details)
 % Output:
 % --------
-%   tmp_file        Cell array with list of temporary files created by this call to gen_sqw.
+%   tmp_file       Cell array with list of temporary files created by this call to gen_sqw.
 %                  If only one input spe file, then no temporary file created, and tmp_file
 %                  is an empty cell array.
 %   grid_size      Actual size of grid used (size is unity along dimensions
