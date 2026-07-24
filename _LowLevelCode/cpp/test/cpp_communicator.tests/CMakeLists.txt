@@ -18,11 +18,12 @@ set(HDR_FILES
     "${CXX_SOURCE_DIR}/utility/environment.h"
 )
 #
+
 set(LIBS
+    "${MPI_CXX_LIBRARIES}"
     "${Matlab_UT_LIBRARY}"
     "${Matlab_MX_LIBRARY}"
 )
-
 
 pace_add_cpp_unit_test(
     NAME "${TEST_NAME}"
@@ -31,4 +32,4 @@ pace_add_cpp_unit_test(
     MEX_TEST
 )
 target_include_directories("${TEST_NAME}" PRIVATE "${MPI_CXX_INCLUDE_PATH}")
-target_link_libraries("${TEST_NAME}" "${MPI_CXX_LIBRARIES}")
+

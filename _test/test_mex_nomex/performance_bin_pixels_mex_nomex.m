@@ -1,5 +1,6 @@
 classdef performance_bin_pixels_mex_nomex
-    % Series of tests to check work of mex files against Matlab files
+    % Series of tests to check performance of mex files against Matlab
+    % files
 
     properties
         this_folder;
@@ -88,7 +89,6 @@ classdef performance_bin_pixels_mex_nomex
             end
             % [npix,s,e,is_sel] =...
             %     lp.bin_pixels(AB,pix,npix,s,e,'-selected_only');
-
             [lp,AB,pix,n_points] = obj.prepare_lp_bin_data();
             pix.run_idx  =  500+floor(100*rand(1,n_points));
             [t_nomex,t_mex,t_omp] = common_lp_tester( ...
@@ -506,7 +506,55 @@ classdef performance_bin_pixels_mex_nomex
             %*** first step:    nomex: 0.51(sec)  mex: 0.22(sec);  omp: 0.037(sec); Acc :  2.3/  14/ 6.1
             %*** Avrg per step: nomex: 0.51(sec)  mex: 0.22(sec);  omp: 0.037(sec); Acc :  2.3/  14/ 5.9
         end
+       function [t_omp1,t_omp] = check_omp_scaling(obj)
+            % Method to test how C++ code performance scales with
+            % number of OMP threads.
+            clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
+
+            [lp,AB,pix,n_points]=obj.prepare_lp_bin_data();
+            pix.run_idx  =  500+floor(100*rand(1,n_points));
+            al_matr = rotvec_to_rotmat([10,20,15]);
+
+            n_threads_max = 30;
+            n_repeats = 5;
+            t_omp1 = zeros(1,n_threads_max);
+            t_omp  = zeros(1,n_threads_max);
+            for ns = 1:n_threads_max
+                % Test mosf often used pixel binning method (cut)
+                t_omp_all = threads_impact_tester( ...
+                    "*** Proj mex/nomex performance mode7 (bin nosort + unique runid + img idx):", ...
+                    true, ... test mode
+                    lp,AB,pix, ...
+                    4, ... n_accum
+                    2, ... n_add_outputs
+                    ns, ... number of thread to test.
+                    n_repeats, ... n_repeats
+                    al_matr);
+                % Test most ofhen used direct binning method
+                % t_omp_all = threads_impact_tester( ...
+                %     "*** Mex/nomex proj performance mode2 (bin pix, calc npix):", ...
+                %     true, ... test_mode
+                %     lp,AB,pix, ...
+                %     3, ... n_accum
+                %     0, ...  n_add_outputs
+                %     ns, ...
+                %     n_repeats ... n_repeats
+                %     );
+                % 
+                t_omp1(ns) = t_omp_all(1);
+                t_omp(ns) = sum(t_omp_all)/n_repeats;
+                dt = t_omp_all-t_omp(ns);
+                mm = min_max(dt);
+                fprintf( ...
+                    '*** n_threads = %d; first step:  %4.2g(sec); avrg: %4.2g(sec)%4.2g+%4.2g; Acc : %4.2g/%4.2g\n', ...
+                    ns,t_omp1(ns),t_omp(ns),mm(1),mm(2), ...
+                    t_omp1(1)/t_omp1(ns),t_omp1(1)/t_omp(ns));
+            end
+
+        end
         function [t_nomex,t_mex,t_omp] = profile_proj_mex_nomex_mode8_nosort_id_idx_sel(obj)
+            % Detailed performance test for a cpecific performance test
+            % Convenient to use while debugging/profiling the code.
             if obj.no_mex
                 skipTest('Can not test mex code to check binning against mex');
             end
@@ -576,6 +624,7 @@ classdef performance_bin_pixels_mex_nomex
     end
     methods(Static)
         function [AB,n_points]=prepare_clean_bin_data(nbins_all_dims)
+            % prepare input parameters for binning data using AxesBlock class
             if nargin == 0
                 nbins_all_dims = [50,1,50,1];
             end
@@ -585,6 +634,8 @@ classdef performance_bin_pixels_mex_nomex
         end
 
         function [lp,ab,pix,n_points]=prepare_lp_bin_data()
+            % prepare input data for binning pixels using projection class
+            %
             ab = line_axes('nbins_all_dims',[50,1,50,1], ...
                 'img_range',[-1,-1,-1,0;1,0.8,1,0.8]);  % large pix contribution
             %'img_range',[0,0,0,0;1,0.8,1,0.8]);  % low pixel contribution

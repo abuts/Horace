@@ -25,7 +25,7 @@ Including this flag will link the test executable to the Matlab mex libraries.
 Example
 ^^^^^^^
 
-horace_add_unit_test(
+pace_add_unit_test(
     NAME "mytest.test"
     SOURCES "${MY_SRC_FILES}" "${MY_HDR_FILES}"
     LIBRARIES "${MY_LIB1}" "${MY_LIB2}"
@@ -62,17 +62,10 @@ function(pace_add_cpp_unit_test)
     # Create the test executable
     add_executable("${TEST_NAME}" "${TEST_SOURCES}")
     target_include_directories("${TEST_NAME}" PRIVATE "${CXX_SOURCE_DIR}")
-    target_link_libraries("${TEST_NAME}" gtest_main "${TEST_LIBRARIES}")
     set_target_properties("${TEST_NAME}" PROPERTIES
         FOLDER "Tests"
         RUNTIME_OUTPUT_DIRECTORY "${TESTS_BIN_DIR}"
     )
-    # If MEX_TEST flag was passed to function, link to Matlab libraries
-    if("${TEST_MEX_TEST}")
-        target_link_libraries("${TEST_NAME}" "${Matlab_LIBRARIES}")
-        target_include_directories(
-            "${TEST_NAME}" PRIVATE "${Matlab_INCLUDE_DIRS}")
-    endif()
 
     # Prefix test name with cpp. to give easy regex for running only C++ tests
     set(_full_test_name "cpp.${TEST_NAME}")
@@ -97,6 +90,38 @@ function(pace_add_cpp_unit_test)
                 VS_DEBUGGER_ENVIRONMENT
                     "PATH=${Matlab_DLL_DIR};%PATH%\n${_proj_root_upper}=${${PROJECT_NAME}_ROOT}"
         )
+        SET(ADD_STD_LIB "")
+    else()
+         get_filename_component(COMPILER_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+	 set_target_properties("${TEST_NAME}"
+	    PROPERTIES
+	    BUILD_RPATH "${COMPILER_DIR}/../lib64"
+	 )
+	 #set_target_properties("${TEST_NAME}"
+	 #   PROPERTIES
+	 #   BUILD_RPATH "${Matlab_DLL_DIR}"
+	 #   )
+	SET(ADD_STD_LIB "stdc++")
+	#SET(ADD_STD_LIB "")
+
+
     endif()
+    # If MEX_TEST flag was passed to function, link to Matlab libraries
+    MESSAGE("TEST_LIBRARIES: ${TEST_LIBRARIES}")
+    if("${TEST_MEX_TEST}")
+        #target_link_options("${TEST_NAME}" PRIVATE -nostdlib)
+        target_link_libraries("${TEST_NAME}" PRIVATE
+            gtest_main
+            gtest
+            "${TEST_LIBRARIES}"
+            "${Matlab_LIBRARIES}"
+            "${ADD_STD_LIB}"
+            )
+        target_include_directories(
+            "${TEST_NAME}" PRIVATE "${Matlab_INCLUDE_DIRS}")
+    else()
+        target_link_libraries("${TEST_NAME}" PRIVATE gtest_main ${TEST_LIBRARIES})
+    endif()
+    
 
 endfunction()

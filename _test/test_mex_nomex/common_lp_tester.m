@@ -3,10 +3,47 @@ function [t_nomex,t_mex,t_omp] = common_lp_tester( ...
     lp,AB,pix, ...
     n_accum,n_add_out,n_threads,n_points,n_repeats, ...
     sort_pixels,varargin)
+% Helper function used in C++ performance tests to evaluate
+% performance of different flavour of binning code in wrt MATLAB code
+% C++ serial code and C++ OMP code.
+%
+% Inputs:
+% logo      -- text string describing to user what test is running.
+% test_mode -- true or false. true used in automated testing, false
+%              displays progress information to user and used in manual
+%              performance testing. Also, if true, results produced at
+%              each iteration by MATLAB, C++ and OMP C++ are compared with
+%              each other to ensure equivalence. if false, only final
+%              results are compared.
+% lp        -- projection class used for transforming pixels
+% AB        -- AxesBlock class used for pixel bining.
+% pix       -- PixelDataMemory class used as input for processing routine
+%              and transformed according to lp and AB above
+% n_accum   -- 1 or 3 number of accumulators used in binning defining the
+%              test mode. 1 correspond to calculating contribution only and
+%              3 -- calculate npix, s and err contributions. 
+% n_add_out -- number of additional output variables. Defines what flavour 
+%              of binning algorithm should be tested.
+% n_threads -- number of OMP threads used by algorithm to test.
+% n_repeats -- how many times to repeat the test to collect good statistics
+%              and estimate dependence of performance on random input data
+%              and OS conditions.
+% sort_pixels-- if true, algorithm should also sort resulting pixels 
+% varargin   -- optional parameters to pass through to the tested binning
+%               algorithms.
+% 
+% Returns:
+% t_nomex  -- array of size n_repeats, containing execution times for the
+%             MATLAB code
+% t_nomex  -- array of size n_repeats, containing execution times for the
+%             cerial C++ code
+% t_opm    -- array of size n_repeats, containing execution times of the
+%             OMP C++ code.
+%
+
 % this will recover existing configuration after test have been
 % finished and temporary mex/nomex values will be set within
 % the loop.
-
 clObHor = set_temporary_config_options(hor_config, 'use_mex', false);
 clObPar = set_temporary_config_options(parallel_config, 'threads', 1,'min_npix_for_omp_cut',0);
 %
@@ -93,7 +130,7 @@ if ~test_mode
         assertEqualToTol(acc_nomex{j},acc_mex{j},'tol',[1.e-9,1.e-9])
         assertEqualToTol(acc_nomex{j},acc_omp{j},'tol',[1.e-9,1.e-9])
     end
-    add_acc_pos = [5];
+    add_acc_pos = 5;
     for j=4:n_tout
         if n_accum>3 && ismember(j,add_acc_pos) % accumulator
             continue;

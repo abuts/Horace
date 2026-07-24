@@ -3,6 +3,11 @@ function [msk,varargout] = draw_mask(fig_info,varargin)
 %mask which excludes selected part of the image.
 % Resulting mask may be used by 'mask' function to remove selected areas
 % of sqw, d2d or IX_dataset_2D objects
+% Usage:
+% >>msk = draw_mask(fig_info);
+% >>[msk,ax,mask_vertices] = draw_mask(fig_info);
+% >>[msk,ax,mask_vertices] = draw_mask(fig_info);
+% >>[msk,ax,mask_vertices] = draw_mask(fig_info,'mask_vertices',mask_vertices);
 %
 %Inputs:
 % fig_info  -- either:
@@ -24,10 +29,12 @@ function [msk,varargout] = draw_mask(fig_info,varargin)
 %                      surrounding masked points. The coordinates of these
 %                      points have to be expressed in image coordinates.
 %  IMPORTANT:
-%                       This key disables image drawing capability and is
-%                       mandatory if image processing toolbox is not
-%                       present. In this case, one needs to measure and
-%                       provide mask points manualy.
+%                      This key disables image drawing capability and is
+%                      mandatory if image processing toolbox is not
+%                      present. In this case, one needs to manualy read
+%                      points from image and record the values to construct
+%                      provide array of mask vertices using 'mask_vertices'
+%                      option.
 %
 % '-freehand_draw'   -- use MATLAB "drawfreehand" routine to draw mask on
 %                       the image provided. If this key is not provided,
@@ -51,10 +58,31 @@ function [msk,varargout] = draw_mask(fig_info,varargin)
 %              mask is build on Horace object rather than image. Result of
 %              drawpolygon or drawfreehand function containing polygon
 %              vertices if input is graphical object.
+%              These vertices may be used later to provide input for
+%              draw_mask command to reproduce mask without drawing it
+%              again.
 
 persistent img_processing_toolbox_present;
 if isempty(img_processing_toolbox_present)
-    img_processing_toolbox_present = license('test','image_toolbox');
+    try
+        ss = poly2mask(1:2,2:3,2,2);
+        img_processing_toolbox_present = true;
+    catch err
+        img_processing_toolbox_present = false;
+        if strcmp(err.identifier,'MATLAB:ErrorRecovery:UnlicensedFunction')
+            is_available = license('test','image_toolbox');
+            if is_available
+                warning('HORACE:licensing_error',[ ...
+                    'Image processing toolobox is available but not installed.\n' ...
+                    'draw_mask fails to its basic functionality. Install image processing toolbox\n' ...
+                    'to access full draw_mask functionality'])
+            else
+                warning('HORACE:licensing_error',[ ...
+                    'Image processing toolobox is not available.\n' ...
+                    'draw_mask fails to its basic functionality.']);
+            end
+        end
+    end
 end
 
 options = {'mask_vertices','-freehand_draw','-keep_area','-test_fig_info','-disable_ipt'};
@@ -64,7 +92,7 @@ if ~ok
     error('HORACE:draw_mask:invalid_argument',mess);
 end
 use_ipt = img_processing_toolbox_present&&~disable_ipt;
-if ~use_ipt && ~mask_vertices_provided
+if ~use_ipt && ~mask_vertices_provided && ~test_fig_info
     error('HORACE:draw_mask:invalid_argument', ...
         ['Image processing toolbox is necessary to draw mask manually.\n' ...
         ' If it is not present, provide array of mask points']);
