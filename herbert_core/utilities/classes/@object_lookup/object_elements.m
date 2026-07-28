@@ -6,22 +6,22 @@ function A = object_elements (obj, varargin)
 %
 % Input:
 % ------
-%   obj         object_lookup object containing one or more object arrays
+%   obj        object_lookup object containing one or more object arrays
 %
-%   iarray      Scalar index of the original object array from the
+%   iarray     Scalar index of the original object array from the
 %              cell array of object arrays from which the object lookup
 %              was created.
-%               If there was only one object array, then iarray is not
+%              If there was only one object array, then iarray is not
 %              necessary (as it assumed iarray=1)
 %
-%   ind         Array containing indices of objects in the original
+%   ind        Array containing indices of objects in the original
 %              object array referred to by iarray, from which to extract
 %              elements. min(ind(:))>=1, max(ind(:))<=number of objects
 %              in the object array selected by iarray
 %
 % Output:
 % -------
-%   A           Object array obtained by indexing elements ind from the
+%   A          Object array obtained by indexing elements ind from the
 %              original array corresponding to index iarray
 
 

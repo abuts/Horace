@@ -16,7 +16,6 @@ function [obj,hash,is_calculated] = build_hash(obj)
 is_calculated = true;
 % get config to use use_mex
 use_mex = config_store.instance().get_value('hor_config','use_mex');
-persistent Engine;
 % In case the java engine is going to be used, initialise it as
 % a persistent object
 if isa(obj,'uint8')
@@ -29,7 +28,7 @@ if use_mex
     % mex version to be used, use it
     hash = GetMD5(bytestream);
 else
-
+    persistent Engine;
     if isempty(Engine)
         Engine = java.security.MessageDigest.getInstance('MD5');
     end
@@ -50,5 +49,5 @@ else
     hash2 = dec2hex(hash1);
     hash3 = cellstr(hash2);
     hash4 = horzcat(hash3{:});
-    hash = lower(hash4); 
+    hash = lower(hash4);
 end
