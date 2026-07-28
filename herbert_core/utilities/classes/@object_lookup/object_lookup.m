@@ -573,7 +573,7 @@ classdef object_lookup < serializable
             end
             [~, sorted_idx] = sort(object_hashes);
             obj.object_store_ = obj.object_store_(sorted_idx);
-            [present, inverse_idx] = ismember(1:Nobj, sorted_idx);
+            [~, inverse_idx] = ismember(1:Nobj, sorted_idx);
 
             for ii=1:numel(obj.indx)
                 for jj=1:numel(obj.indx{ii})
