@@ -53,7 +53,7 @@ classdef rundata < serializable
         % object generation. if the property have not been set explicitly,
         % it is equal to run_id. Property is not saveable as makes sence
         % only if used in gen_sqw
-        exper_id;
+        ds_num;
         % fully defined rundata need all necessary requested fields to be
         % defined. When data loaded from nxspe, alatt, angdeg,
         % and may be psi can remain undefined and need to be defined
@@ -95,7 +95,7 @@ classdef rundata < serializable
         %
         run_id_ = [];
         %
-        exper_id_ = [];
+        ds_num_ = [];
         %
         isvalid_ = false; % empty rundata is invalid if allow_invalid is true
         allow_invalid_ = true; % we can construct invalid rundata
@@ -362,18 +362,18 @@ classdef rundata < serializable
             obj = check_and_set_id_prop(obj,val,'run_id_');
         end
         %
-        function id = get.exper_id(obj)
-            if isempty(obj.exper_id_)
+        function id = get.ds_num(obj)
+            if isempty(obj.ds_num_)
                 id = obj.run_id;
                 if  isempty(id) || isnan(id)
                     id = 1;
                 end
             else
-                id = obj.exper_id_;
+                id = obj.ds_num_;
             end
         end
-        function obj = set.exper_id(obj,val)
-            obj = check_and_set_id_prop(obj,val,'exper_id_');
+        function obj = set.ds_num(obj,val)
+            obj = check_and_set_id_prop(obj,val,'ds_num_');
         end
         %
         function loader=get.loader(obj)

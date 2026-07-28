@@ -24,8 +24,11 @@ classdef IX_experiment < Goniometer
         filename; % name of the file which was the source of data for this
         %         % experiment
         filepath; % path where the experiment data were initially stored
-        run_id;   % the identifier, which uniquely defines instrument run
-        exper_id; % the identifier, which uiquely identifies this experiment.
+        run_id;   % The identifier, which uniquely defines the run where 
+        %         % the experiment data came from.
+        ds_num;   % The identifier, which uiquely identifies this dataset.
+        %         % as part of all datasets or runs contributed into the
+        %         % sqw object these data came from.
         %         % This identifier is also stored within the PixelData,
         %         % providing connection between the particular pixel and
         %         % the particuar experiment info, pointing to appropriate
@@ -60,7 +63,7 @@ classdef IX_experiment < Goniometer
         filename_=''
         filepath_='';
         run_id_ = NaN;
-        exper_id_ = [];
+        ds_num_ = [];
         emode_ = 0;
         en_ = zeros(0,1);
         efix_ = 0;
@@ -119,15 +122,15 @@ classdef IX_experiment < Goniometer
             obj = check_and_set_id_prop(obj,val,'run_id_');
         end
 
-        function id = get.exper_id(obj)
-            if isempty(obj.exper_id_) % for compartibility
+        function id = get.ds_num(obj)
+            if isempty(obj.ds_num_) % for compartibility
                 id =obj.run_id_;      % with old data containing run_id only.
             else
-                id =obj.exper_id_;
+                id =obj.ds_num_;
             end
         end
-        function obj = set.exper_id(obj,val)
-            obj = check_and_set_id_prop(obj,val,'exper_id_');
+        function obj = set.ds_num(obj,val)
+            obj = check_and_set_id_prop(obj,val,'ds_num_');
         end
 
         function ids = get_run_ids(obj)
@@ -148,7 +151,7 @@ classdef IX_experiment < Goniometer
             % used for finding particular element's position given its
             % run_id
             ind = 1:numel(obj);
-            ids = arrayfun(@(in)(obj(in).exper_id),ind);
+            ids = arrayfun(@(in)(obj(in).ds_num),ind);
             idmap = fast_map(ids,ind);
         end
         %
@@ -400,7 +403,7 @@ classdef IX_experiment < Goniometer
     properties(Constant,Access=private)
         % fields, which fully define IX_experiment part of the public
         % interface to the class
-        fields_to_save_ = {'filename','filepath','run_id','exper_id','efix','emode','en'};
+        fields_to_save_ = {'filename','filepath','run_id','ds_num','efix','emode','en'};
     end
     methods
         function flds = saveableFields(obj)
@@ -458,14 +461,14 @@ classdef IX_experiment < Goniometer
             end
             if ver < 4
                 if isnan(S.run_id)
-                    S.exper_id = 1;
+                    S.ds_num = 1;
                     wartining('HORACE:sqw:undefined_run_id', ...
                         ['IX_experiment stored on disk does not have correct run-id(s)\n' ...
                         'It is likely that relationship between IX_experiment and pixels are broken and resolution convolution does not work correctly\n' ...
                         'Check https://pace-neutrons.github.io/Horace/unstable/manual/Data_diagnostics.html#instrument-view-cut\n' ...
                         'on how to diagnose this issue.'])
                 else
-                    S.exper_id = S.run_id;
+                    S.ds_num = S.run_id;
                 end
             end
             % version 3 does not save/load u_to_rlu, ulen, ulabel
@@ -509,7 +512,7 @@ classdef IX_experiment < Goniometer
     end
     methods(Access=private)
         function obj = check_and_set_id_prop(obj,val,name)
-            % helper setter used in setting run_id or exper_id
+            % helper setter used in setting run_id or ds_num
             if ~isnumeric(val) || ~isscalar(val)
                 error('HERBERT:rundata:invalid_argument',...
                     'property %s can have only single numeric value', ...
