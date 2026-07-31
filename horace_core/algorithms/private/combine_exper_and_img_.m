@@ -1,5 +1,5 @@
 function [dnd_data,exper_combined,run_id_array,mhc] = combine_exper_and_img_( ...
-    experiments,img_metadata,inputs,allow_equal_headers,keep_runid, ...
+    experiments,img_metadata,inputs,allow_equal_headers, ...
     job_dp,hor_log_level)
 %COMBINE_EXPER_AND_IMG_  checks consistency of DnD image and combines input
 %image data and experiment data together
@@ -15,9 +15,6 @@ function [dnd_data,exper_combined,run_id_array,mhc] = combine_exper_and_img_( ..
 %                  all experiment data should belong to different runs. If
 %                  the runs found to be the same, throws invalid_argument
 %                  exception
-% keep_runid    -- if true, keep run_id-s already defined in input
-%                  experiment data. If false recalculate all experiments
-%                  from 1 to number of contributing runs
 % job_dp        -- instance of job dispatcher, containing references to
 %                  running cluster to combine images in parallel. If empty,
 %                  no parallel combining.
@@ -37,7 +34,7 @@ img_range = check_img_consistency_(img_metadata,filenames);
 %     spe data inputs
 %   - emode, lattice parameters, u, v, sample must be the same for all spe
 %     data inputs.
-[exper_combined,nspe,run_id_array] = experiments{1}.combine_experiments(experiments(2:end),allow_equal_headers,keep_runid);
+[exper_combined,nspe,run_id_array] = experiments{1}.combine(experiments(2:end),allow_equal_headers);
 
 
 %  Build combined header

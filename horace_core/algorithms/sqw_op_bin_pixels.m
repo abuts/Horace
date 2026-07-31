@@ -199,7 +199,7 @@ if combine_inputs && n_inputs > 1
     wout.data.s = zeros(1,numel(npix));
     wout.data.e = zeros(1,numel(npix));
     wout.pix = pix_all;
-    wout.experiment_info = exper{1}.combine_experiments(exper(2:end),true,true);
+    wout.experiment_info = exper{1}.combine(exper(2:end),true,true);
     wout.data.do_check_combo_arg = true;
     is_sqw   = true; % single sqw object containing combine information
     wout = {wout};   % further code expects cellarray

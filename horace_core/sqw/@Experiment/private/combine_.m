@@ -1,4 +1,4 @@
-function [obj,nspe,run_id_array] = combine_experiments_(obj,exp_cellarray,allow_equal_headers,keep_runid)
+function [obj,nspe,run_id_array] = combine_(obj,exp_cellarray,allow_equal_headers)
 %COMBINE_EXPEERIMENTS_
 % Take cellarray of experiments (e.g., generated from each runfile build
 % during gen_sqw generation)
@@ -16,11 +16,6 @@ function [obj,nspe,run_id_array] = combine_experiments_(obj,exp_cellarray,allow_
 %                  equal for two spe data input. If allow_equal_headers is
 %                  set to true, this check is disabled
 %
-% keep_runid    -- if true, the procedure keeps run_id-s
-%                  defined for contributing experiments.
-%                  if false, the run-ids are reset from 1 for
-%                  first contributed run to n_runs for the last
-%                  contributing run (nxspe file)
 % Returns:
 % obj           -- Experiment class containing combined input
 %                  experiments
@@ -30,13 +25,13 @@ function [obj,nspe,run_id_array] = combine_experiments_(obj,exp_cellarray,allow_
 %                  input run
 if numel(obj)>1
     error('HORACE:Experiment:invalid_argument', ...
-        ['combine_experiments accepts only single Experiment object to add other experiments to.' ...
+        ['combine accepts only single Experiment object to add other experiments to.' ...
         ' Provided array of Experiments'])
 end
 nspe = obj.n_runs;
 if isempty(exp_cellarray)|| numel(exp_cellarray)== 0
     expinfo    = obj.expdata;    
-    [~,run_id_array]    = expinfo.combine(exp_cellarray,allow_equal_headers,keep_runid,obj.runid_map);
+    [~,run_id_array]    = expinfo.combine(exp_cellarray,allow_equal_headers,obj.runid_map);
     return;
 end
 if isa(exp_cellarray,'Experiment')
@@ -57,7 +52,7 @@ end
 
 %detectors = []; % default empty detectors until the unique_references_containers are activated.
 expinfo    = obj.expdata;
-[expinfo,run_id_array,skipped_runs]    = expinfo.combine(exp_cellarray,allow_equal_headers,keep_runid,obj.runid_map);
+[expinfo,run_id_array,skipped_runs]    = expinfo.combine(exp_cellarray,allow_equal_headers,obj.runid_map);
 
 
 instr   = obj.instruments;

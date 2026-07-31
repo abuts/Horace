@@ -138,7 +138,7 @@ set(hor_config,'log_level',-1);
 wout.pix = PixelDataBase.cat(pix{:});
 
 % combine experiments from contributing files. Cut should drop duplicates
-wout.experiment_info = exper{1}.combine_experiments(exper(2:end),true,true);
+wout.experiment_info = exper{1}.combine(exper(2:end),true,true);
 
 
 % completely break relationship between bins and pixels in memory and make

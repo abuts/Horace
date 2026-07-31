@@ -9,14 +9,15 @@ classdef Experiment < serializable
         samples          % Container with references to samples
         expdata          % array, containing information about each run,
         %                  contributing into experiment
-
-        % the property defines the relationship between
-        % the runid, contained in expdata and the position of the object
-        % with this runid in the appropriate container (e.g. expdata
-        % container but also correspondent samples instrument and (TODO:)
-        % detector_arrays
-        runid_map;
+        % the map which connects header number
+        % with the number of header(ixexper_id), stored in pixels
+        % connexts runid_pixel->header_number
+        ixexper_id_map;
         %
+    end
+    properties(Dependent,Hidden)
+        % legacy prperty which is equivalent to exper_num_map
+        runid_map;
     end
 
     properties(Access=private)
@@ -351,7 +352,7 @@ classdef Experiment < serializable
             exp = get_experiments_(obj,ind);
         end
         %
-        function [exp,nspe,file_id_array] = combine_experiments(obj,exp_cellarray,allow_equal_headers,keep_runid)
+        function [exp,nspe,file_id_array] = combine(obj,exp_cellarray,allow_equal_headers)
             %COMBINE_EXPRIMENTS
             % Take cellarray of experiments (e.g., generated from each runfile build
             % during gen_sqw generation)
@@ -367,11 +368,6 @@ classdef Experiment < serializable
             %     equal for two spe data input. If allow_equal_headers is
             %     set to true, this check is disabled
             %
-            % keep_runid    -- if true, the procedure keeps run_id-s
-            %                  defined for contributing experiments.
-            %                  if false, the run-ids are reset from 1 for
-            %                  first contributed run to n_runs for the
-            %                  last contributing run (nxspe file)
             % Returns:
             % exp           -- Experiment class containing combined input
             %                  experiments
@@ -380,7 +376,7 @@ classdef Experiment < serializable
             % file_id_array -- array of final run_id-s for all input nxspe.
             %                  one id per input run
 
-            [exp,nspe,file_id_array] = combine_experiments_(obj,exp_cellarray,allow_equal_headers,keep_runid);
+            [exp,nspe,file_id_array] = combine_(obj,exp_cellarray,allow_equal_headers);
         end
 
         %
