@@ -13,6 +13,7 @@ function [present_runs,pr_hashes,this_runid_map,n_found_runs,skipped_runs,subst_
 n_add_runs   = numel(add_exper);
 subst_map    = [];
 skipped_runs = false(1,n_add_runs);
+trivial_map = true;
 for j=1:n_add_runs
     % extract particular IX_experiment to check for addition
     add_IX_exper      = add_exper(j);
@@ -49,7 +50,9 @@ for j=1:n_add_runs
         % headers and to the map
         n_found_runs     = n_found_runs + 1;
         this_runid_map   = this_runid_map.add(exper_id,n_found_runs);
-
+        if exper_id ~= n_found_runs
+            trivial_map = false;
+        end
     else  
         % Add new ds with new ID to the combined ds       
         n_found_runs     = n_found_runs + 1;
@@ -57,17 +60,24 @@ for j=1:n_add_runs
         if this_runid_map.isKey(exper_id) % two different IX_datasets are
             % referred by the same id. (combining two independent sqw objects
             % built separately) Pixel id-s must be updated.
-            present_runs{n_found_runs}.ixexper_id = n_found_runs;
+            add_IX_exper.ixexper_id = n_found_runs;
             if isempty(subst_map)
                 subst_map = fast_map();
             end
-            subst_map = subst_map.add(exper_id,n_found_runs);
-        else
-            this_runid_map   = this_runid_map.add(exper_id,n_found_runs);            
+            subst_map = subst_map.add(exper_id,n_found_runs); % this map will
+            % be used to change pixel id(s). Its values are the keys 
+            % for IX_experiments from different sqw object
+            exper_id  = add_IX_exper.ixexper_id;            
         end
+       this_runid_map   = this_runid_map.add(exper_id,n_found_runs);                    
+       if exper_id ~= n_found_runs
+            trivial_map = false;
+        end
+
     end
     present_runs{n_found_runs}= add_IX_exper;        
     pr_hashes{n_found_runs}   = add_hash;
+    this_runid_map.trivial_map= trivial_map;
     
 end % endfor
 end

@@ -78,7 +78,7 @@ classdef IX_exper_common_test <  TestCase
             else
                 run_id = zeros(1,n_elements);
                 % ensure some run-id(s) are duplicated
-                data(5).run_id = data(6).run_id;
+                data(1).run_id = data(2).run_id;
                 for i=1:n_elements
                     data(i).ixexper_id = i;
                     run_id(i) = data(i).run_id;
