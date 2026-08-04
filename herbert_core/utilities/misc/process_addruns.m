@@ -1,7 +1,10 @@
 function [present_runs,pr_hashes,this_runid_map,n_found_runs,skipped_runs,subst_info,n_subst]=...
     process_addruns(present_runs,pr_hashes,n_found_runs,this_runid_map,add_exper,allow_equal_headers)
+% Internal procedure used by IX_experiment combine method.
+%
 % Add vector of IX_experiment values to vector of existing IX_experiment
 % values avoiding adding existing elements.
+%
 % Also modify runid_map which maps an IX_experiment element to its position
 % in IX_experiment array, so that the mapping remains correct. If initial
 % mapping was containing duplicate keys, also return substitusion map which
@@ -33,15 +36,30 @@ function [present_runs,pr_hashes,this_runid_map,n_found_runs,skipped_runs,subst_
 %
 % Returns
 % present_runs    -- the cellarray of unique runs modified by adding new unique
-%                    runs extracted from add_exper. 
+%                    runs extracted from add_exper.
 % pr_hashes       -- helper array containing hashes of unique experiments
 %                    above, modified by adding hashes of unique
 %                    IX_experiments added by this algorithm.
-% n_found_runs    -- total number of unique IX_experiments modified 
-%                    
+% this_runid_map  -- map connecting ixexper_id of each element of
+%                    present_runs with the number of this element in
+%                    present_runs array.
+% n_found_runs    -- total number of unique IX_experiments stored in
+%                    present_runs
+% skipped_runs    -- logical array of add_exper size, containing true in
+%                    places where add_exper element is identified as a
+%                    duplicate and has not been added to present_runs.
+%                    false for added elements.
+% subst_info      -- either empty if every IX_experiment in add_exper
+%                    had ixexper_id unique among all present_runs or
+%                    2xnumel(add_exper) array, containing substitution table
+%                    replacing ixexper_id-s of everery element of add_exper
+%                    array with id unique in present_runs array.
+% n_subst         -- number of elements in subst_info array (0 or
+%                    numel(add_exper))
+%
 % this info
-            % will be used to change pixel id(s). Its values are the keys
-            % for IX_experiments from different sqw object
+% will be used to change pixel id(s). Its values are the keys
+% for IX_experiments from different sqw object
 n_add_runs   = numel(add_exper);
 subst_info   = zeros(2,n_add_runs);
 n_subst      = 0;
@@ -62,24 +80,24 @@ for j=1:n_add_runs
 
     is_found = ismember(pr_hashes,add_hash);
     duplicate_found = any(is_found);
-    if duplicate_found 
-        run_there = present_runs{is_found};        
+    if duplicate_found
+        run_there = present_runs{is_found};
         if ~isempty(run_there.attached_instr_hash) % may be two IX_experiments have different instrument attached.
             % then we must consider them as different
             duplicate_found = isequal(run_there.attached_instr_hash,add_IX_exper.attached_instr_hash);
         end
     end
-    if duplicate_found       
+    if duplicate_found
         n_subst = n_subst+1;
         subst_info(1,n_subst) = exper_id;
         subst_info(2,n_subst) = add_IX_exper.ixexper_id;
-        
+
         if run_there.ixexper_id == exper_id
             skipped_runs(j) = true;
             continue; % run is already there and taken from duplicated header
             % (combining two cuts from the same sqw object)
         end
-        
+
         % IX_datasets are equal but referred by different pixel id-s
         if ~allow_equal_headers
             i = find(is_found,1);
