@@ -34,7 +34,7 @@ function [ix_dat_combined,skipped_inputs,this_runid_map,subst_maps] = combine_(e
 %                    the object array.
 % subst_maps     --  cellarry of new exper_id indices to replace existing
 %                    pixel run indices (pointers to appropriate
-%                    IX_experiments) if pixels renumbering is necessary. 
+%                    IX_experiments) if pixels renumbering is necessary.
 %                    if not, empty cellarray.
 if isempty(exper_cellarray)
     error('HERBERT:IX_experiment:invalid_argument', ...
@@ -65,25 +65,40 @@ for i=1:n_experbl_to_add
     [present_runs,pr_hashes,this_runid_map,n_found_runs,skip_runs,subst_list,n_subst]=...
         process_addruns(present_runs,pr_hashes,n_found_runs,this_runid_map,add_exper,allow_equal_headers);
     if n_subst>0
-        renumerate_pixels = true;
+        % check if this is trivial map and
+        is_trivial = true;
+        for j=1:n_subst
+            if subst_list(1,j) ~= subst_list(2,j)
+                is_trivial = false;
+                break
+            end
+        end
+        % if map is trivial, not define it until really necessary (see
+        % below)
+        if ~is_trivial
+            renumerate_pixels = true;
+            subst_maps{i} = subst_list;
+        end
     end
-    subst_maps{i} = subst_list;
     skipped_inputs{i} = skip_runs;
 end
 if renumerate_pixels
     % if we renumerate pixels, current algorithms requests all pixels id
-    % to be updated regardless of them renumerated or not
+    % to be updated regardless of them renumerated or not. Made equivalent
+    % substitution maps for non-renumerated pixels.
     for i=1:n_experbl_to_add
         if isempty(subst_maps{i})
             add_exper= exper_cellarray{i};
             n_exper = numel(add_exper);
             subst_list = zeros(2,n_exper);
             for j=1:n_exper
-                subst_list(:,j) = add_exper.ixexper_id;
+                subst_list(:,j) = add_exper(j).ixexper_id;
             end
             subst_maps{i} = subst_list;
         end
     end
+else
+    subst_maps = {};
 end
 
 ix_dat_combined = [present_runs{:}];

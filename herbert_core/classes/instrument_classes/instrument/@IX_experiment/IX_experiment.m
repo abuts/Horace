@@ -54,7 +54,7 @@ classdef IX_experiment < Goniometer
         % comparison. Not used in IX_experiment hashes. Used only in
         % combine algorithms to identify unique IX_experiments and pixels
         % corresponding to them.
-        
+
         % these properties are not used in Horace-4 but left for compatibility
         % with Horace-3 file format when it read/updated from/to Horace-3
         % format files.
@@ -128,6 +128,7 @@ classdef IX_experiment < Goniometer
         end
         function obj = set.run_id(obj,val)
             obj = check_and_set_id_prop(obj,val,'run_id_');
+            obj = obj.clear_hash();
         end
 
         function id = get.ixexper_id(obj)
@@ -319,7 +320,7 @@ classdef IX_experiment < Goniometer
         %
     end
     methods(Static)
-        function [obj,file_id_array,skipped_inputs,this_runid_map] = ...
+        function [obj,skipped_inputs,this_runid_map,subst_map] = ...
                 combine(exper_cellarray,allow_eq_headers,varargin)
             % method combines input IX_experiment array(s) with elements
             % contained in exper_cellarray, identifying possible duplicates
@@ -349,22 +350,18 @@ classdef IX_experiment < Goniometer
             % skipped_inputs  -- cellarray of logical arrays containing true where
             %                    input object was dropped and false where it has been
             %                    kept
-            % file_id_array   -- array contains run_ids for each input
-            %                    IX_experiment value present in exper_cellarray.
-            %                    Where input IX_experiments with equal run_id-s
-            %                    and values are rejected, corresponding
-            %                    elements of this array contain the
-            %                    values of rejected run_id-s. These values
-            %                    will be used  in calculations of pixels
-            %                    run_id for each contributing file.
             % this_runid_map --  the map which connects run_id(s) of data,
             %                    stored in the obj as keys, with the
             %                    positions of the data objects in the
             %                    object array as values.
-            if nargin < 3
+            % subst_map      -- cellarray of arrays which describe pixel id
+            %                   change, i.e. first row specifies exising
+            %                   ixdataset_id-s and the second row -- the id
+            %                   to change to.
+            if nargin < 2
                 allow_eq_headers = false;
             end
-            [obj,file_id_array,skipped_inputs,this_runid_map] = combine_(...
+            [obj,skipped_inputs,this_runid_map,subst_map] = combine_(...
                 exper_cellarray,allow_eq_headers,varargin{:});
         end
 

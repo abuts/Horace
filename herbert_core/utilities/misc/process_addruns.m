@@ -64,12 +64,12 @@ for j=1:n_add_runs
     duplicate_found = any(is_found);
     if duplicate_found 
         run_there = present_runs{is_found};        
-        if ~isempty(run_there.attached_instr_hash) % may be two IX_experiments have different instrument attached .
+        if ~isempty(run_there.attached_instr_hash) % may be two IX_experiments have different instrument attached.
             % then we must consider them as different
             duplicate_found = isequal(run_there.attached_instr_hash,add_IX_exper.attached_instr_hash);
         end
     end
-    if duplicate_found
+    if duplicate_found       
         n_subst = n_subst+1;
         subst_info(1,n_subst) = exper_id;
         subst_info(2,n_subst) = add_IX_exper.ixexper_id;
@@ -79,6 +79,7 @@ for j=1:n_add_runs
             continue; % run is already there and taken from duplicated header
             % (combining two cuts from the same sqw object)
         end
+        
         % IX_datasets are equal but referred by different pixel id-s
         if ~allow_equal_headers
             i = find(is_found,1);
