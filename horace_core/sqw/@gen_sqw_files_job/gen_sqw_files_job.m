@@ -63,11 +63,11 @@ classdef gen_sqw_files_job < JobExecutor
                 end
             end
             % Do conversion
-            [grid_size,data_range,update_runid] = obj.runfiles_to_sqw(run_files,tmp_fnames,...
+            [grid_size,data_range] = obj.runfiles_to_sqw(run_files,tmp_fnames,...
                 grid_size_in,pix_range_in,false);
             % return results
             obj.task_outputs  = struct('grid_size',grid_size,...
-                'data_range',data_range,'update_runid',update_runid);
+                'data_range',data_range);
             
         end
         %
@@ -81,16 +81,12 @@ classdef gen_sqw_files_job < JobExecutor
                 [all_messages,tid_from] = mf.receive_all('all','data');
                 data_range = obj.task_outputs.data_range;
                 grid_size = obj.task_outputs.grid_size;
-                keep_runid= ~obj.task_outputs.update_runid;
                 
                 for i=1:numel(all_messages)
                     data_range_tmp = all_messages{i}.payload.data_range;
                     grid_size_tmp = all_messages{i}.payload.grid_size;
                     data_range = [min(data_range(1,:),data_range_tmp(1,:));...
                         max(data_range(2,:),data_range_tmp(2,:))];
-                    % if any blocks needs runid update, all blocks need runid
-                    % update
-                    keep_runid = ~all_messages{i}.payload.update_runid && keep_runid;
                     if any(grid_size ~=grid_size_tmp )
                         error('GEN_SQW_FILES_JOB:runtime_error',...
                             'a worker N%d calculates files with grid different from worker N1',...
@@ -99,7 +95,7 @@ classdef gen_sqw_files_job < JobExecutor
                 end
                 % return results
                 obj.task_outputs = struct('grid_size',grid_size,...
-                    'data_range',data_range,'update_runid',~keep_runid);
+                    'data_range',data_range);
             else
                 %
                 the_mess = DataMessage(obj.task_outputs);
@@ -183,7 +179,7 @@ classdef gen_sqw_files_job < JobExecutor
             [spe_files,duplicated_fnames] = generate_sources_for_replication_(spe_files,n_workers);
         end
         %
-        function [grid_size,data_range,update_runlabels]=...
+        function [grid_size,data_range]=...
                 runfiles_to_sqw(run_files,tmp_fnames,...
                 grid_size_in,pix_db_range,varargin)
             % Public interface to private rundata_write_to_sqw_ function
@@ -211,13 +207,9 @@ classdef gen_sqw_files_job < JobExecutor
             % grid_size       -  Actual grid size used (size is unity along dimensions
             %                    where there is zero range of the data points)
             % data_range       -  Actual range of grid, should be different from
-            %                    pix_range_in only if pix_range_in is not provided
-            % update_runlabels -  if true, each run-id for every runfile has to be
-            %                    modified as some runfiles have the same run-id(s).
-            %                    This possible e.g. in "replicate" mode.
-            
+            %                    pix_range_in only if pix_range_in is not provided           
             %
-            [grid_size,data_range,update_runlabels] = ...
+            [grid_size,data_range] = ...
                 rundata_write_to_sqw_(run_files,tmp_fnames,...
                 grid_size_in,pix_db_range,varargin{:});
         end

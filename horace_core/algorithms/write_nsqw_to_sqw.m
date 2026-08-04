@@ -16,7 +16,7 @@ function [img_db_range,pix_data_range,wout]=write_nsqw_to_sqw (infiles, outfile,
 %                       error in normal operations so this option used in
 %                       tests in case of some specific data modelling.
 %                       To learn what headers are considered equal in details
-%                       look at  Experiment.combine_experiments method, as
+%                       look at  Experiment.combine method, as
 %                       this method performs actual header combining and
 %                       checks.
 % -parallel          -- combine files using parallel framework.
@@ -24,11 +24,6 @@ function [img_db_range,pix_data_range,wout]=write_nsqw_to_sqw (infiles, outfile,
 %                       this keyword or hpc_config option or the instance
 %                       of the JobDispatcher has to be present to combine
 %                       sqw files in  parallel.
-% -keep_runid        -- if present, forces routine to keep run-id defined
-%                       in the contributing  run-files instead of
-%                       setting run-id according to the number of file in
-%                       the list of files provided as input to this
-%                       algorithm.
 %
 % JobDispatcherInstance-- the initialized instance of JobDispatcher,
 %                       to use in combining sqw files in parallel
@@ -64,8 +59,8 @@ if nargin<2
     error('HORACE:write_nsqw_to_sqw:invalid_argument',...
         'function should have at least 2 input arguments')
 end
-accepted_options = {'-parallel','-keep_runid'};
-[ok,mess,combine_in_parallel,keep_runid,argi]...
+accepted_options = {'-parallel'};
+[ok,mess,combine_in_parallel,argi]...
     = parse_char_options(varargin,accepted_options);
 if ~ok
     error('HORACE:write_nsqw_to_sqw:invalid_argument',mess);
@@ -120,9 +115,6 @@ end
 % construct target sqw object containing everything except pixel data.
 % Instead of PixelData, it will contain information about how to combine
 % PixelData
-if keep_runid
-    argi = ['-keep_runid';argi(:)];
-end
 [sqw_mem_part,~,run_id,job_disp] = collect_sqw_metadata(infiles,pix_data_range,job_disp_4head,argi{:});
 if ~isempty(job_disp)
     job_disp.finalize_all();

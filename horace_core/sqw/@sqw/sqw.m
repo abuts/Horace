@@ -15,9 +15,9 @@ classdef (InferiorClasses = {?DnDBase,?PixelDataBase,?IX_dataset,?sigvar}) sqw <
         npixels;
 
         % the map which connects header number
-        % with run_id stored in pixels, e.g. map contains
-        % connection runid_pixel->header_number
-        runid_map;
+        % with the number of header, stored in pixels
+        % connexts runid_pixel->header_number
+        ixexper_id_map;
 
         % Generic information about contributed files
         % and the sqw file creation date.
@@ -57,6 +57,10 @@ classdef (InferiorClasses = {?DnDBase,?PixelDataBase,?IX_dataset,?sigvar}) sqw <
         % True if sqw object is temporary object, deleted on going out of
         % scope.
         is_tmp_obj
+        % legacu property, connecting pixel with correspondent
+        % IX_experiment
+        runid_map;
+
     end
 
     properties(Access=protected)
@@ -383,6 +387,9 @@ classdef (InferiorClasses = {?DnDBase,?PixelDataBase,?IX_dataset,?sigvar}) sqw <
         end
         %
         function map = get.runid_map(obj)
+            map = get_runid_map_(obj);
+        end
+        function map = get.ix_exper_id_map(obj)
             map = get_runid_map_(obj);
         end
         %

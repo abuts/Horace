@@ -359,21 +359,21 @@ if nindx==1
         disp('--------------------------------------------------------------------------------')
     end
 else
-    if opt.replicate && ~spe_unique
-        % set up exper_id-s to make unique binding: pixel<->contributing run
-        run_files = set_up_unique_exper_id(run_files);
-    end    
+    % if opt.replicate && ~spe_unique
+    %     % set up exper_id-s to make unique binding: pixel<->contributing run
+    %     run_files = set_up_unique_exper_id(run_files);
+    % end    
     
     keep_par_cl_running = ~opt.tmp_only || nargout>3;
 
     % Generate unique temporary sqw files, one for each of the spe files
-    [tmp_file,data_range,update_runid,grid_size,parallel_job_dispatcher]=...
+    [tmp_file,data_range,grid_size,parallel_job_dispatcher]=...
         convert_to_tmp_files(run_files,sqw_file,...
         pix_db_range,grid_size_in,opt.accumulate,keep_par_cl_running);
     if numel(ix) == numel(indx) % if all files are present, check if
         % estimated pixel range is equal to the actual range of all
         % contributing runfiles. Give warning about possibility to lose
-        % pixels if actual range differs from the expected range
+        % pixels if actual range bigger then the expected range
         verify_pix_range_est(data_range(:,1:4),pix_range_est,log_level);
     end
 
@@ -388,10 +388,7 @@ else
         if ~require_spe_unique
             wsqw_arg = ['-allow_equal_headers';wsqw_arg(:)];
         end
-        if ~update_runid
-            wsqw_arg = [wsqw_arg(:);'-keep_runid'];
-        end
-
+ 
         if log_level>-1
             disp('Creating output sqw file:')
         end
