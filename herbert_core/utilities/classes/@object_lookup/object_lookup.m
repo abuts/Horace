@@ -445,7 +445,6 @@ classdef object_lookup < serializable
             end
         end
 
-
         function obj = set.indx (obj, val)
             % Set index arrays into the object_store
             %
@@ -488,7 +487,6 @@ classdef object_lookup < serializable
                 obj = obj.check_combo_arg();
             end
         end
-
 
         function obj = set.sz (obj, val)
             % Set the array sizes for the object arrays in the object_store
@@ -566,24 +564,17 @@ classdef object_lookup < serializable
 
         function obj = sort(obj)
             Nobj = numel(obj.object_store_);
+            if Nobj==0
+                return;
+            end
             object_hashes = cell(Nobj,1);
             for ii=1:Nobj
                 [obj.object_store_(ii),object_hashes{ii}] = build_hash(obj.object_store_(ii));
             end
             [~, sorted_idx] = sort(object_hashes);
             obj.object_store_ = obj.object_store_(sorted_idx);
-            [present, inverse_idx] = ismember(1:Nobj, sorted_idx);
-            % All these checks indicate that at this stage obect may be
-            % built incorectly. Why may it happen? Re #1797.
-            if any(~present)
-                error('HERBERT:object_lookup:invalid_argument','missing indices');
-            end
-            if numel(unique(inverse_idx))<numel(inverse_idx)
-                error('HERBERT:object_lookup:invalid_argument','duplicate indices');
-            end
-            if max(inverse_idx)>Nobj || min(inverse_idx)<1
-                error('HERBERT:object_lookup:invalid_argument','incorrect indices');
-            end
+            [~, inverse_idx] = ismember(1:Nobj, sorted_idx);
+
             for ii=1:numel(obj.indx)
                 for jj=1:numel(obj.indx{ii})
                     k = obj.indx{ii}(jj);
@@ -592,9 +583,21 @@ classdef object_lookup < serializable
             end
         end
         %------------------------------------------------------------------
+        % Return selected object elements of a given array from the
+        % original set of arrays
+        A = object_elements (obj, varargin);
+        % Generate random samples for indexed occurences within a
+        % particular object array
+        varargout = rand_ind (obj, iarray, varargin);
+        % Return a given object array from the original set of arrays
+        obj_out = object_repmat (obj, varargin);
+        % Return a given object array from the original set of arrays
+        A = object_array (obj, varargin);
+        % Evaluate a function or method for indexed occurences in an
+        % object lookup table.
+        varargout = func_eval_ind (obj, iarray, varargin);
     end
-
-
+    %
     %======================================================================
     % Interface to test private functions
     %======================================================================
