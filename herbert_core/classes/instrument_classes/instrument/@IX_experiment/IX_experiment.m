@@ -310,16 +310,17 @@ classdef IX_experiment < Goniometer
         end
         %
         %
+        %
+    end
+    methods(Static)
         function [obj,file_id_array,skipped_inputs,this_runid_map] = ...
-                combine(obj,exper_cellarray,allow_eq_headers,varargin)
+                combine(exper_cellarray,allow_eq_headers,varargin)
             % method combines input IX_experiment array(s) with elements
             % contained in exper_cellarray, identifying possible duplicates
             % and either ignoring them, or throwing error depending on
             % input parameters.
             %
             % Inputs:
-            % obj             -- single instance or array of IX_experiment
-            %                    objects
             % exper_cellarray -- cellarray containing IX_experiments arrays
             %                    or Experiment classes to combine their
             %                    IX_experiments into obj.
@@ -329,8 +330,6 @@ classdef IX_experiment < Goniometer
             %                    throws HORACE:IX_experiment:invalid_argument
             %                    if the IX_experiment have the same run_id
             %                    and values.
-            %                    IX_experiments with same run_id and
-            %                    different values are always rejected.
             % Optional:
             % runid_map       -- the map containing information about
             %                    run_id(s) stored in the object as keys
@@ -359,12 +358,10 @@ classdef IX_experiment < Goniometer
             if nargin < 3
                 allow_eq_headers = false;
             end
-            [obj,file_id_array,skipped_inputs,this_runid_map] = combine_(obj, ...
+            [obj,file_id_array,skipped_inputs,this_runid_map] = combine_(...
                 exper_cellarray,allow_eq_headers,varargin{:});
         end
-        %
-    end
-    methods(Static)
+
         %------------------------------------------------------------------
         % SQW_binfile_common methods related to saving to old format binfile and
         % run_id scrambling:

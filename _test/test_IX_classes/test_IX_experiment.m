@@ -212,7 +212,7 @@ classdef test_IX_experiment <  IX_exper_common_test
             [data,fids] = test_IX_experiment.build_IX_array(10,true);
             Input = num2cell(data);
 
-            [result,file_id_array,skipped_inputs,this_runid_map] = Input{1}.combine(Input(2:end));
+            [result,file_id_array,skipped_inputs,this_runid_map] = IX_experiment.combine(Input);
             hash_defined = arrayfun(@(x)(x.hash_defined),result);
             assertTrue(all(hash_defined));
 

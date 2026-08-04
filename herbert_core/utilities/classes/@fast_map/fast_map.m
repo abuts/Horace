@@ -146,6 +146,9 @@ classdef fast_map < serializable
 
                 end
             end
+            if ~isequal(key,value)
+                self.trivial_map_ = false;
+            end
         end
         function val = get(self,key)
             % retrieve value, which corresponds to key

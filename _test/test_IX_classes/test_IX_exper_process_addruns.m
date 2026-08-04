@@ -20,34 +20,39 @@ classdef test_IX_exper_process_addruns <  IX_exper_common_test
             data1 = test_IX_experiment.build_IX_array(10,false);
             data2 = test_IX_experiment.build_IX_array(5,false);
             data = [data1(1:5),data2(1:5)];
+            for i=1:10
+                data(i).ixexper_id = i;
+            end
 
 
             pr_hashes = repmat({''},1,2*numel(data));
             present_runs = cell(1,2*numel(data));
-            this_runid_map = fast_map(uint32(data1(1).ixexper_id),1);
-            [present_runs{1},pr_hashes{1}] = build_hash(data1(1));
-            n_found_runs = 1;
-            [present_runs,pr_hashes,this_runid_map,n_found_runs,skip_runs,subst_map]=...
+            this_runid_map = fast_map();
+            this_runid_map.trivial_map = true;
+            n_found_runs = 0;
+            [present_runs,pr_hashes,this_runid_map,n_found_runs,skip_runs,subst_map,n_subst]=...
                 process_addruns(present_runs,pr_hashes,n_found_runs,this_runid_map,data1,true);
-            assertTrue(all(~skip_runs(2:10)));
-            assertTrue(isempty(subst_map));
+            assertFalse(any(skip_runs));
+            assertEqual(n_subst,0);
+            assertEqual(size(subst_map),[2,10])
 
-            [present_runs,pr_hashes,this_runid_map,n_found_runs,skip_runs,subst_map]=...
+            [present_runs,pr_hashes,this_runid_map,n_found_runs,skip_runs,subst_map,n_subst]=...
                 process_addruns(present_runs,pr_hashes,n_found_runs,this_runid_map,data,true);
 
             assertTrue(all(skip_runs(1:5)));
-            assertTrue(all(~skip_runs(6:10)));            
+            assertFalse(any(skip_runs(6:10)));
             assertEqual(n_found_runs,15);
             ref_map = fast_map(uint32(1:15),1:15,true);
             assertEqual(ref_map,this_runid_map);
             pr = [present_runs{:}];
             assertEqual(pr,[data1,data2]);
-            assertFalse(isempty(subst_map));
-            assertEqual(subst_map,fast_map(uint32(1:5),11:15));
+            assertEqual(size(subst_map),[2,10]);
+            assertEqual(n_subst,10);
+            assertEqual(subst_map,[1:10;[1:5,11:15]]);
 
             ref_hashes = cell(1,15);
             for i=1:15
-                [~,ref_hashes{i}] = build_hash(present_runs{i});                
+                [~,ref_hashes{i}] = build_hash(present_runs{i});
             end
             assertEqual(pr_hashes(1:15),ref_hashes);
         end
@@ -66,7 +71,7 @@ classdef test_IX_exper_process_addruns <  IX_exper_common_test
             this_runid_map = fast_map(uint32(fids),1:10);
 
             n_found_runs = 10;
-            [present_runs,pr_hashes,this_runid_map,n_found_runs,skip_runs,subst_map]=...
+            [present_runs,pr_hashes,this_runid_map,n_found_runs,skip_runs,subst_map,n_el]=...
                 process_addruns(present_runs,pr_hashes,n_found_runs,this_runid_map,data,false);
 
             assertTrue(all(skip_runs));
@@ -75,7 +80,8 @@ classdef test_IX_exper_process_addruns <  IX_exper_common_test
             assertEqual(ref_map,this_runid_map);
             pr = [present_runs{:}];
             assertEqual(pr,data);
-            assertTrue(isempty(subst_map));
+            assertEqual(n_el,10);
+            assertEqual(subst_map,[flds;flds]);
 
             assertEqual(pr_hashes(1:10),ref_hashes);
         end
@@ -94,17 +100,20 @@ classdef test_IX_exper_process_addruns <  IX_exper_common_test
             n_found_runs = 1;
             this_runid_map = fast_map();
             this_runid_map = this_runid_map.add(data(1).ixexper_id,1);
+            this_runid_map.trivial_map = true;
 
-            [present_runs,pr_hashes,this_runid_map,n_found_runs,skip_runs,subst_map]=...
+            [present_runs,pr_hashes,this_runid_map,n_found_runs,skip_runs,subst_map,n_subst]=...
                 process_addruns(present_runs,pr_hashes,n_found_runs,this_runid_map,data(2:end),false);
 
-            assertTrue(all(~skip_runs));
+            assertFalse(any(skip_runs));
             assertEqual(n_found_runs,10);
             ref_map = fast_map(uint32(1:10),1:10,true);
             assertEqual(ref_map,this_runid_map);
             pr = [present_runs{:}];
             assertEqual(pr,data);
-            assertTrue(isempty(subst_map));
+            assertEqual(n_subst,0);
+            assertEqual(size(subst_map),[2,9]);
+
 
             assertEqual(pr_hashes,ref_hashes);
         end
@@ -119,13 +128,11 @@ classdef test_IX_exper_process_addruns <  IX_exper_common_test
 
             present_runs = cell(1,numel(data));
             pr_hashes = repmat({''},1,numel(data));
-            [present_runs{1},pr_hashes{1}] = build_hash(data(1));
-            n_found_runs = 1;
+            n_found_runs = 0;
             this_runid_map = fast_map();
-            this_runid_map = this_runid_map.add(data(1).ixexper_id,1);
 
-            [present_runs,pr_hashes,this_runid_map,n_found_runs,skip_runs,subst_map]=...
-                process_addruns(present_runs,pr_hashes,n_found_runs,this_runid_map,data(2:end),false);
+            [present_runs,pr_hashes,this_runid_map,n_found_runs,skip_runs,subst_map,n_subst]=...
+                process_addruns(present_runs,pr_hashes,n_found_runs,this_runid_map,data,false);
 
             assertTrue(all(~skip_runs));
             assertEqual(n_found_runs,10);
@@ -133,7 +140,8 @@ classdef test_IX_exper_process_addruns <  IX_exper_common_test
             assertEqual(ref_map,this_runid_map);
             pr = [present_runs{:}];
             assertEqual(pr,data);
-            assertTrue(isempty(subst_map));
+            assertEqual(n_subst,0);
+            assertEqual(size(subst_map),[2,10]);
 
             assertEqual(pr_hashes,ref_hashes);
         end
