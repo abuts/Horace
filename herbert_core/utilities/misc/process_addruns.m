@@ -33,8 +33,12 @@ function [present_runs,pr_hashes,this_runid_map,n_found_runs,skipped_runs,subst_
 %
 % Returns
 % present_runs    -- the cellarray of unique runs modified by adding new unique
-%                    runs extracted from add_exper 
-% pr_hashes       -- helper array
+%                    runs extracted from add_exper. 
+% pr_hashes       -- helper array containing hashes of unique experiments
+%                    above, modified by adding hashes of unique
+%                    IX_experiments added by this algorithm.
+% n_found_runs    -- total number of unique IX_experiments modified 
+%                    
 % this info
             % will be used to change pixel id(s). Its values are the keys
             % for IX_experiments from different sqw object
@@ -57,12 +61,19 @@ for j=1:n_add_runs
 
 
     is_found = ismember(pr_hashes,add_hash);
-    if any(is_found)
+    duplicate_found = any(is_found);
+    if duplicate_found 
+        run_there = present_runs{is_found};        
+        if ~isempty(run_there.attached_instr_hash) % may be two IX_experiments have different instrument attached .
+            % then we must consider them as different
+            duplicate_found = isequal(run_there.attached_instr_hash,add_IX_exper.attached_instr_hash);
+        end
+    end
+    if duplicate_found
         n_subst = n_subst+1;
         subst_info(1,n_subst) = exper_id;
         subst_info(2,n_subst) = add_IX_exper.ixexper_id;
         
-        run_there = present_runs{is_found};
         if run_there.ixexper_id == exper_id
             skipped_runs(j) = true;
             continue; % run is already there and taken from duplicated header

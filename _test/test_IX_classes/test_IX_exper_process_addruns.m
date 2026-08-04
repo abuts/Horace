@@ -16,6 +16,46 @@ classdef test_IX_exper_process_addruns <  IX_exper_common_test
         end
         %
         %==================================================================
+        function test_add_same_runs_different_instruments(~)        
+            % if the same IX experiments have the same run-id(s) but
+            % different instruments attached, we have to consider them
+            % different.
+            data1 = test_IX_experiment.build_IX_array(10,false);
+            inst1 = maps_instrument(200,600,'S');
+            inst2 = maps_instrument(400,600,'S');
+            [~,hash1]= build_hash(inst1);
+            [~,hash2]= build_hash(inst2);            
+            data2 = data1;
+            for i=1:numel(data1)
+                data1(i).attached_instr_hash = hash1;
+                data2(i).attached_instr_hash = hash2;
+            end
+            pr_hashes = repmat({''},1,2*numel(data1));
+            present_runs = cell(1,2*numel(data1));
+            this_runid_map = fast_map();
+            this_runid_map.trivial_map = true;
+            n_found_runs = 0;
+            [present_runs,pr_hashes,this_runid_map,n_found_runs,skip_runs,subst_map,n_subst]=...
+                process_addruns(present_runs,pr_hashes,n_found_runs,this_runid_map,data1,true);
+            assertFalse(any(skip_runs));
+            assertEqual(n_subst,0);
+            assertEqual(subst_map,zeros(2,10));
+
+
+            [present_runs,~,this_runid_map,n_found_runs,skip_runs,subst_map,n_subst]=...
+                process_addruns(present_runs,pr_hashes,n_found_runs,this_runid_map,data2,true);
+
+            assertEqual(n_found_runs,20);
+            pr = [present_runs{:}];
+            assertEqual(pr,[data1,data2]);
+            assertTrue(this_runid_map.trivial_map);
+
+            assertFalse(any(skip_runs));
+            assertEqual(n_subst,10);
+            assertEqual(subst_map,[1:10;11:20]);
+            
+
+        end
         function test_add_partially_overlaping_runs(~)
             data1 = test_IX_experiment.build_IX_array(10,false);
             data2 = test_IX_experiment.build_IX_array(5,false);
@@ -81,7 +121,7 @@ classdef test_IX_exper_process_addruns <  IX_exper_common_test
             pr = [present_runs{:}];
             assertEqual(pr,data);
             assertEqual(n_el,10);
-            assertEqual(subst_map,[flds;flds]);
+            assertEqual(subst_map,[fids;fids]);
 
             assertEqual(pr_hashes(1:10),ref_hashes);
         end

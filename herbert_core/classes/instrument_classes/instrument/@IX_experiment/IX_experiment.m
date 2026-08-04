@@ -49,6 +49,12 @@ classdef IX_experiment < Goniometer
         u_to_rlu;
     end
     properties(Hidden)
+        attached_instr_hash = '' % helper property, used in comparison of
+        % different IX experiments. If defined (not empty) used in
+        % comparison. Not used in IX_experiment hashes. Used only in
+        % combine algorithms to identify unique IX_experiments and pixels
+        % corresponding to them.
+        
         % these properties are not used in Horace-4 but left for compatibility
         % with Horace-3 file format when it read/updated from/to Horace-3
         % format files.
