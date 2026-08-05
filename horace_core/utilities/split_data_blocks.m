@@ -66,7 +66,7 @@ last_block_pos = block_sizes+start_pos;
 % data from hdd)
 remove_border  = start_pos(2:end)==last_block_pos(1:end-1);
 if any(remove_border)
-    % keep boder positions which should not be removed
+    % keep border positions which should not be removed
     start_pos= start_pos([true,~remove_border]);
     % number of blocks to keep is equal to the number of borders +1
     % n_unique_blocks = sum(~remove_border)+1;

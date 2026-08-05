@@ -228,7 +228,7 @@ for iter = 1:num_chunks
         % pixels to avoid multiple usage of the same pixels.
         if apply_symmetries
             % Both projection and symop here perform transformation into 
-            % single adjusent image/pixels area.
+            % single adjacent image/pixels area.
             % Pixels from symmetry related CC area are transformed 
             % into main image area using symmetry-modification target_proj.
             [npix, s, e, pix_ok, unique_runid, pix_indx, selected] = ...

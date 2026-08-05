@@ -132,7 +132,7 @@ else
             % Combine to get matrix to convert from spectrometer coordinates to crystal Cartesian coordinates
             spec_to_cc = u_matrix\corr*cryst;
         case(2)
-            spec_to_cc = inv(b_matrix);   % inverse B-matrix assignet to first output argument.
+            spec_to_cc = inv(b_matrix);   % inverse B-matrix assigned to first output argument.
         case(3)
             spec_to_cc = (u_matrix*b_matrix)\(corr*cryst); % spec_to_rlu assigned to first output argument
     end

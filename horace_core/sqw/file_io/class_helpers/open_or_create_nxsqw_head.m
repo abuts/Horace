@@ -16,7 +16,7 @@ function [fid,group_name,group_id,file_h,sqw_version] = open_or_create_nxsqw_hea
 %           to be kept if file is used
 % group_name-- the name of main nxsqw group with all nxsqw data location. 
 % group_id -- hdf5 id for access to opened nxsqw group. 
-%           Should be colsed by H5G.close when dealt with. 
+%           Should be closed by H5G.close when dealt with. 
 %
 % file_h  -- hdf5 file id for old hdf5 version. (some early versions of 
 %            hdf5 1.6) The mounting point of all data in such files is / 
@@ -27,8 +27,7 @@ function [fid,group_name,group_id,file_h,sqw_version] = open_or_create_nxsqw_hea
 % sqw_version -- the version of nxsqw file. 
 %
 %
-% $Revision:: 1759 ($Date:: 2020-02-10 16:06:00 +0000 (Mon, 10 Feb 2020) $)
-%
+%%
 %
 %
 % nxsqw format version. First nxsqw version is 4.0, previous versions are
@@ -49,7 +48,7 @@ if exist(f_name,'file') == 2
             f_name);
     end
     group_name = root_nx_path(2:end);
-    file_h = []; % stub -- we do not use old Matlab abyway. 
+    file_h = []; % stub -- we do not use old Matlab anyway. 
     if H5L.exists(fid,group_name,'H5P_DEFAULT')
         group_id = H5G.open(fid,root_nx_path);
     else

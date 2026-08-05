@@ -2,7 +2,7 @@ function wout = read_ascii (varargin)
 % Read x,y or x,y,e column arrays into a IX_dataset_1d or array of IX_dataset_1d.
 %   - Automatically detects if data is point or histogram data.
 %   - Skips over non-numeric blocks of data
-%   - Reads succesive block of numeric data, filling succesive datasets
+%   - Reads successive block of numeric data, filling successive datasets
 %   - Columns can be separated by spaces, commas or tabs. Commas and tabs
 %    can be used to indicate columns to skip e.g. the line
 %                   13.2, ,15.8

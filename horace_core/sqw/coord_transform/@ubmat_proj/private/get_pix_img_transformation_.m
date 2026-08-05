@@ -24,7 +24,7 @@ function [q_to_img,shift,img_scales,obj]=get_pix_img_transformation_(obj,ndim,va
 %             in the transformation and plotting
 
 % Optimization, necessary to combine pix_to_img transformation matrix and
-% aligment matrix into single transformation matrix
+% alignment matrix into single transformation matrix
 [alignment_needed,alignment_mat] = aProjectionBase.check_alignment_needed(varargin{:});
 
 bmat = obj.bmatrix(ndim);
