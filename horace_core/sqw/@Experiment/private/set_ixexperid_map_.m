@@ -1,22 +1,22 @@
-function obj = set_runid_map_(obj,val)
-%SET_RUNID_MAP_ Check and set runid_map, connecting run-id, describing the
+function obj = set_ixexperid_map_(obj,val)
+%SET_ixexperid_map_ Check and set ixexperid_map, connecting run-id, describing the
 % experiment and the number of the experiment information header in the
 % list of all experiment descriptors
 %
-% Main part of runid_map setter procedure
+% Main part of ixexperid_map setter procedure
 if isa(val,'containers.Map')
-    obj.runid_map_ = val;
+    obj.ixexperid_map_ = val;
     keys = val.keys;
     keys = [keys{:}];
 elseif isa(val,'fast_map')
     keys = val.keys;
     val  = val.values;
-    obj.runid_map_ = containers.Map(keys,val);
+    obj.ixexperid_map_ = containers.Map(keys,val);
 elseif isnumeric(val) && numel(val) == obj.n_runs
     keys = val(:)';
 else
     error('HORACE:Experiment:invalid_argument', ...
-        ['input for runid_map should be map, defining connection between run-ids and headers(expdata),\n', ...
+        ['input for ixexperid_map should be map, defining connection between ixeper-ids and headers(IX_experiment(s)),\n', ...
         ' describing these runs or array of runid-s to set.\n', ...
         ' In fact it is: %s'], ...
         class(val))

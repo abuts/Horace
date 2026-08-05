@@ -49,7 +49,7 @@ function [ok,mess,opt]=equal_to_tol(a,b,varargin)
 %
 %  'abstol'         Absolute tolerance; abstol>=0 (alternative keyword
 %                  specification to scalar parameter input above).
-%                   Use in conjunction with 'reltol' to specify a combined
+%                  Use in conjunction with 'reltol' to specify a combined
 %                  criterion equivalent to tol = [abstol, reltol]
 %
 %  'reltol'         Relative tolerance; reltol>=0 (alternative keyword

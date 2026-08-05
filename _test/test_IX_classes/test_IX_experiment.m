@@ -25,7 +25,7 @@ classdef test_IX_experiment <  IX_exper_common_test
             data(2) = data(7);
             Input = num2cell(data);
 
-            [result,skipped_inputs,this_runid_map,renum_map] = IX_experiment.combine(Input,true);
+            [result,skipped_inputs,this_ixexperid_map,renum_map] = IX_experiment.combine(Input,true);
 
             hash_defined = arrayfun(@(x)(x.hash_defined),result);
             assertTrue(all(hash_defined));
@@ -41,9 +41,9 @@ classdef test_IX_experiment <  IX_exper_common_test
             assertFalse(all(skipped_inputs(1:5))); % left itact
             assertFalse(all(skipped_inputs(7:9))); % left itact
 
-            keys = this_runid_map.keys();
+            keys = this_ixexperid_map.keys();
             for i=1:numel(keys)
-                id = this_runid_map.get(keys(i));
+                id = this_ixexperid_map.get(keys(i));
                 assertEqual(uint32(result(id).ixexper_id),keys(i));
             end
         end
@@ -63,7 +63,7 @@ classdef test_IX_experiment <  IX_exper_common_test
             Input{2}(1)= Input{1}(1);
             Input{3}(1)= Input{1}(1);
 
-            [result,skipped_inputs,this_runid_map,renum_map] = IX_experiment.combine(Input,true);
+            [result,skipped_inputs,this_ixexperid_map,renum_map] = IX_experiment.combine(Input,true);
 
             hash_defined = arrayfun(@(x)(x.hash_defined),result);
             assertTrue(all(hash_defined));
@@ -80,9 +80,9 @@ classdef test_IX_experiment <  IX_exper_common_test
             assertEqual(skipped_inputs{2},sis); % first skipped
             assertEqual(skipped_inputs{3},sis); % first skipped
 
-            keys = this_runid_map.keys();
+            keys = this_ixexperid_map.keys();
             for i=1:numel(keys)
-                id = this_runid_map.get(keys(i));
+                id = this_ixexperid_map.get(keys(i));
                 assertEqual(uint32(result(id).ixexper_id),keys(i));
             end
         end
@@ -92,7 +92,7 @@ classdef test_IX_experiment <  IX_exper_common_test
             Input{2}(1)= Input{1}(1);
             Input{3}(1)= Input{1}(1);
 
-            [result,skipped_inputs,this_runid_map,renum_map] = IX_experiment.combine(Input,true);
+            [result,skipped_inputs,this_ixexperid_map,renum_map] = IX_experiment.combine(Input,true);
 
             hash_defined = arrayfun(@(x)(x.hash_defined),result);
             assertTrue(all(hash_defined));
@@ -109,9 +109,9 @@ classdef test_IX_experiment <  IX_exper_common_test
             assertEqual(skipped_inputs{2},sis); % first skipped
             assertEqual(skipped_inputs{3},sis); % first skipped
 
-            keys = this_runid_map.keys();
+            keys = this_ixexperid_map.keys();
             for i=1:numel(keys)
-                id = this_runid_map.get(keys(i));
+                id = this_ixexperid_map.get(keys(i));
                 assertEqual(uint32(result(id).ixexper_id),keys(i));
             end
         end
@@ -119,7 +119,7 @@ classdef test_IX_experiment <  IX_exper_common_test
         function test_combine_multirun_works(~)
             Input = test_IX_experiment.build_IX_array_blocks(10,3,false);
 
-            [result,skipped_inputs,this_runid_map,renum_map] = IX_experiment.combine(Input);
+            [result,skipped_inputs,this_ixexperid_map,renum_map] = IX_experiment.combine(Input);
 
             hash_defined = arrayfun(@(x)(x.hash_defined),result);
             assertTrue(all(hash_defined));
@@ -133,9 +133,9 @@ classdef test_IX_experiment <  IX_exper_common_test
             assertEqual(numel(skipped_inputs),30);
             assertFalse(any(skipped_inputs)); % nothing skipped
 
-            keys = this_runid_map.keys();
+            keys = this_ixexperid_map.keys();
             for i=1:numel(keys)
-                id = this_runid_map.get(keys(i));
+                id = this_ixexperid_map.get(keys(i));
                 assertEqual(uint32(result(id).ixexper_id),keys(i));
             end
             % The pixels from other from these runs have to be renumerated
@@ -151,7 +151,7 @@ classdef test_IX_experiment <  IX_exper_common_test
         function test_combine_multirun_legacy_works(~)
             Input = test_IX_experiment.build_IX_array_blocks(10,3,true);
 
-            [result,skipped_inputs,this_runid_map,renum_map] = IX_experiment.combine(Input);
+            [result,skipped_inputs,this_ixexperid_map,renum_map] = IX_experiment.combine(Input);
 
             hash_defined = arrayfun(@(x)(x.hash_defined),result);
             assertTrue(all(hash_defined));
@@ -165,9 +165,9 @@ classdef test_IX_experiment <  IX_exper_common_test
             assertEqual(numel(skipped_inputs),30);
             assertFalse(any(skipped_inputs)); % nothing skipped
 
-            keys = this_runid_map.keys();
+            keys = this_ixexperid_map.keys();
             for i=1:numel(keys)
-                id = this_runid_map.get(keys(i));
+                id = this_ixexperid_map.get(keys(i));
                 assertEqual(uint32(result(id).ixexper_id),keys(i));
             end
         end
@@ -177,7 +177,7 @@ classdef test_IX_experiment <  IX_exper_common_test
             data(2) = data(7);
             Input = num2cell(data);
 
-            [result,skipped_inputs,this_runid_map] = data.combine(Input,true);
+            [result,skipped_inputs,this_ixexperid_map] = data.combine(Input,true);
             hash_defined = arrayfun(@(x)(x.hash_defined),result);
             assertTrue(all(hash_defined));
 
@@ -190,23 +190,23 @@ classdef test_IX_experiment <  IX_exper_common_test
             assertFalse(all(skipped_inputs(1:5))); % left itact
             assertFalse(all(skipped_inputs(7:9))); % left itact
 
-            keys = this_runid_map.keys();
+            keys = this_ixexperid_map.keys();
             for i=1:numel(keys)
-                id = this_runid_map.get(keys(i));
+                id = this_ixexperid_map.get(keys(i));
                 assertEqual(result(id).ixexper_id,double(keys(i)));
             end
         end
 
         function test_combine_one(~)
             data = test_IX_experiment.build_IX_array(10);
-            [result,skipped_inputs,this_runid_map,subst_map] = data.combine({data(1)},true);
+            [result,skipped_inputs,this_ixexperid_map,subst_map] = data.combine({data(1)},true);
 
             assertEqual(data(1),result);
             assertEqual(skipped_inputs,{false});
             assertTrue(isempty(subst_map));
             rmd = result.get_experid_map();
-            assertEqual(rmd.keys,this_runid_map.keys);
-            assertEqual(rmd.values,this_runid_map.values);
+            assertEqual(rmd.keys,this_ixexperid_map.keys);
+            assertEqual(rmd.values,this_ixexperid_map.values);
         end
 
         function test_combine_empty_throw(~)
@@ -222,9 +222,9 @@ classdef test_IX_experiment <  IX_exper_common_test
             % data(2)
             Input = num2cell(data);
 
-            [exper,skipped_inputs,this_runid_map,subst_map] = IX_experiment.combine(Input);
+            [exper,skipped_inputs,this_ixexperid_map,subst_map] = IX_experiment.combine(Input);
             assertFalse(any([skipped_inputs{:}]));
-            assertTrue(this_runid_map.trivial_map);
+            assertTrue(this_ixexperid_map.trivial_map);
             assertEqual(data,exper) % ixeper_id value do not participate in comparison
             sm = [subst_map{:}];
             assertEqual(sm(:,7),[2;7]);
@@ -256,7 +256,7 @@ classdef test_IX_experiment <  IX_exper_common_test
             data = test_IX_experiment.build_IX_array(10,false);
             Input = num2cell(data);
 
-            [result,skipped_inputs,this_runid_map,subst_map] = IX_experiment.combine(Input);
+            [result,skipped_inputs,this_ixexperid_map,subst_map] = IX_experiment.combine(Input);
             hash_defined = arrayfun(@(x)(x.hash_defined),result);
             assertTrue(all(hash_defined));
             assertTrue(isempty(subst_map));
@@ -268,9 +268,9 @@ classdef test_IX_experiment <  IX_exper_common_test
             assertEqual(numel(skipped_inputs),10);
             assertFalse(any(skipped_inputs)); % nothing skipped
 
-            keys = this_runid_map.keys();
+            keys = this_ixexperid_map.keys();
             for i=1:numel(keys)
-                id = this_runid_map.get(keys(i));
+                id = this_ixexperid_map.get(keys(i));
                 assertEqual(result(id).ixexper_id,id);
             end
         end
@@ -280,7 +280,7 @@ classdef test_IX_experiment <  IX_exper_common_test
             data = test_IX_experiment.build_IX_array(10,true);
             Input = num2cell(data);
 
-            [result,skipped_inputs,this_runid_map,subst_map] = IX_experiment.combine(Input);
+            [result,skipped_inputs,this_ixexperid_map,subst_map] = IX_experiment.combine(Input);
             hash_defined = arrayfun(@(x)(x.hash_defined),result);
             assertTrue(all(hash_defined));
             assertTrue(isempty(subst_map));
@@ -292,9 +292,9 @@ classdef test_IX_experiment <  IX_exper_common_test
             assertEqual(numel(skipped_inputs),10);
             assertFalse(any(skipped_inputs)); % nothing skipped
 
-            keys = this_runid_map.keys();
+            keys = this_ixexperid_map.keys();
             for i=1:numel(keys)
-                id = this_runid_map.get(keys(i));
+                id = this_ixexperid_map.get(keys(i));
                 assertEqual(uint32(result(id).run_id),keys(i));
                 assertEqual(result(id).ixexper_id,double(keys(i)));
             end

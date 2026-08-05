@@ -197,14 +197,12 @@ pix   = cell(1,n_inputs);
 npix  = zeros(1,n_inputs);
 exper = cell(1,n_inputs);
 %
-pix{1}   = wout.pix;
-exper{1} = wout.experiment_info;
-npix(1)  = wout.pix.num_pixels;
-for i=2:n_inputs
+for i=1:n_inputs
     pix{i}   = win(i).pix;
     npix(i)  = win(i).pix.num_pixels;
     exper{i} = win(i).experiment_info;
 end
+[cexper,] = Experiment.combine(exper,true);
 % Build target output sqw object containing combine information
 % and other sqw object information on the basis of first sqw object
 pix_all = pixobj_combine_info(pix,num2cell(npix));
@@ -212,7 +210,7 @@ wout.data.do_check_combo_arg = false;
 wout.data.npix = npix;
 wout.data.s = zeros(1,numel(npix));
 wout.data.e = zeros(1,numel(npix));
-wout.experiment_info = exper{1}.combine(exper(2:end),true,true);
+wout.experiment_info = cexper;
 wout.pix = pix_all;
 wout.data.do_check_combo_arg = true;
 

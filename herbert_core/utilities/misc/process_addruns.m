@@ -5,7 +5,7 @@ function [present_runs,pr_hashes,this_runid_map,n_found_runs,skipped_runs,subst_
 % Add vector of IX_experiment values to vector of existing IX_experiment
 % values avoiding adding existing elements.
 %
-% Also modify runid_map which maps an IX_experiment element to its position
+% Also modify ixexperid_map which maps an IX_experiment element to its position
 % in IX_experiment array, so that the mapping remains correct. If initial
 % mapping was containing duplicate keys, also return substitusion map which
 % would change the duplicated keys to unique keys.
@@ -20,7 +20,7 @@ function [present_runs,pr_hashes,this_runid_map,n_found_runs,skipped_runs,subst_
 % n_found_runs    -- number of runs found during previous calls to this
 %                    routine. Contains number of non-empty elements in
 %                    present_runs and pr_hashes cellarrays.
-% this_runid_map  -- map kontaining pairs:
+% this_runid_map  -- map containing pairs:
 %                    IX_experients.ixexper_id->num_element
 %                    where num_element is the number of IX_experinent
 %                    instance in present_runs cellarray.

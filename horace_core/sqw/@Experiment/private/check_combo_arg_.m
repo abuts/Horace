@@ -43,19 +43,19 @@ if obj.detector_arrays_.n_runs ~= nruns
     end
 end
 
-if ~isa(obj.runid_map_, 'containers.Map') &&isempty(obj.runid_map_)
-    mess = sprintf('%s\n runid_map is not defined',mess);
+if ~isa(obj.ixexperid_map_, 'containers.Map') &&isempty(obj.ixexperid_map_)
+    mess = sprintf('%s\n ixexperid_map is not defined',mess);
 else
-    if obj.runid_map_.Count ~= nruns
+    if obj.ixexperid_map_.Count ~= nruns
         mess = sprintf(...
-            '%s\n Number of elements %d in runid_map is not equal to number of runs: %d; ',...
-            mess,obj.runid_map_.Count,nruns);
+            '%s\n Number of elements %d in ixexperid_map is not equal to number of runs: %d; ',...
+            mess,obj.ixexperid_map_.Count,nruns);
     else
-        ind = obj.runid_map_.values;
+        ind = obj.ixexperid_map_.values;
         ind  = [ind{:}];
         if any(sort(ind)~=1:nruns)
             mess = sprintf(...
-                '%s\n The values in runid_map do not account for every Experiment component; ',...
+                '%s\n The values in ixexperid_map do not account for every Experiment component; ',...
                 mess);
         end
     end

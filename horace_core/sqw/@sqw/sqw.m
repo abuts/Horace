@@ -16,8 +16,8 @@ classdef (InferiorClasses = {?DnDBase,?PixelDataBase,?IX_dataset,?sigvar}) sqw <
 
         % the map which connects header number
         % with the number of header, stored in pixels
-        % connexts runid_pixel->header_number
-        ixexper_id_map;
+        % connects runid_pixel->header_number
+        ixexperid_map;
 
         % Generic information about contributed files
         % and the sqw file creation date.
@@ -57,7 +57,7 @@ classdef (InferiorClasses = {?DnDBase,?PixelDataBase,?IX_dataset,?sigvar}) sqw <
         % True if sqw object is temporary object, deleted on going out of
         % scope.
         is_tmp_obj
-        % legacu property, connecting pixel with correspondent
+        % legacy property, connecting pixel with correspondent
         % IX_experiment
         runid_map;
 
@@ -283,7 +283,7 @@ classdef (InferiorClasses = {?DnDBase,?PixelDataBase,?IX_dataset,?sigvar}) sqw <
         end
         function npix = get_npix_block(obj,block_start,block_size)
             % return specified chunk of npix array which describes pixel
-            % destribution over block bins.
+            % distribution over block bins.
             npix = obj.data.get_npix_block(block_start,block_size);
         end
         function md = get_dnd_metadata(obj)
@@ -372,7 +372,7 @@ classdef (InferiorClasses = {?DnDBase,?PixelDataBase,?IX_dataset,?sigvar}) sqw <
         %
         %------------------------------------------------------------------
         function fn = get.full_filename(obj)
-            % hiddent
+            % hidden
             fn = get_full_filename_(obj);
         end
         function obj = set.full_filename(obj,val)
@@ -389,7 +389,7 @@ classdef (InferiorClasses = {?DnDBase,?PixelDataBase,?IX_dataset,?sigvar}) sqw <
         function map = get.runid_map(obj)
             map = get_runid_map_(obj);
         end
-        function map = get.ix_exper_id_map(obj)
+        function map = get.ixexperid_map(obj)
             map = get_runid_map_(obj);
         end
         %
@@ -405,7 +405,7 @@ classdef (InferiorClasses = {?DnDBase,?PixelDataBase,?IX_dataset,?sigvar}) sqw <
     %======================================================================
     % REDUNDANT and compatibility methods
     methods
-        % write sqw object in an sqw file. Superseeded by save(sqw,...) on SQWDnDBase
+        % write sqw object in an sqw file. Superseded by save(sqw,...) on SQWDnDBase
         write_sqw(obj,sqw_file,vararin);
         % special case of apply_op
         obj = apply(obj, func_handle, args, recompute_bins, compute_variance);

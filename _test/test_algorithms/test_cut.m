@@ -319,7 +319,7 @@ classdef test_cut < TestCase
         function test_cut_sqw_file_to_file_combined_mex(obj)
             [~, ~, can_combine_with_mex] = check_horace_mex();
             if ~can_combine_with_mex
-                skipTest('Combinbing with mex is not available on this system')
+                skipTest('Combining with mex is not available on this system')
             end
 
             mem_chunk_size = 500;
@@ -469,7 +469,7 @@ classdef test_cut < TestCase
         function test_out_of_memory_cut_tmp_files_mex(obj)
             [~, ~, can_combine_with_mex] = check_horace_mex();
             if ~can_combine_with_mex
-                skipTest('Combinbing with mex is not available on this system')
+                skipTest('Combining with mex is not available on this system')
             end
 
             mem_chunk_size = 500;  %

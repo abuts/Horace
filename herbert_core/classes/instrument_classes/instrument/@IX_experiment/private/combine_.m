@@ -1,4 +1,4 @@
-function [ix_dat_combined,skipped_inputs,this_runid_map,subst_maps] = combine_(exper_cellarray,allow_equal_headers,this_runid_map)
+function [ix_dat_combined,skipped_inputs,this_ixexperid_map,subst_maps] = combine_(exper_cellarray,allow_equal_headers)
 % COMBINE_ : properly combines input IX_experiment cell array with elements
 % contained in exper_cellarray, identifying possible duplicates
 % and either ignoring them, or throwing error depending on the input
@@ -14,11 +14,6 @@ function [ix_dat_combined,skipped_inputs,this_runid_map,subst_maps] = combine_(e
 %                    throws HORACE:IX_experiment:invalid_argument
 %                    if the IX_experiment have the same run_id
 %                    and the same values.
-% Optional:
-% this_runid_map  -- the map containing information about
-%                    run_id(s) stored in the object as keys
-%                    and pointing to the number of element in obj array
-%                    as value.
 %
 % Returns:
 % ix_dat_combined -- resulting array, containing unique
@@ -29,7 +24,7 @@ function [ix_dat_combined,skipped_inputs,this_runid_map,subst_maps] = combine_(e
 %                    exper_cellarray element)containing true where input
 %                    object was dropped from output obj and false
 %                    where it has been kept.
-% this_runid_map --  the map which connects ixdataset_id(s) of data, stored
+% this_ixexperid_map --  the map which connects ixdataset_id(s) of data, stored
 %                    in the obj with the positions of the data objects in
 %                    the object array.
 % subst_maps     --  cellarry of new exper_id indices to replace existing
@@ -40,10 +35,10 @@ if isempty(exper_cellarray)
     error('HERBERT:IX_experiment:invalid_argument', ...
         'At least one IX_experiment must be present as firest element of input cellarray')
 end
-if ~exist("this_runid_map","var")
-    this_runid_map = fast_map();
-    this_runid_map.trivial_map = true;
-end
+
+this_ixexperid_map = fast_map();
+this_ixexperid_map.trivial_map = true;
+
 
 % Caclulate number of runs defined by all input IX_experiment data
 n_runs = cellfun(@(x)numel(x),exper_cellarray);
@@ -62,8 +57,8 @@ n_found_runs = 0;
 for i=1:n_experbl_to_add
     % retrieve arrays for additional IX_experiment-s to add them to result
     add_exper= exper_cellarray{i};
-    [present_runs,pr_hashes,this_runid_map,n_found_runs,skip_runs,subst_list,n_subst]=...
-        process_addruns(present_runs,pr_hashes,n_found_runs,this_runid_map,add_exper,allow_equal_headers);
+    [present_runs,pr_hashes,this_ixexperid_map,n_found_runs,skip_runs,subst_list,n_subst]=...
+        process_addruns(present_runs,pr_hashes,n_found_runs,this_ixexperid_map,add_exper,allow_equal_headers);
     if n_subst>0
         % check if this is trivial map and
         is_trivial = true;

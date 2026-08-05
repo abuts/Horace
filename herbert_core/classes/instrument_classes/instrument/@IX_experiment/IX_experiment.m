@@ -320,8 +320,8 @@ classdef IX_experiment < Goniometer
         %
     end
     methods(Static)
-        function [obj,skipped_inputs,this_runid_map,subst_map] = ...
-                combine(exper_cellarray,allow_eq_headers,varargin)
+        function [obj,skipped_inputs,this_ixexperid_map,subst_map] = ...
+                combine(exper_cellarray,allow_eq_headers)
             % method combines input IX_experiment array(s) with elements
             % contained in exper_cellarray, identifying possible duplicates
             % and either ignoring them, or throwing error depending on
@@ -337,11 +337,7 @@ classdef IX_experiment < Goniometer
             %                    throws HORACE:IX_experiment:invalid_argument
             %                    if the IX_experiment have the same run_id
             %                    and values.
-            % Optional:
-            % runid_map       -- the map containing information about
-            %                    run_id(s) stored in the object as keys
-            %                    and pointing to the number of element in
-            %                    obj array as the value.
+     
             %
             % Returns:
             % obj             -- resulting array, containing unique
@@ -350,19 +346,19 @@ classdef IX_experiment < Goniometer
             % skipped_inputs  -- cellarray of logical arrays containing true where
             %                    input object was dropped and false where it has been
             %                    kept
-            % this_runid_map --  the map which connects run_id(s) of data,
+            % this_ixexperid_map --  the map which connects run_id(s) of data,
             %                    stored in the obj as keys, with the
             %                    positions of the data objects in the
             %                    object array as values.
             % subst_map      -- cellarray of arrays which describe pixel id
-            %                   change, i.e. first row specifies exising
+            %                   change, i.e. first row specifies existing
             %                   ixdataset_id-s and the second row -- the id
             %                   to change to.
             if nargin < 2
                 allow_eq_headers = false;
             end
-            [obj,skipped_inputs,this_runid_map,subst_map] = combine_(...
-                exper_cellarray,allow_eq_headers,varargin{:});
+            [obj,skipped_inputs,this_ixexperid_map,subst_map] = combine_(...
+                exper_cellarray,allow_eq_headers);
         end
 
         %------------------------------------------------------------------
@@ -378,9 +374,9 @@ classdef IX_experiment < Goniometer
             for i=1:numel(old_fldnms)
                 obj.(old_fldnms{i}) = inputs.(old_fldnms{i});
             end
-            % enable check for interdependent properties compartibility
+            % enable check for interdependent properties compatibility
             obj.do_check_combo_arg = true;
-            % check interdependent properties compartibility and
+            % check interdependent properties compatibility and
             % calculate all caches if necessary.
             obj = obj.check_combo_arg();
             % old headers always contain angular values in radians
@@ -417,14 +413,15 @@ classdef IX_experiment < Goniometer
             flds = [IX_experiment.fields_to_save_(1:3)';IX_experiment.fields_to_save_(5:end)';base(:)];
         end
         function flds = hashableFields(~)
-            % run_id connects pixels with headers in experiment data.
-            % We allow two IX_experiments with the same run-id to be equal
+            % ixeper_id connects pixels with headers in experiment data 
+            % but we do not include it in comparison as pixel may refer to
+            % sampe experiment data but be different.
             % Also two experiments with the same filename but different
             % filepath are the same
             %
             % the list of properties which define IX_experiment uniqueness
             % if hashes, build on these properties values are the same,
-            % IX_experiments are considered the same
+            % IX_experiments are considered equal
             flds= {'filename','cu','cv','run_id','efix',...
                 'psi', 'omega', 'dpsi', 'gl', 'gs'};
         end
