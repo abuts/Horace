@@ -238,7 +238,7 @@ classdef unique_only_obj_container < ObjContainersBase
             % This is only used for tests and so its efficiency is not
             % important.
             error('HERBERT:unique_objects_container:not_implemented', ...
-                'This funciton is pissible but does not make sence on unique_only_obj_container')
+                'This funciton is possible but does not make sence on unique_only_obj_container')
         end
         %
         function val = hash(self,lidx)

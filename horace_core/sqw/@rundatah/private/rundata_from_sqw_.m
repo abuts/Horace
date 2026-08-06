@@ -16,14 +16,14 @@ else
 end
 %
 tmp=sqw_obj.pix.all_experiment';
-run_id = unique(tmp(:,1));
-if numel(run_id)>1
+ixexper_id = unique(tmp(:,1));
+if numel(ixexper_id)>1
     warning('HORACE:rundata_from_sqw:invalid_argument',...
         'sqw object contains more then 1 contributing run. Extracting the first one')
-    is_run_1 = (sqw_obj.pix.run_idx == run_id(1));
+    is_run_1 = (sqw_obj.pix.ixexper_idx == ixexper_id(1));
     tmp = tmp(:,is_run_1);
-    run_id = run_id(1);
-    exp_inf = sqw_obj.experiment_info.get_subobj(run_id,sqw_obj.runid_map);
+    ixexper_id = ixexper_id(1);
+    exp_inf = sqw_obj.experiment_info.get_subobj(ixexper_id,sqw_obj.ixexperid_map);
 else
     exp_inf = sqw_obj.experiment_info;
 end
@@ -65,7 +65,8 @@ lattice.gs    = exp_inf.expdata(1).gs;
 lattice.angular_units='deg';
 
 rd = rundatah();
-rd.run_id = run_id;
+rd.ixexper_id = ixexper_id; % number of object in pixel idx(s) 
+rd.run_id  = exp_inf(1).run_id; % actual run_id from experiment info
 
 rd.lattice = lattice;
 % Set lattice before loader, to have efix redefined on rundata rather then

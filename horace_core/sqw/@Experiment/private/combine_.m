@@ -52,17 +52,14 @@ for i=1:n_contrib
     exp_info{i} = exp_cellarray{i}.expdata;
 
     instr  = exp_cellarray{i}.instruments;
-    sample = exp_cellarray{i}.samples;
+    %sample = exp_cellarray{i}.samples;
     det_arr= exp_cellarray{i}.detector_arrays;
     exp_data = exp_info{i};
     for j=1:nspe(i)
-        [instr(j),inst_hash] = build_hash(instr(j));
-        [det_arr(j),det_hash] = build_hash(det_arr(j));
+        inst_hash = instr.hash(j);
+        det_hash  = det_arr.hash(j);
         exp_data(j).attached_instr_hash = [inst_hash,det_hash];
     end
-    exp_cellarray{i}.instruments     = instr;
-    exp_cellarray{i}.samples         = sample;
-    exp_cellarray{i}.detector_arrays = det_arr;
     exp_info{i}                      = exp_data;
 end
 
@@ -91,5 +88,6 @@ for i=1:n_contrib
 
     end
 end
-nspe = ic; % number of contributing experiments has been counted here
+nspe = ic; % number of contributing experiments has been counted here.
+% duplicated experiments have been dropped
 exper_comb = Experiment(det,instr,sampl,expinfo);

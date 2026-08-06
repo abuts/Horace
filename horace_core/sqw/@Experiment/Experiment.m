@@ -11,7 +11,11 @@ classdef Experiment < serializable
         %                  contributing into experiment
         % the map which connects header number
         % with the number of header(ixexperid_map), stored in pixels
-        % connecting ixeper_idx:pixel->header_number
+        % connecting ixeper_idx:pixel->header_number.
+        % WARNING!!! setting this map resets IX_experiment.ixexper_id(s)
+        % to keys of this map, so ensuring this operation does not violates
+        % relation between pixels id(s) and IX_experiment array is a user
+        % responsibility.
         ixexperid_map;
         %
     end
@@ -23,9 +27,9 @@ classdef Experiment < serializable
     properties(Access=private)
         % String input here (a) invalid value so should be caught if not
         % redefined later (b) describes what the construction process is.
-        instruments_ = 'global storage; reference initialised in constructor';
-        detector_arrays_ = 'global storage; reference initialised in constructor';
-        samples_ = 'global storage; reference initialised in constructor';
+        instruments_ = '' %'global storage; reference initialised in constructor';
+        detector_arrays_ = '' %'global storage; reference initialised in constructor';
+        samples_ = '' %'global storage; reference initialised in constructor';
         samples_set_ = false; % Two properties used to harmonize lattice
         expdata_set_ = false; % which stored both in sample and in expdata
         %holder to store old sample lattice if the new lattice is set
@@ -197,7 +201,7 @@ classdef Experiment < serializable
         end
 
         function map = get_ixexperid_map(obj)
-            % Return run_id map, providing consistent interface with
+            % Return ixexper_id map, providing consistent interface with
             % IX_experiment
             %
             % deep copy handle class, to maintain consistent behaviour
@@ -234,7 +238,7 @@ classdef Experiment < serializable
             % property, which inform about the behaviour of runid map
             %
             % Inputs:
-            % logical value, if true, says that run_id were recalculated by
+            % logical value, if true, says that ixexper_id were recalculated by
             % external (test) procedure. Normally the property is modified
             % during loading old files and set-up internally in loadobj
             % from_old_struct.
@@ -368,13 +372,13 @@ classdef Experiment < serializable
             %              information about experiments(runs) contributed into sqw
             %              object.
             % runids_to_keep
-            %            -- run_id-s,which identify particular experiments(runs)
+            %            -- ixexper_id-s,which identify particular experiments(runs)
             %              to include the  experiments(runs) contributing
             %              into the final subset  of experiments.
             % Optional parameters and switches:
             % '-indexes'   - if provided, tread input runids_to_keep as
             %              direct indexes of the experiments to keep rather
-            %              then run_id(s). Mainly used for debugging.
+            %              then ixexper_id(s). Mainly used for debugging.
             % '-modify_runid'
             %          -- if present redefine final ixexperid_map and run_ind of
             %             the expdata to count from 1 to n_experiments(runs)
@@ -568,11 +572,11 @@ classdef Experiment < serializable
                 % add to default compressed container
                 obj.(field) = obj.(field).add(val);
 
-            elseif ( isa(val, type) &&                       ...
-                    numel(val) == 1 )                       ...
+            elseif ( isa(val, type) &&                        ...
+                    isscalar(val))                            ...
                     ||                                        ...
                     ( iscell(val)                          && ...
-                    numel(val) == 1                      && ...
+                    isscalar(val)                          && ...
                     isa(val{1}, type) )
                 % assume we're adding n_runs identical copies
                 %

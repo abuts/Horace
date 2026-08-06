@@ -41,7 +41,7 @@ if isempty(run_idx)     % catch and return if trivial case of empty run_idx
     return
 end
 
-map = obj.runid_map;
+map = obj.ixexperid_map;
 expt_idx = map.get_values_for_keys(run_idx(:),true,1);
 
 if any(isnan(expt_idx))

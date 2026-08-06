@@ -52,7 +52,9 @@ else
             mess,obj.ixexperid_map_.Count,nruns);
     else
         ind = obj.ixexperid_map_.values;
-        ind  = [ind{:}];
+        if iscell(ind)
+            ind  = [ind{:}];
+        end
         if any(sort(ind)~=1:nruns)
             mess = sprintf(...
                 '%s\n The values in ixexperid_map do not account for every Experiment component; ',...
@@ -80,7 +82,7 @@ if ~(all(new_lat_def) && all(new_ang_def))
             if one_unique
                 all_src = obj.old_lattice_holder_.unique_objects();
                 uni_source = all_src{1};
-                all_targ   =obj.samples_.unique_objects(); 
+                all_targ   =obj.samples_.unique_objects();
                 uni_targ  = all_targ{1}; % extract the single unique object in the target
                 uni_targ.alatt = uni_source.alatt;   % assign the single source lattice to the single target
                 uni_targ.angdeg = uni_source.angdeg;

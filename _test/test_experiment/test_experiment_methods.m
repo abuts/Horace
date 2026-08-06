@@ -51,7 +51,7 @@ classdef test_experiment_methods < TestCase
         end
         %------------------------------------------------------------------
         function test_combine_same_experiment(obj)
-            % NOTE: combine does not support experiment with different samples !
+            % NOTE combine does not support experiment with different samples !
             % Re #917 check why it is like that. should experiment support
             % single type of sample too?
             sexper = Experiment(obj.detector,obj.instruments,repmat(obj.samples{1},1,3),obj.exp);
@@ -59,7 +59,7 @@ classdef test_experiment_methods < TestCase
             assertEqual(expc.n_runs,3);
             assertEqual(nexp,3);
             assertTrue(isempty(pix_subst_list));
-            assertEqual(expc.ixexperid_map,fast_map([10,20,30],[1,2,3]))
+            assertEqual(expc.ixexperid_map,fast_map(uint32([10,20,30]),[1,2,3]))
         end
         %------------------------------------------------------------------
         function test_get_multiple_efix_array_with_unique(obj)
@@ -196,13 +196,21 @@ classdef test_experiment_methods < TestCase
             assertTrue(reconstructed_exp.runid_recalculated);
             assertTrue(isa(reconstructed_exp,'Experiment'));
 
-            % ixexperid_map is recalculated with runid-s from 1 to 3
+            % old headers do not contain run_id so at recovery
+            % runid_map is recalculated with runid-s from 1 to 3
             expd = expl.expdata;
-            expid = zeros(1,3);
+            run_id_recovered = [1,2,NaN];
             for i=1:3
-                expid(i) = expd(i).ixexper_id;
-            end
-            assertEqual(expid,10:10:30);
+                expd(i).run_id = run_id_recovered(i); % old headers do not
+                % contain run_id and the id(s) are recovered from file
+                % names. Where it is not possible, run_id is set to NaN
+                % exper_id have to be renumerated for pixels pointing to
+                % correct expd, but ixexper_id do not participate in
+                % comparison between the IX_experiments to outline their
+                % transient nature.
+                %expd(i).ixexper_id = i; % do the same change to source data
+            end                     % to allow comparison
+            expl.expdata = expd;
 
             assertEqual(reconstructed_exp.expdata,expl.expdata);
             assertEqual(reconstructed_exp.ixexperid_map.keys,expl.ixexperid_map.keys);
@@ -225,7 +233,7 @@ classdef test_experiment_methods < TestCase
             assertEqual(rec_exp.n_runs, 1);
 
             assertEqual(rec_exp.expdata,expl.expdata(2));
-            assertEqual(rec_exp.ixexperid_map.keys,20);
+            assertEqual(rec_exp.ixexperid_map.keys,uint32(20));
             assertEqual(rec_exp.ixexperid_map.values,1);
 
             assertEqual(rec_exp.detector_arrays.n_runs, 0);
@@ -295,7 +303,7 @@ classdef test_experiment_methods < TestCase
             part = exper.get_subobj([2,3]);
             assertTrue(part.runid_recalculated);
 
-            assertEqual(part.ixexperid_map.keys,[2,3])
+            assertEqual(part.ixexperid_map.keys,uint32([2,3]))
             assertEqual(part.ixexperid_map.values,[1,2]);
 
             assertEqual(part.n_runs,2);
@@ -327,7 +335,7 @@ classdef test_experiment_methods < TestCase
             part = exper.get_subobj([20,30]);
 
             assertFalse(part.runid_recalculated);
-            assertEqual(part.ixexperid_map.keys,[20,30]);
+            assertEqual(part.ixexperid_map.keys,uint32([20,30]));
             assertEqual(part.ixexperid_map.values,[1,2]);
 
             assertEqual(part.n_runs,2);
@@ -350,7 +358,7 @@ classdef test_experiment_methods < TestCase
             part = exper.get_subobj(2:3);
             assertTrue(part.runid_recalculated);
 
-            assertEqual(part.ixexperid_map.keys,[2,3])
+            assertEqual(part.ixexperid_map.keys,uint32([2,3]))
             assertEqual(part.ixexperid_map.values,[1,2])
 
             assertEqual(part.n_runs,2);
@@ -371,7 +379,7 @@ classdef test_experiment_methods < TestCase
             part = exper.get_subobj(2:3,'-ind');
             assertFalse(part.runid_recalculated)
 
-            assertEqual(part.ixexperid_map.keys,[20,30])
+            assertEqual(part.ixexperid_map.keys,uint32([20,30]))
             assertEqual(part.ixexperid_map.values,[1,2])
 
             assertEqual(part.n_runs,2);
@@ -450,7 +458,7 @@ classdef test_experiment_methods < TestCase
             run_idx = [30,20,50];   % 50 is out of range
             f = @() experiment.get_experiment_idx (run_idx);
 
-            assertExceptionThrown(f, 'HORACE:Experiment:invalid_argument');
+            assertExceptionThrown(f, 'MATLAB:badsubscript');
         end
 
         function test_get_experiment_idx_fullLookup_invalidRun_idx(obj)

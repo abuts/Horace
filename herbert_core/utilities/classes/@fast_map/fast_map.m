@@ -54,6 +54,10 @@ classdef fast_map < serializable
         min_max_key; % minimal and maximal key values used in values
         % access optimization
     end
+    properties(Dependent,Hidden)
+        Count % provide common interface between fast_map and containers.Map
+        % the same as n_members
+    end
     properties(Access=protected)
         key_type_ = 'uint32'
         val_type_ = 'double'
@@ -238,19 +242,23 @@ classdef fast_map < serializable
         end
         function obj = set.trivial_map(obj,val)
             % Provided to satisfy serializable interface only!!!
-            % Setting this value incorrectly will break operations! 
+            % Setting this value incorrectly will break operations!
             % Checks removed to maintain performance
             obj.trivial_map_= logical(val);
         end
-        
         %
         function mmv = get.min_max_key(obj)
             mmv = obj.min_max_key_;
         end
+        %
         function nm = get.n_members(obj)
             nm = numel(obj.keys_);
         end
+        function nm = get.Count(obj)
+            nm = numel(obj.keys_);
+        end
         %
+
         function [val,key] = get_values_for_keys(self,keys,no_validity_checks,mode)
             % method retrieves values corresponding to array of keys.
             %

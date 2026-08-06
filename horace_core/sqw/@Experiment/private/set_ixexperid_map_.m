@@ -4,14 +4,19 @@ function obj = set_ixexperid_map_(obj,val)
 % list of all experiment descriptors
 %
 % Main part of ixexperid_map setter procedure
+redefine_map= true;
 if isa(val,'containers.Map')
+    keys = val.keys;
+    keys = [keys{:}];    
+    val  = val.values;
+    fm = fast_map(keys,val);
+    obj.ixexperid_map_  = fm.optimize();
+    redefine_map= false;
+elseif isa(val,'fast_map')
     obj.ixexperid_map_ = val;
     keys = val.keys;
     keys = [keys{:}];
-elseif isa(val,'fast_map')
-    keys = val.keys;
-    val  = val.values;
-    obj.ixexperid_map_ = containers.Map(keys,val);
+    redefine_map= false;    
 elseif isnumeric(val) && numel(val) == obj.n_runs
     keys = val(:)';
 else
@@ -21,7 +26,7 @@ else
         ' In fact it is: %s'], ...
         class(val))
 end
-obj = set_runids_map_and_synchonize_headers_(obj,keys);
+obj = set_runids_map_and_synchonize_headers_(obj,keys,redefine_map);
 %
 if obj.do_check_combo_arg_
     obj = check_combo_arg(obj);
