@@ -123,10 +123,13 @@ for i=1:4
         new_range_arg{i} = [range(1),step,range(2)];
     end
 end
+wout = copy(inputs(1));
 
 % combine pixels into single pixels block
+% combine experiments from contributing files. Cut should drop duplicates
+[cexper,~,pix_subst_list]  = Experiment.combine(exper,true);
+wout.experiment_info = cexper;
 
-wout = copy(inputs(1));
 pix = arrayfun(@(x) x.pix, inputs, 'UniformOutput', false);
 
 % Turn off horace_info output, but save for automatic clean-up on exit or ctrl-C
@@ -135,10 +138,8 @@ cleanup_obj=onCleanup(@()set(hor_config, 'log_level', info_level));
 set(hor_config,'log_level',-1);
 
 % concatenate object pixels into single pixels blob
-wout.pix = PixelDataBase.cat(pix{:});
+wout.pix = PixelDataBase.cat(pix{:},pix_subst_list);
 
-% combine experiments from contributing files. Cut should drop duplicates
-wout.experiment_info = exper{1}.combine(exper(2:end),true,true);
 
 
 % completely break relationship between bins and pixels in memory and make

@@ -33,6 +33,10 @@ if ~isa(argi{1},'PixelDataBase')
         ' Class of the first input is: %s'], ...
         class(argi{1}));
 end
+pix_subst_info_place = cellfun(@(x)iscell(x),varargin);
+pix_subst_info = argi{pix_subst_info_place};
+argi = argi(~pix_subst_info_place);
+
 
 
 pix_out = copy(argi{1});
