@@ -299,7 +299,10 @@ classdef unique_references_container < ObjContainersBase
             %HASH - for a given `index` into the container, return the associated hash
             % this prevents the calling code from having to recalculate the hash since it is already known
             obj      = unique_obj_store.instance().get_value(self.baseclass, self.idx(index));
-            val      = build_hash(obj);
+            % when object was added to container, its hash has been
+            % calculated so present. build_hash will recover the object's
+            % hash without its recalculation
+            [~,val]      = build_hash(obj);
         end
     end
 
