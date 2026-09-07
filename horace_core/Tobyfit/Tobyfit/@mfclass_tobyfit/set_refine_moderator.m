@@ -55,7 +55,7 @@ function obj = set_refine_moderator (obj, varargin)
 %   >> obj = obj.set_refine_moderator ('ikcarp',[tauf,taus,R],[1,0,0])
 
 
-if numel(varargin)==1 && islognumscalar(varargin{1}) && ~logical(varargin{1})
+if isscalar(varargin) && islognumscalar(varargin{1}) && ~logical(varargin{1})
     obj.refine_moderator_ = [];
 else
     if isempty(obj.refine_crystal_)
@@ -90,7 +90,7 @@ else
             error(['Moderator refinement: ',mess])
         end
         % Fill mod_opts, checking for consistency of any supplied information with the current moderator
-        if numel(varargin)==0 || (numel(varargin)==1 &&...
+        if numel(varargin)==0 || (isscalar(varargin) &&...
                 (isempty(varargin{1}) || (islognumscalar(varargin{1}) && logical(varargin{1}))))
             if ~isempty(pulse_model)    % by construction default should be a valid model
                 [mod_opts,ok,mess] = refine_moderator_parse (mod_opts_default);
@@ -98,7 +98,7 @@ else
                 error(['Moderator refinement: ',mess])
             end
         else
-            if numel(varargin)==1 && isstruct(varargin{1})
+            if isscalar(varargin) && isstruct(varargin{1})
                 [mod_opts,ok,mess] = refine_moderator_parse (varargin{1});
             else
                 [mod_opts,ok,mess] = refine_moderator_parse (mod_opts_default,varargin{:});

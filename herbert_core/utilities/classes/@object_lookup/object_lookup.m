@@ -323,7 +323,7 @@ classdef object_lookup < serializable
 
                 % If there is only one argument before any keyword, and it is a
                 % cell array, pick this out as the set of object arrays
-                if numel(objArr)==1 && iscell(objArr{1})
+                if isscalar(objArr) && iscell(objArr{1})
                     objArr = objArr{1};
                 end
 
