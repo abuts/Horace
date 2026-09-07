@@ -24,7 +24,7 @@ classdef ObjContainersBase < serializable
     properties (Access=protected)
         baseclass_      = '';         % if not empty, name of the baseclass
         %                               this container holds. Should be suitable for isa() calls
-        idx_            = zeros(1,0); %  array of unique global indices of objects in the container
+        idx_            = zeros(1,0); % Array of unique global indices of objects in the container
         unique_objects_ = cell(1,0);  % storage for unique objects.
     end
     properties(Access = private)
@@ -319,7 +319,7 @@ classdef ObjContainersBase < serializable
         function x = get_idx(self)
             x = self.idx_;
         end
-        function check_if_range_allowed(self,nuix,plus)
+        function check_if_range_allowed(self,nuix,varargin)
             % Validates if input non-unique index is in the range of indices
             % allowed for current state of the container
             if nargin==3

@@ -62,7 +62,9 @@ classdef (InferiorClasses = {?DnDBase,?IX_dataset,?sigvar},Abstract) ...
         u3; % The 3rd dimension of the Crystal Cartesian orientation (1 x n array) [A^-1]
         dE; % The array of energy deltas of the pixels (1 x n array) [meV]
 
-        run_idx;     % The run index the pixel originated from (1 x n array)
+        ixexper_idx;  % The pointer to Experiment.IX_experiment instance, 
+        % describing the run or instrument state where the pixel was
+        % recored
         detector_idx; % The detector group number in the detector listing
         %             % for the pixels (1 x n array)
         energy_idx;   % The energy bin numbers (1 x n array)
@@ -100,6 +102,10 @@ classdef (InferiorClasses = {?DnDBase,?IX_dataset,?sigvar},Abstract) ...
         %               the matrix is eye(3);
     end
     properties(Dependent,Hidden)
+        % legacy name for ixexper_id property
+        run_idx;     % Formally was run index the pixel originated from
+        % (1 x n array), but with multirep and constant rotation -- just
+        % index of IX_experiment data, keeping info about all of these. 
         % hidden not to pollute interface
         q_coordinates; % The spatial dimensions of the Crystal Cartesian
         %              % orientation (3 x npix array)
@@ -188,7 +194,7 @@ classdef (InferiorClasses = {?DnDBase,?IX_dataset,?sigvar},Abstract) ...
 
     properties(Constant,Access=protected)
         COLS = {'u1', 'u2', 'u3', 'dE', ...
-            'run_idx', ...
+            'ixexper_idx', ...
             'detector_idx', ...
             'energy_idx', ...
             'signal', ...
@@ -198,6 +204,7 @@ classdef (InferiorClasses = {?DnDBase,?IX_dataset,?sigvar},Abstract) ...
             'coordinates', ...
             'q_coordinates', ...
             'run_idx', ...
+            'ixexper_idx',...
             'detector_idx', ...
             'energy_idx', ...
             'signal', ...
@@ -206,7 +213,7 @@ classdef (InferiorClasses = {?DnDBase,?IX_dataset,?sigvar},Abstract) ...
             'all_indexes',...
             'all_experiment',...
             'all'}, ...
-            {1, 2, 3, 4, 1:4, 1:3, 5, 6, 7, 8, 9,[8,9],[5,6,7],5:9,1:9});
+            {1, 2, 3, 4, 1:4, 1:3, 5,5,6, 7, 8, 9,[8,9],[5,6,7],5:9,1:9});
     end
 
     methods(Static,Hidden)
@@ -272,7 +279,7 @@ classdef (InferiorClasses = {?DnDBase,?IX_dataset,?sigvar},Abstract) ...
             %             col 2: u2
             %             col 3: u3
             %             col 4: dE
-            %             col 5: run_idx
+            %             col 5: ixexper_idx (run_idx)
             %             col 6: detector_idx
             %             col 7: energy_idx
             %             col 8: signal
@@ -616,9 +623,17 @@ classdef (InferiorClasses = {?DnDBase,?IX_dataset,?sigvar},Abstract) ...
         function run_idx = get.run_idx(obj)
             run_idx = obj.get_prop('run_idx');
         end
+        function run_idx = get.ixexper_idx(obj)
+            run_idx = obj.get_prop('run_idx');
+        end
+        
         function obj= set.run_idx(obj, val)
             obj=obj.set_prop('run_idx', val);
         end
+        function obj = set.ixexper_idx(obj,val)
+            obj = obj.set_prop('run_idx',val);
+        end
+        
         %
         function detector_idx = get.detector_idx(obj)
             detector_idx = obj.get_prop('detector_idx');
@@ -990,7 +1005,7 @@ classdef (InferiorClasses = {?DnDBase,?IX_dataset,?sigvar},Abstract) ...
             obj.data_range_(:,ind) = obj.pix_minmax_ranges(obj.data(ind,:), ...
                 obj.data_range_(:,ind));
             if nargout > 1
-                unique_idx = unique(obj.run_idx);
+                unique_idx = unique(obj.ixexper_idx);
             end
         end
         %------------------------------------------------------------------

@@ -1,4 +1,4 @@
-function [grid_size, data_range,update_runlabels] = rundata_write_to_sqw_(run_files, sqw_file, ...
+function [grid_size, data_range] = rundata_write_to_sqw_(run_files, sqw_file, ...
     grid_size_in, pix_db_range, write_banner)
 % Read a single rundata object, and create a single sqw file.
 %
@@ -23,9 +23,6 @@ function [grid_size, data_range,update_runlabels] = rundata_write_to_sqw_(run_fi
 %                    where there is zero range of the data points)
 % pix_range       -  Actual range of grid, should be different from
 %                    pix_range_in only if pix_range_in is not provided
-% update_runlabels-  if true, each run-id for every runfile has to be
-%                    modified as some runfiles have the same run-id(s).
-%                    This possible e.g. in "replicate" mode.
 
 
 % Original author: T.G.Perring
@@ -34,7 +31,6 @@ nfiles = numel(run_files);
 if nfiles == 0
     grid_size = grid_size_in;
     data_range = [pix_db_range,PixelDataBase.EMPTY_RANGE(:,5:end)];
-    update_runlabels = false;
     return
 end
 
@@ -78,7 +74,6 @@ if hasnans
     for ii=1:nfiles
         runid = run_files{ii}.run_id;
         if isnan(runid)
-            maxrunid = maxrunid+1;
             run_files{ii}.run_id = maxrunid;
         end
     end
@@ -87,14 +82,12 @@ end
 %
 % bin_range = arrayfun(@(x,y,z)get_cut_range(x,y,z),...
 %     pix_db_range(1,:),pix_db_range(2,:),grid_size_in,'UniformOutput',false);
-run_id = zeros(1,nfiles);
 for i=1:nfiles
     if hor_log_level>-1 && write_banner
         fprintf('--------------------------------------------------------------------------------\n');
         fprintf('*** Processing input file N %d of %d:\n\n',i,nfiles);
     end
     %
-    run_id(i) = run_files{i}.run_id;
     [w,grid_size_tmp,data_range_tmp] = run_files{i}.calc_sqw(grid_size_in, pix_db_range);
     if i==1
         grid_size = grid_size_tmp;
@@ -128,5 +121,3 @@ for i=1:nfiles
     end
 
 end
-unique_runid = unique(run_id);
-update_runlabels = numel(unique_runid) ~= nfiles || any(isnan(unique_runid));

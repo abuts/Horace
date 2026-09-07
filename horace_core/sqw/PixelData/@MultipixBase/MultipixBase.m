@@ -66,7 +66,7 @@ classdef MultipixBase < serializable
         %------------------------------------------------------------------
         % Part of PixelData interface, not very important on multipix but
         % need to be defined to use multipix alongside with pixelData
-        % if operation shoud conserve pixel dataset precision. Part of
+        % if operation should conserve pixel dataset precision. Part of
         % pixel_data interface.
         keep_precision
         old_file_format

@@ -24,9 +24,14 @@ classdef IX_experiment < Goniometer
         filename; % name of the file which was the source of data for this
         %         % experiment
         filepath; % path where the experiment data were initially stored
-        run_id;   % the identifier, which uniquely defines instrument run
-        exper_id; % the identifier, which uiquely identifies this experiment.
-        %         % This identifier is also stored within the PixelData,
+        run_id;   % The number, which uniquely defines the run where
+        %         % the experiment data came from. Very often, the number
+        %         % of run on an instrument
+        ixexper_id; % The number, which uiquely identifies this dataset.
+        %         % as part of all datasets or runs contributed into the
+        %         % sqw object these data came from.
+        %         % For resolution convolution to work correctly,
+        %         % this identifier also must be stored within the PixelData,
         %         % providing connection between the particular pixel and
         %         % the particuar experiment info, pointing to appropriate
         %         IX_experiment
@@ -44,6 +49,12 @@ classdef IX_experiment < Goniometer
         u_to_rlu;
     end
     properties(Hidden)
+        attached_instr_hash = '' % helper property, used in comparison of
+        % different IX experiments. If defined (not empty) used in
+        % comparison. Not used in IX_experiment hashes. Used only in
+        % combine algorithms to identify unique IX_experiments and pixels
+        % corresponding to them.
+
         % these properties are not used in Horace-4 but left for compatibility
         % with Horace-3 file format when it read/updated from/to Horace-3
         % format files.
@@ -60,7 +71,7 @@ classdef IX_experiment < Goniometer
         filename_=''
         filepath_='';
         run_id_ = NaN;
-        exper_id_ = [];
+        ixexper_id_ = [];
         emode_ = 0;
         en_ = zeros(0,1);
         efix_ = 0;
@@ -117,20 +128,21 @@ classdef IX_experiment < Goniometer
         end
         function obj = set.run_id(obj,val)
             obj = check_and_set_id_prop(obj,val,'run_id_');
+            obj = obj.clear_hash();
         end
 
-        function id = get.exper_id(obj)
-            if isempty(obj.exper_id_) % for compartibility
+        function id = get.ixexper_id(obj)
+            if isempty(obj.ixexper_id_) % for compartibility
                 id =obj.run_id_;      % with old data containing run_id only.
             else
-                id =obj.exper_id_;
+                id =obj.ixexper_id_;
             end
         end
-        function obj = set.exper_id(obj,val)
-            obj = check_and_set_id_prop(obj,val,'exper_id_');
+        function obj = set.ixexper_id(obj,val)
+            obj = check_and_set_id_prop(obj,val,'ixexper_id_');
         end
 
-        function ids = get_run_ids(obj)
+        function ids = get_ixexper_ids(obj)
             % retrieve all run_ids, which may be present in the array of
             % rundata objects.
             n_obj = numel(obj);
@@ -139,17 +151,26 @@ classdef IX_experiment < Goniometer
                 % runID-s obtained from different sources may be int, uint32
                 %  or double. To achieve consistensy, let's make them all
                 %  double.
-                ids(in) = double(obj(in).run_id_);
+                ids(in) = double(obj(in).ixexper_id);
             end
         end
-        function idmap = get_runid_map(obj)
+        function idmap = get_experid_map(obj)
             % retrieve all run_ids, which may be present in the array of
             % rundata objects and build run_id map from them. run_id map
             % used for finding particular element's position given its
             % run_id
+
+            n_obj = numel(obj);
+            ids = zeros(1,n_obj);
             ind = 1:numel(obj);
-            ids = arrayfun(@(in)(obj(in).exper_id),ind);
-            idmap = fast_map(ids,ind);
+            trivial_map = true;
+            for ii = ind
+                ids(ii) = obj(ii).ixexper_id;
+                if ids(ii) ~= ii
+                    trivial_map = false;
+                end
+            end
+            idmap = fast_map(ids,ind,trivial_map);
         end
         %
         function mode = get.emode(obj)
@@ -296,16 +317,17 @@ classdef IX_experiment < Goniometer
         end
         %
         %
-        function [obj,file_id_array,skipped_inputs,this_runid_map] = ...
-                combine(obj,exper_cellarray,allow_eq_headers,keep_runid,varargin)
+        %
+    end
+    methods(Static)
+        function [obj,skipped_inputs,this_ixexperid_map,subst_map] = ...
+                combine(exper_cellarray,allow_eq_headers)
             % method combines input IX_experiment array(s) with elements
             % contained in exper_cellarray, identifying possible duplicates
             % and either ignoring them, or throwing error depending on
             % input parameters.
             %
             % Inputs:
-            % obj             -- single instance or array of IX_experiment
-            %                    objects
             % exper_cellarray -- cellarray containing IX_experiments arrays
             %                    or Experiment classes to combine their
             %                    IX_experiments into obj.
@@ -315,22 +337,7 @@ classdef IX_experiment < Goniometer
             %                    throws HORACE:IX_experiment:invalid_argument
             %                    if the IX_experiment have the same run_id
             %                    and values.
-            %                    IX_experiments with same run_id and
-            %                    different values are always rejected.
-            % keep_runid      -- true if run_id-s stored in input IX_experiment-s
-            %                    should be kept or false if final obj
-            %                    run_id should be  recalculated starting
-            %                    from 1 to number of kept runs.
-            % WARNING:        -- run_id(s) modified if keep_runid == false
-            %                    must be synchronized with run_id(s) stored
-            %                    in pixels, which means that keep_runid ==
-            %                    false could be used in tests or in sqw
-            %                    file generation only.
-            % Optional:
-            % runid_map       -- the map containing information about
-            %                    run_id(s) stored in the object as keys
-            %                    and pointing to the number of element in
-            %                    obj array as the value.
+     
             %
             % Returns:
             % obj             -- resulting array, containing unique
@@ -339,30 +346,21 @@ classdef IX_experiment < Goniometer
             % skipped_inputs  -- cellarray of logical arrays containing true where
             %                    input object was dropped and false where it has been
             %                    kept
-            % file_id_array   -- array contains run_ids for each input
-            %                    IX_experiment value present in exper_cellarray.
-            %                    Where input IX_experiments with equal run_id-s
-            %                    and values are rejected, corresponding
-            %                    elements of this array contain the
-            %                    values of rejected run_id-s. These values
-            %                    will be used  in calculations of pixels
-            %                    run_id for each contributing file.
-            % this_runid_map --  the map which connects run_id(s) of data,
+            % this_ixexperid_map --  the map which connects run_id(s) of data,
             %                    stored in the obj as keys, with the
             %                    positions of the data objects in the
             %                    object array as values.
-            if nargin < 3
+            % subst_map      -- cellarray of arrays which describe pixel id
+            %                   change, i.e. first row specifies existing
+            %                   ixdataset_id-s and the second row -- the id
+            %                   to change to.
+            if nargin < 2
                 allow_eq_headers = false;
             end
-            if nargin<4
-                keep_runid = true;
-            end
-            [obj,file_id_array,skipped_inputs,this_runid_map] = combine_(obj, ...
-                exper_cellarray,allow_eq_headers,keep_runid,varargin{:});
+            [obj,skipped_inputs,this_ixexperid_map,subst_map] = combine_(...
+                exper_cellarray,allow_eq_headers);
         end
-        %
-    end
-    methods(Static)
+
         %------------------------------------------------------------------
         % SQW_binfile_common methods related to saving to old format binfile and
         % run_id scrambling:
@@ -376,9 +374,9 @@ classdef IX_experiment < Goniometer
             for i=1:numel(old_fldnms)
                 obj.(old_fldnms{i}) = inputs.(old_fldnms{i});
             end
-            % enable check for interdependent properties compartibility
+            % enable check for interdependent properties compatibility
             obj.do_check_combo_arg = true;
-            % check interdependent properties compartibility and
+            % check interdependent properties compatibility and
             % calculate all caches if necessary.
             obj = obj.check_combo_arg();
             % old headers always contain angular values in radians
@@ -400,7 +398,7 @@ classdef IX_experiment < Goniometer
     properties(Constant,Access=private)
         % fields, which fully define IX_experiment part of the public
         % interface to the class
-        fields_to_save_ = {'filename','filepath','run_id','exper_id','efix','emode','en'};
+        fields_to_save_ = {'filename','filepath','run_id','ixexper_id','efix','emode','en'};
     end
     methods
         function flds = saveableFields(obj)
@@ -412,17 +410,18 @@ classdef IX_experiment < Goniometer
         end
         function flds = constructionFields(obj)
             base= constructionFields@Goniometer(obj);
-            flds = [IX_experiment.fields_to_save_(:);base(:)];
+            flds = [IX_experiment.fields_to_save_(1:3)';IX_experiment.fields_to_save_(5:end)';base(:)];
         end
         function flds = hashableFields(~)
-            % run_id connects pixels with headers in experiment data.
-            % We allow two IX_experiments with the same run-id to be equal
+            % ixeper_id connects pixels with headers in experiment data 
+            % but we do not include it in comparison as pixel may refer to
+            % sampe experiment data but be different.
             % Also two experiments with the same filename but different
             % filepath are the same
             %
             % the list of properties which define IX_experiment uniqueness
             % if hashes, build on these properties values are the same,
-            % IX_experiments are considered the same
+            % IX_experiments are considered equal
             flds= {'filename','cu','cv','run_id','efix',...
                 'psi', 'omega', 'dpsi', 'gl', 'gs'};
         end
@@ -445,6 +444,15 @@ classdef IX_experiment < Goniometer
         end
     end
     methods(Access=protected)
+        function obj = from_old_struct (obj, S)
+            obj = from_old_struct@serializable(obj,S);
+            if S.version == 1 && numel(obj)>1
+                for i=1:numel(obj)
+                    obj(i).ixexper_id= i;
+                end
+            end
+        end
+
         function [S,obj] = convert_old_struct (obj, S, ver)
             % Update structure created from earlier class versions to the current
             % version. Converts the bare structure for a scalar instance of an object.
@@ -458,14 +466,14 @@ classdef IX_experiment < Goniometer
             end
             if ver < 4
                 if isnan(S.run_id)
-                    S.exper_id = 1;
-                    wartining('HORACE:sqw:undefined_run_id', ...
+                    S.ixexper_id = 1;
+                    warning('HORACE:IX_experiment:undefined_run_id', ...
                         ['IX_experiment stored on disk does not have correct run-id(s)\n' ...
                         'It is likely that relationship between IX_experiment and pixels are broken and resolution convolution does not work correctly\n' ...
                         'Check https://pace-neutrons.github.io/Horace/unstable/manual/Data_diagnostics.html#instrument-view-cut\n' ...
                         'on how to diagnose this issue.'])
                 else
-                    S.exper_id = S.run_id;
+                    S.ixexper_id = S.run_id;
                 end
             end
             % version 3 does not save/load u_to_rlu, ulen, ulabel
@@ -509,9 +517,9 @@ classdef IX_experiment < Goniometer
     end
     methods(Access=private)
         function obj = check_and_set_id_prop(obj,val,name)
-            % helper setter used in setting run_id or exper_id
+            % helper setter used in setting run_id or ixexper_id
             if ~isnumeric(val) || ~isscalar(val)
-                error('HERBERT:rundata:invalid_argument',...
+                error('HERBERT:IX_experiment:invalid_argument',...
                     'property %s can have only single numeric value', ...
                     name(1:end-1));
             end

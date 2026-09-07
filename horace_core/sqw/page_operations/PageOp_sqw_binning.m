@@ -97,7 +97,7 @@ classdef PageOp_sqw_binning < PageOp_sqw_eval
             % npix  -- image npix array, which defines the number of pixels
             %           contributing into each image bin and the pixels
             %           ordering in the linear array or array containing
-            %           number of pixels in each cut to combine togeter in
+            %           number of pixels in each cut to combine together in
             %           combine cuts mode.
             % chunk_size
             %       -- sized of chunks to split pixels
@@ -231,7 +231,7 @@ classdef PageOp_sqw_binning < PageOp_sqw_eval
             %
             % Inputs:
             % obj         -- initialized instance of PageOp_sqw_eval class
-            % npix_block  -- array containing distrubution of pixel loaded into current page
+            % npix_block  -- array containing distribution of pixel loaded into current page
             %                over image bins of the processed data chunk
             % npix_idx    -- 2-element array [nbin_min,nbun_max] containing
             %                min/max indices of the image bins

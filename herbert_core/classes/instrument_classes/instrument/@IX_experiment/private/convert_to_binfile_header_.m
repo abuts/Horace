@@ -41,7 +41,7 @@ old_hdr.cu = old_hdr.u;
 old_hdr.cv = old_hdr.v;
 old_hdr.ulabel = {''};
 old_hdr.ulen   = [1,1,1,1];
-old_hdr = rmfield(old_hdr,{'run_id','u','v'});
+old_hdr = rmfield(old_hdr,{'ixexper_id','run_id','u','v'});
 if strcmp( mode, '-inst_samp')
     old_hdr.instrument = arg1;
     old_hdr.sample     = arg2;

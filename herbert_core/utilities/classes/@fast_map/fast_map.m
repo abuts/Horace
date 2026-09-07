@@ -49,13 +49,19 @@ classdef fast_map < serializable
         KeyType    % key type. Currently uint32 only
         optimized  % If true, map is optimized for faster access without
         %          % using binary search over keys
+        trivial_map % if true,the map has the form 1->1, 2->2,.... N->N
         % debugguging property
         min_max_key; % minimal and maximal key values used in values
         % access optimization
     end
+    properties(Dependent,Hidden)
+        Count % provide common interface between fast_map and containers.Map
+        % the same as n_members
+    end
     properties(Access=protected)
         key_type_ = 'uint32'
         val_type_ = 'double'
+        trivial_map_ = false;
         keys_ = uint32([]); % array of keys, used to retrieve values
         values_=[]; % array of values, accessed through the keys
         %
@@ -78,10 +84,13 @@ classdef fast_map < serializable
             %>> fm = fast_map();
             %>> fm = fast_map(keys,values);
             %>> fm = fast_map(keys,values,key_type);
+            %>> fm = fast_map(keys,values,trivial_map,key_type);
             % where :
             % keys      -- array or cellarray (numeric) keys
             % values    -- array or cellarray of (numeric) values
             % Optional:
+            % trivial_map
+            %           -- boolean indicating that
             % key_type  -- string describing the type the keys should have
             %              Shold be selected from supported types, which
             %              are currently 'uint32','double' or 'uint64'
@@ -90,7 +99,14 @@ classdef fast_map < serializable
             end
             obj.do_check_combo_arg_ = false;
             if nargin>2
-                obj.KeyType = varargin{1};
+                if ischar(varargin{1})
+                    obj.KeyType = varargin{1};
+                else
+                    obj.trivial_map_ = logical(varargin{1});
+                    if nargin>3
+                        obj.KeyType = varargin{2};
+                    end
+                end
             else
                 if iscell(keys)
                     obj.KeyType = class(keys{1});
@@ -133,6 +149,9 @@ classdef fast_map < serializable
                     end
 
                 end
+            end
+            if ~isequal(key,value)
+                self.trivial_map_ = false;
             end
         end
         function val = get(self,key)
@@ -218,13 +237,28 @@ classdef fast_map < serializable
             end
         end
         %
+        function is = get.trivial_map(obj)
+            is = obj.trivial_map_;
+        end
+        function obj = set.trivial_map(obj,val)
+            % Provided to satisfy serializable interface only!!!
+            % Setting this value incorrectly will break operations!
+            % Checks removed to maintain performance
+            obj.trivial_map_= logical(val);
+        end
+        %
         function mmv = get.min_max_key(obj)
             mmv = obj.min_max_key_;
         end
+        %
         function nm = get.n_members(obj)
             nm = numel(obj.keys_);
         end
+        function nm = get.Count(obj)
+            nm = numel(obj.keys_);
+        end
         %
+
         function [val,key] = get_values_for_keys(self,keys,no_validity_checks,mode)
             % method retrieves values corresponding to array of keys.
             %
@@ -362,13 +396,13 @@ classdef fast_map < serializable
             % and .sqw data format. Each new version would presumably read
             % the older version, so version substitution is based on this
             % number
-            ver = 2;
+            ver = 3;
         end
 
         function flds = saveableFields(~)
             % get independent fields, which fully define the state of the
             % serializable object.
-            flds = {'keys','values','KeyType'};
+            flds = {'keys','values','trivial_map','KeyType'};
         end
         %
         function obj = check_combo_arg(obj)
@@ -383,6 +417,16 @@ classdef fast_map < serializable
         function [S,obj] = convert_old_struct (obj, S, ver)
             if ver == 1
                 S.KeyType = 'uint32';
+            end
+            if ver<3
+                triv_map = true;
+                for i=1:numel(S.keys)
+                    if ~(S.keys(i) == i && S.value(i) == i)
+                        triv_map =false;
+                        break;
+                    end
+                end
+                S.trivial_map = triv_map;
             end
         end
     end

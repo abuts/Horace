@@ -12,49 +12,55 @@ function sqw_type = update_pixels_run_id(sqw_type,unique_pix_id)
 % here we try to verify, if this restoration is correct if we can do that
 % without critical drop in performance.
 if ~exist('unique_pix_id','var')
-    pix_runid = unique(sqw_type.pix.run_idx);
+    pix_runid = unique(sqw_type.pix.ixexper_idx);
     pix_runid_known = sqw_type.pix.num_pages == 1;
 else
     pix_runid = unique_pix_id;
     pix_runid_known = true;
 end
 exp_info = sqw_type.experiment_info;
-file_id = exp_info.runid_map.keys;
-if iscell(file_id) % support for old runid map.
-    % Custom map optimized for performance returns array
-    % of numerical keys.
-    % This piece left for compartibility with old code and 
-    % Re #1840 should remove it.
-    file_id = [file_id{:}];
+% old data work with run_id(s) stored in exp_data
+expdata = exp_info.expdata;
+file_id = zeros(1,numel(expdata));
+for i=1:numel(expdata)
+    file_id(i) = expdata(i).run_id;
 end
+file_id = unique(file_id); % should be always unique, but old data may be broken
+ixexper_id = expdata.get_ixexper_ids;
 if pix_runid_known  % all pixels are in memory or pix_runid are known and we
     % can properly analyse run-ids
 
-    if ~all(ismember(pix_runid,file_id))  % old style pixel data, run_id-s
+    if ~all(ismember(pix_runid,ixexper_id ))  % old style pixel data, run_id-s
         % have been recalculated
-        % use the fact that the headers were recalculated as subsequent numbers
-        % going from 1 to n_headers
-        if  max(pix_runid)>exp_info.n_runs
-            warning('HORACE:old_file_format', ...
-                ['\n*** Can not identify direct correspondence between pixel run-id(s) and experiment info run-id(s)\n', ...
-                '*** Pixel run id(s): %s\n*** Header id(s): %s\n', ...
-                '*** Assigning pixel run-is(s) to the first file headers'], ...
-                disp2str(pix_runid),disp2str(file_id));
-
-            id =  ones(1,exp_info.n_runs)*realmax('single');
-            n_unique_pix= numel(pix_runid);
-            for i=1:n_unique_pix
-                id(i) = pix_runid(i);
-            end
-
+        if all(ismember(pix_runid,file_id)) && numel(pix_runid) == exp_info.n_runs
+            id = file_id;
         else
-            id=1:exp_info.n_runs;
+            % use the fact that the headers were recalculated as subsequent numbers
+            % going from 1 to n_headers
+            if  max(pix_runid)>exp_info.n_runs
+                warning('HORACE:old_file_format', ...
+                    ['\n*** Can not identify direct correspondence between pixel run-id(s) and experiment info run-id(s)\n', ...
+                    '*** Pixel run id(s): %s\n*** Header id(s): %s\n', ...
+                    '*** Assigning pixel run-is(s) to the first file headers'], ...
+                    disp2str(pix_runid),disp2str(file_id));
+
+                id =  ones(1,exp_info.n_runs)*(max(pix_runid)+1); % set
+                % set nubers outside of pixel range to cut them out from
+                % experiment objects later.
+                n_unique_pix= numel(pix_runid);
+                for i=1:n_unique_pix
+                    id(i) = pix_runid(i);
+                end
+
+            else
+                id=1:exp_info.n_runs;
+            end
         end
         % reset run-ids and runid_map stored in current experiment info.
-        exp_info.runid_map = id;
+        exp_info.ixexperid_map = id;
         %
     end
-    if numel(pix_runid)< numel(file_id)
+    if numel(pix_runid)< exp_info.n_runs
         exp_info = exp_info.get_subobj(pix_runid);
     end
 
@@ -64,7 +70,7 @@ else % not all pixels are loaded into memory or pre-calculated and run-id-s may 
         % have been recalculated for pixels and our only hope is that
         % headers are in the order of run-id
         id=1:exp_info.n_runs;
-        exp_info.runid_map = id;
+        exp_info.ixexperid_map = id;
     end
 end
 sqw_type.experiment_info = exp_info;

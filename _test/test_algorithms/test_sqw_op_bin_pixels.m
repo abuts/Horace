@@ -230,7 +230,7 @@ classdef test_sqw_op_bin_pixels < TestCaseWithSave
         end
     end
     %----------------------------------------------------------------------
-    % DND tests, input parametes tests or some undefined input
+    % DND tests, input parameters tests or some undefined input
     % -- test fails gracefully
     methods
         %----------------------------------------------------------------------

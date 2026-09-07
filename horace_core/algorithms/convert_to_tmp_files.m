@@ -1,4 +1,4 @@
-function  [tmp_generated,data_range,update_runids,grid_size,jd]=...
+function  [tmp_generated,data_range,grid_size,jd]=...
     convert_to_tmp_files(run_files,sqw_file,pix_db_range,grid_size_in,...
     accumulate_tmp,keep_parallel_pool)
 % CONVERT_TO_TMP_FILES takes cellarray of rundata files and converts them
@@ -123,7 +123,6 @@ if use_separate_matlab
         outputs   = outputs{1};
         grid_size = outputs.grid_size;
         data_range1 = outputs.data_range;
-        update_runids =outputs.update_runid;
     else
         jd.display_fail_job_results(outputs,n_failed,num_matlab_sessions,'GEN_SQW:runtime_error');
     end
@@ -142,7 +141,7 @@ else
     % effective but much easier to identify problem with
     % failing parallel job
 
-    [grid_size,data_range1,update_runids]=gen_sqw_files_job.runfiles_to_sqw(run_files,tmp_files,...
+    [grid_size,data_range1]=gen_sqw_files_job.runfiles_to_sqw(run_files,tmp_files,...
         grid_size_in,pix_db_range,true);
     %---------------------------------------------------------------------
 end

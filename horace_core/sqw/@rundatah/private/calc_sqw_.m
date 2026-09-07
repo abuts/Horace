@@ -123,7 +123,7 @@ proj = line_proj('alatt',lat.alatt,'angdeg',lat.angdeg, 'type','aaa');
 
 sqw_data = DnDBase.dnd(axes_bl,proj);
 
-expdata = IX_experiment([fn,fe], [fp,filesep],obj.run_id,obj.exper_id, ...
+expdata = IX_experiment([fn,fe], [fp,filesep],obj.run_id,obj.ds_num, ...
     obj.efix,obj.emode,obj.en,lat);
 
 detpar = obj.det_par;

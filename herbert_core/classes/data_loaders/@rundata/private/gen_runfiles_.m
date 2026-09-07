@@ -113,7 +113,7 @@ if nargin>1
     if ischar(params{1}) && size(params{1},1)==1    % single par file provided as input
         par_files = repmat({params{1}},n_spe_files,1);    % cell array with one character array
     elseif iscellstr(params{1})   % list of par files provided
-        if numel(params{1})==1
+        if isscalar(params{1})
             par_files = repmat({params{1}{1}},n_spe_files,1);
         elseif numel(params{1})==n_spe_files
             par_files = params{1};
@@ -126,7 +126,7 @@ if nargin>1
     else
         par_files = params{1};
         if ~iscell(par_files)
-            if numel(par_files)==1
+            if isscalar(par_files)
                 a = repmat({par_files},n_spe_files,1);
                 par_files = a;
             elseif numel(par_files)==n_spe_files
@@ -138,7 +138,7 @@ if nargin>1
                     'number of input par_files not 1 or number of spe files');
             end
         else
-            if numel(par_files)==1
+            if isscalar(par_files)
                 par_files = repmat({par_files{1}},n_spe_files,1);
             elseif numel(par_files)~=n_spe_files
                 error('HERBERT:rundata:gen_runfiles', ...
@@ -158,8 +158,8 @@ else
     par_files = {};
 end
 
-% Check number of par files is one, no, or matches the number of spe files
-if ~(numel(par_files)==1 || numel(par_files)==numel(spe_files) || numel(par_files) == 0)
+% Check number of par files is one or matches the number of spe files
+if ~(isscalar(par_files) || numel(par_files)==numel(spe_files) || numel(par_files) == 0)
     error('HERBERT:rundata:invalid_argument',...
         'par files list should be empty, have one par file or number of par files should be equal to the number of spe files');
 end
@@ -194,7 +194,7 @@ end
 
 % Check other parameters
 % ----------------------
-if numel(spe_files)==1 && isempty(spe_files{1})
+if isscalar(par_files) && isempty(spe_files{1})
     if numel(params)>0
         n_files = numel(params{1});
         spe_files = cell(1,n_files);
@@ -271,8 +271,10 @@ dfnd_params = struct(struct_names_and_vals{:});
 runfiles  = cell(1,n_files);
 for i=1:n_files
     runfiles{i} = feval(name_of_class);
+    % numerate datasets to be distinguishable in the final sqw object.
+    runfiles{i}.ds_num = i;
 end
-%runfiles = cellfun(@()(feval(name_of_class)),runfiles,'UniformOutput',false);
+
 
 file_exist = true(n_files,1);
 
@@ -286,7 +288,7 @@ if isempty(par_files)
             spe_files{i},dfnd_params(i),allow_missing);
         dot_string_length = print_progress(print_progress_dots,dot_string_length,max_dot_string_length);
     end
-elseif numel(par_files)==1
+elseif isscalar(par_files)
     [runfiles{1},file_exist(1)]= init_runfile_with_par(runfiles{1},spe_files{1},...
         par_files{1},'',dfnd_params(1),allow_missing,parfile_is_det);
     if file_exist(1) &&  ~runfiles{1}.isvalid
@@ -346,15 +348,15 @@ if print_progress_dots
     if dot_string_length ~= 0
         fprintf('\n');
     end
-    fprintf('*** Finished constructuion of %d %s objects\n',n_files,name_of_class);
+    fprintf('*** Finished construction of %d %s objects\n',n_files,name_of_class);
 end
 
 function log_length = print_progress(do_print,log_length,max_length)
 % print progress log.
 % Inputs:
-% do_print   --  bulean. If true, progress log is printed and if false it
+% do_print   --  Boolean. If true, progress log is printed and if false it
 %                does not.
-% log_length --  The lengh of already printed dot string.
+% log_length --  The length of already printed dot string.
 % max_length --  Maximal length of dot string requested. If log_length
 %                reaches this value, CR is send to stdout.
 %
@@ -502,7 +504,7 @@ end
 function res = spread_scalar(val,n_files,name)
 if numel(val)==n_files
     res=num2cell(val(:)');  % 1 x nfiles cell array
-elseif numel(val)==1
+elseif isscalar(val)
     if isobject(val)
         res = num2cell(repmat(val,1,n_files));
     else

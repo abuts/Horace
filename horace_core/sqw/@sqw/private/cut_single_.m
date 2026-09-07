@@ -62,7 +62,7 @@ if opt.keep_pix
         if ~w.main_header.creation_date_defined
             % old stored objects, which do not contain correctly defined runid map
             % compatibility operation.
-            head_runid = w.experiment_info.expdata.get_run_ids();
+            head_runid = w.experiment_info.expdata.get_ixexper_ids();
             if  any(~ismember(runid_contributed,head_runid))
                 % some old file contains runid, which has been
                 % recalculated from 1 to n_headers on pixels but have not been
@@ -70,7 +70,7 @@ if opt.keep_pix
                 % assuming that runid-s indeed been redefined this way, we can
                 % restore their run-ids in experiment_info
                 id = 1:w.experiment_info.n_runs;
-                w.experiment_info.runid_map = id;
+                w.experiment_info.ixexperid_map = id;
             end
         end
         exp_info = w.experiment_info.get_subobj(runid_contributed);
@@ -96,7 +96,7 @@ if log_level >= 0 && outfile_specified
 end
 % Write result to file if necessary
 if filebacked_object % this is the only filebacked object one may
-    % produce. Otherwise it is memorybased
+    % produce. Otherwise it is memory based
     hpc = hpc_config;
     hc = hor_config;
 
@@ -104,7 +104,7 @@ if filebacked_object % this is the only filebacked object one may
     page_op         = PageOp_join_sqw;
     page_op.outfile = opt.outfile;
     [page_op,wout]  = page_op.init(wout,[],use_mex);
-    % TODO: Re #1320 do not load result in memory and do not initilize
+    % TODO: Re #1320 do not load result in memory and do not initialize
     % filebacked operations if it is not requested
     % if ~return_cut; apply_without wout; else; end
     wout              = sqw.apply_op(wout,page_op);

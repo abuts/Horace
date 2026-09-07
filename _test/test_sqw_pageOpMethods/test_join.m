@@ -22,7 +22,7 @@ classdef test_join < TestCase
                 mkdir(obj.work_dir);
             end
             for i = 1:n_parts
-                id = obj.sqw_to_join(i).runid_map.keys;
+                id = obj.sqw_to_join(i).ixexperid_map.keys;
                 [~,fn] = fileparts(obj.sqw_to_join(i).main_header.filename);
                 fn = sprintf('%s_runID%d',fn,id(1));
                 fn = fullfile(obj.work_dir,fn);
@@ -70,9 +70,9 @@ classdef test_join < TestCase
                 'en', 10, ...
                 'run_id', 1);
             sqw_obj.main_header.nfiles = 2;
-            rm  = sqw_obj.experiment_info.runid_map;
+            rm  = sqw_obj.experiment_info.ixexperid_map;
             rm  = rm.add(2,2);
-            sqw_obj.experiment_info.runid_map = rm;
+            sqw_obj.experiment_info.ixexperid_map = rm;
 
             split_obj = sqw_obj.split();
 
@@ -104,7 +104,7 @@ classdef test_join < TestCase
 
             reformed_obj = sqw.join(obj.files_to_join,'-recalc');
 
-            runid = reformed_obj.runid_map.keys();
+            runid = reformed_obj.ixexperid_map.keys();
             assertEqual(double(runid),1:reformed_obj.main_header.nfiles);
 
             sobj = obj.sample_obj;
@@ -112,7 +112,7 @@ classdef test_join < TestCase
             idx = PixelData.field_index('run_idx');
             pix_data(idx,:) = pix_data(idx,:) - 18;
             sobj.pix.data = pix_data;
-            sobj.experiment_info.runid_map  = 1:numel(obj.files_to_join);
+            sobj.experiment_info.ixexperid_map  = 1:numel(obj.files_to_join);
 
             %
             assertEqual(obj.sample_obj.detpar,reformed_obj.detpar)
@@ -124,7 +124,7 @@ classdef test_join < TestCase
         function test_join_works_with_file_list_with_mex(obj)
             [~, ~, can_combine_with_mex] = check_horace_mex();
             if ~can_combine_with_mex
-                skipTest('Combinbing with mex is not available on this system')
+                skipTest('Combining with mex is not available on this system')
             end
             clWarn = set_temporary_warning('off','HORACE:physical_memory_configured');
             clHConf = set_temporary_config_options(hor_config,'use_mex',true);
@@ -234,7 +234,7 @@ classdef test_join < TestCase
 
             reformed_obj = sqw.join(split_obj,'-recalc_runid');
 
-            runid = reformed_obj.runid_map.keys();
+            runid = reformed_obj.ixexperid_map.keys();
             assertEqual(double(runid),1:reformed_obj.main_header.nfiles);
 
             sobj = obj.sample_obj;
@@ -242,7 +242,7 @@ classdef test_join < TestCase
             idx = PixelData.field_index('run_idx');
             pix_data(idx,:) = pix_data(idx,:) - 18;
             sobj.pix.data = pix_data;
-            sobj.experiment_info.runid_map  = 1:numel(split_obj);
+            sobj.experiment_info.ixexperid_map  = 1:numel(split_obj);
 
             assertEqualToTol(sobj, reformed_obj, [1e-7, 1e-7], ...
                 '-ignore_str','-ignore_date')
@@ -256,7 +256,7 @@ classdef test_join < TestCase
 
             reformed_obj = sqw.join(split_obj,obj.sample_obj,'-recalc_runid');
 
-            runid = reformed_obj.runid_map.keys;
+            runid = reformed_obj.ixexperid_map.keys;
             assertEqual(double(runid),1:reformed_obj.main_header.nfiles);
 
             sobj = obj.sample_obj;
@@ -264,7 +264,7 @@ classdef test_join < TestCase
             idx = PixelData.field_index('run_idx');
             pix_data(idx,:) = pix_data(idx,:) - 18;
             sobj.pix.data = pix_data;
-            sobj.experiment_info.runid_map  = 1:numel(split_obj);
+            sobj.experiment_info.ixexperid_map  = 1:numel(split_obj);
 
             assertEqualToTol(sobj, reformed_obj, [1e-7, 1e-7], ...
                 '-ignore_str','-ignore_date')

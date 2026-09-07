@@ -5,7 +5,7 @@ function obj = check_and_set_expdata_(obj,val)
 if all(isempty(val))
     if ~isa(val,'IX_experiment')
         obj.expdata_ = [];
-        obj.runid_map_ = containers.Map('KeyType','double','ValueType','double');
+        obj.ixexperid_map_ = containers.Map('KeyType','double','ValueType','double');
         return;
     end
 end

@@ -15,10 +15,6 @@ function [sqw_out,pix_data_range,run_id_array,job_disp] = collect_sqw_metadata(i
 %         -- if two objects or files from the list of input files contain
 %            the same information, allow this. Would throw invalid_arguments
 %            otherwise.
-% '-keep_runid'
-%         -- if provided, keep existing run_id(s) according to numbers,
-%            stored in headers. If not, recalculate runID according to number
-%            of input files.
 %
 % Returns:
 % sqw_out -- pixel-less sqw object combined from input sqw objects and
@@ -33,8 +29,8 @@ function [sqw_out,pix_data_range,run_id_array,job_disp] = collect_sqw_metadata(i
 %
 % Throws HORACE:collect_sqw_metadata:invalid_argument if input objects
 %           contain different grid or have equal data headers
-options = {'-allow_equal_headers','-keep_runid'};
-[ok,mess,allow_equal_headers,keep_runid,argi] = parse_char_options(varargin,options);
+options = {'-allow_equal_headers'};
+[ok,mess,allow_equal_headers,argi] = parse_char_options(varargin,options);
 if ~ok
     error('HORACE:algorithms:invalid_argument',mess);
 end
@@ -44,12 +40,12 @@ if iscell(inputs)
     if all(cellfun(@istext,inputs)) % input is list of files, containing sqw data
         [sqw_sum_struc,pix_data_range,run_id_array,job_disp]=get_pix_comb_info_(inputs, ...
             pix_data_range,job_disp, ...
-            allow_equal_headers,keep_runid);
+            allow_equal_headers);
 
     elseif all(cellfun(@(x)isa(x,'sqw'),inputs))
         [sqw_sum_struc,pix_data_range,run_id_array]=get_pix_comb_info_from_sqw(inputs, ...
             pix_data_range, ...
-            allow_equal_headers,keep_runid);
+            allow_equal_headers);
 
     else
         is_known = cellfun(@(x)(isa(x,'sqw')||@(x)istext(x)),inputs);
@@ -69,14 +65,14 @@ else
     end
     inputs = num2cell(inputs);
     [sqw_sum_struc,pix_data_range] =get_pix_comb_info_from_sqw(inputs, ...
-        pix_data_range,allow_equal_headers,keep_runid);
+        pix_data_range,allow_equal_headers);
 
 end
 sqw_out = sqw(sqw_sum_struc);
 end
 
 function  [sqw_sum_struc,pix_data_range,run_id_array] = get_pix_comb_info_from_sqw(inputs, ...
-    pix_data_range, allow_equal_headers,keep_runid)
+    pix_data_range, allow_equal_headers)
 % Construct information about pixel distribution from cellarray of sqw objects in
 % memory
 
@@ -85,7 +81,7 @@ function  [sqw_sum_struc,pix_data_range,run_id_array] = get_pix_comb_info_from_s
 ll = config_store.instance().get_value('hor_config','log_level');
 
 [dnd_data,exper_combined,run_id_array,mhc] = combine_exper_and_img_( ...
-    experiments_from_sqw,img_hdrs,inputs,allow_equal_headers,keep_runid, ...
+    experiments_from_sqw,img_hdrs,inputs,allow_equal_headers, ...
     [],ll);
 
 

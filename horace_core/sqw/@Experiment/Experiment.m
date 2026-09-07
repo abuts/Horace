@@ -9,22 +9,27 @@ classdef Experiment < serializable
         samples          % Container with references to samples
         expdata          % array, containing information about each run,
         %                  contributing into experiment
-
-        % the property defines the relationship between
-        % the runid, contained in expdata and the position of the object
-        % with this runid in the appropriate container (e.g. expdata
-        % container but also correspondent samples instrument and (TODO:)
-        % detector_arrays
-        runid_map;
+        % the map which connects header number
+        % with the number of header(ixexperid_map), stored in pixels
+        % connecting ixeper_idx:pixel->header_number.
+        % WARNING!!! setting this map resets IX_experiment.ixexper_id(s)
+        % to keys of this map, so ensuring this operation does not violates
+        % relation between pixels id(s) and IX_experiment array is a user
+        % responsibility.
+        ixexperid_map;
         %
+    end
+    properties(Dependent,Hidden)
+        % legacy property which is equivalent to exper_num_map
+        runid_map;
     end
 
     properties(Access=private)
         % String input here (a) invalid value so should be caught if not
         % redefined later (b) describes what the construction process is.
-        instruments_ = 'global storage; referenece initialised in constructor';
-        detector_arrays_ = 'global storage; referenece initialised in constructor';
-        samples_ = 'global storage; referenece initialised in constructor';
+        instruments_ = '' %'global storage; reference initialised in constructor';
+        detector_arrays_ = '' %'global storage; reference initialised in constructor';
+        samples_ = '' %'global storage; reference initialised in constructor';
         samples_set_ = false; % Two properties used to harmonize lattice
         expdata_set_ = false; % which stored both in sample and in expdata
         %holder to store old sample lattice if the new lattice is set
@@ -36,7 +41,7 @@ classdef Experiment < serializable
         expdata_ = [];
 
         %
-        runid_map_ = [];   % the property defines the relationship between
+        ixexperid_map_ = [];   % the property defines the relationship between
         % the runid, contained in expdata and the position of the object
         % with this runid in the appropriate container (e.g. expdata
         % container but also correspondent samples instrument and (TODO:)
@@ -189,30 +194,37 @@ classdef Experiment < serializable
         end
         %
         function map = get.runid_map(obj)
-            map = obj.get_runid_map();
+            map = obj.get_ixexperid_map();
         end
-        function map = get_runid_map(obj)
-            % Return run_id map, providing consistent interface with
+        function map = get.ixexperid_map(obj)
+            map = obj.get_ixexperid_map();
+        end
+
+        function map = get_ixexperid_map(obj)
+            % Return ixexper_id map, providing consistent interface with
             % IX_experiment
             %
             % deep copy handle class, to maintain consistent behaviour
-            if isempty(obj.runid_map_)
+            if isempty(obj.ixexperid_map_)
                 map = [];
             else
-                if isa(obj.runid_map_,'containers.Map')
+                if isa(obj.ixexperid_map_,'containers.Map')
                     % copy existing map as containers.Map is handle.
-                    map = fast_map(obj.runid_map_.keys,obj.runid_map_.values,'double');
+                    map = fast_map(obj.ixexperid_map_.keys,obj.ixexperid_map_.values,'double');
                 else
-                    map = obj.runid_map_;
+                    map = obj.ixexperid_map_;
                 end
             end
         end
-        function obj = set.runid_map(obj,val)
-            % Check and set runid_map, connecting run-id, describing the
+        function obj = set.ixexperid_map(obj,val)
+            % Check and set ixexperid_map, connecting run-id, describing the
             % experiment and the number of the experiment information
             % header in the list of all experiment descriptors.
             %
-            obj = set_runid_map_(obj,val);
+            % WARNING! pixels must have id(s) corresponding to keys of this
+            % map, so assigning new map deeply connected to pixels
+            % renumeration.
+            obj = set_ixexperid_map_(obj,val);
         end
         %------------------------------------------------------------------
         function nr = get.n_runs(obj)
@@ -226,7 +238,7 @@ classdef Experiment < serializable
             % property, which inform about the behaviour of runid map
             %
             % Inputs:
-            % logical value, if true, says that run_id were recalculated by
+            % logical value, if true, says that ixexper_id were recalculated by
             % external (test) procedure. Normally the property is modified
             % during loading old files and set-up internally in loadobj
             % from_old_struct.
@@ -351,39 +363,6 @@ classdef Experiment < serializable
             exp = get_experiments_(obj,ind);
         end
         %
-        function [exp,nspe,file_id_array] = combine_experiments(obj,exp_cellarray,allow_equal_headers,keep_runid)
-            %COMBINE_EXPRIMENTS
-            % Take cellarray of experiments (e.g., generated from each runfile build
-            % during gen_sqw generation)
-            % and combine then together into single Experiment info class
-            % Inputs:
-            % exp_cellarray -- cellarray of Experiment classes, related to
-            %                  different runs or combination of runs
-            % allow_equal_headers
-            %               -- if true, equal runs are allowed.
-            % At present, we insist that the contributing spe data are distinct
-            % in that:
-            %   - filename, efix, psi, omega, dpsi, gl, gs cannot all be
-            %     equal for two spe data input. If allow_equal_headers is
-            %     set to true, this check is disabled
-            %
-            % keep_runid    -- if true, the procedure keeps run_id-s
-            %                  defined for contributing experiments.
-            %                  if false, the run-ids are reset from 1 for
-            %                  first contributed run to n_runs for the
-            %                  last contributing run (nxspe file)
-            % Returns:
-            % exp           -- Experiment class containing combined input
-            %                  experiments
-            % nspe          -- number of unique runs, contributing into
-            %                  resulting Experiment
-            % file_id_array -- array of final run_id-s for all input nxspe.
-            %                  one id per input run
-
-            [exp,nspe,file_id_array] = combine_experiments_(obj,exp_cellarray,allow_equal_headers,keep_runid);
-        end
-
-        %
         function subexper = get_subobj(obj,runids_to_keep,varargin)
             % Return Experiment object containing subset of experiments,
             % requested by the method.
@@ -393,15 +372,15 @@ classdef Experiment < serializable
             %              information about experiments(runs) contributed into sqw
             %              object.
             % runids_to_keep
-            %            -- run_id-s,which identify particular experiments(runs)
+            %            -- ixexper_id-s,which identify particular experiments(runs)
             %              to include the  experiments(runs) contributing
             %              into the final subset  of experiments.
             % Optional parameters and switches:
             % '-indexes'   - if provided, tread input runids_to_keep as
             %              direct indexes of the experiments to keep rather
-            %              then run_id(s). Mainly used for debugging.
+            %              then ixexper_id(s). Mainly used for debugging.
             % '-modify_runid'
-            %          -- if present redefine final runid_map and run_ind of
+            %          -- if present redefine final ixexperid_map and run_ind of
             %             the expdata to count from 1 to n_experiments(runs)
             % Returns:
             % subexper  -- the Experiment object, containing information
@@ -433,7 +412,7 @@ classdef Experiment < serializable
             %                   array according as the value true or false.
             %                   This overrules the default behaviour that selects a full or
             %                   sparse intermediate lookup array according to the size and
-            %                   sparcity of the runid_map
+            %                   sparcity of the ixexperid_map
             %
             % Output:
             % -------
@@ -593,11 +572,11 @@ classdef Experiment < serializable
                 % add to default compressed container
                 obj.(field) = obj.(field).add(val);
 
-            elseif ( isa(val, type) &&                       ...
-                    numel(val) == 1 )                       ...
+            elseif ( isa(val, type) &&                        ...
+                    isscalar(val))                            ...
                     ||                                        ...
                     ( iscell(val)                          && ...
-                    numel(val) == 1                      && ...
+                    isscalar(val)                          && ...
                     isa(val{1}, type) )
                 % assume we're adding n_runs identical copies
                 %
@@ -616,6 +595,34 @@ classdef Experiment < serializable
     end
     %
     methods(Static)
+        function [exp,nspe,pix_subst_list] = combine(exp_cellarray,allow_equal_headers)
+            %COMBINE_EXPRIMENTS
+            % Take cellarray of experiments (e.g., generated from each runfile build
+            % during gen_sqw generation)
+            % and combine then together into single Experiment info class
+            % Inputs:
+            % exp_cellarray -- cellarray of Experiment classes, related to
+            %                  different runs or combination of runs
+            % allow_equal_headers
+            %               -- if true, runs with equal parameters are allowed.
+            % At present, we insist that the contributing spe data are distinct
+            % in that:
+            %   - filename,run_id, efix, psi, omega, dpsi, gl, gs cannot
+            %     all be
+            %     equal for two spe data input. If allow_equal_headers is
+            %     set to true, this check is disabled
+            %
+            % Returns:
+            % exp           -- Experiment class containing combined input
+            %                  experiments
+            % nspe          -- number of unique runs, contributing into
+            %                  resulting Experiment
+            % file_id_array -- array of final run_id-s for all input nxspe.
+            %                  one id per input run
+
+            [exp,nspe,pix_subst_list] = combine_(exp_cellarray,allow_equal_headers);
+        end
+
         function obj = build_from_binfile_headers(headers)
             % restore basic experiment info from old style headers,
             % stored on hdd.

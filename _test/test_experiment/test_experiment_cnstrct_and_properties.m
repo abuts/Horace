@@ -65,7 +65,7 @@ classdef test_experiment_cnstrct_and_properties < TestCase
             detectors = repmat(IX_detector_array(),1,numel(exp));
 
             lastwarn('');
-            clOwr =set_temporary_warning('off','HORACE:Experiment:lattice_undefined');            
+            clOwr =set_temporary_warning('off','HORACE:Experiment:lattice_undefined');
             exper= Experiment(detectors,instruments,samples,exp);
             % at this point the samples have not been given lattice
             % definitions so a warning will be issued
@@ -95,10 +95,10 @@ classdef test_experiment_cnstrct_and_properties < TestCase
             assertEqual(exper.n_runs,3)
 
             assertFalse(exper.runid_recalculated)
-            assertEqual(exper.runid_map.keys,[10,20,30]);
+            assertEqual(exper.runid_map.keys,uint32([10,20,30]));
             assertEqual(exper.runid_map.values,[1,2,3]);
             exp = exper.expdata;
-            id = exp.get_run_ids();
+            id = exp.get_ixexper_ids();
             assertEqual(id,[10,20,30]);
 
         end
@@ -167,9 +167,11 @@ classdef test_experiment_cnstrct_and_properties < TestCase
             info = expt.expdata;
             assertTrue(expt.runid_recalculated)
             assertEqual(numel(info),2)
-            assertEqual(info(1).run_id,1)
-            assertEqual(info(2).run_id,2)
-            assertEqual(expt.runid_map.keys,[1,2]);
+            assertTrue(isnan(info(1).run_id))
+            assertEqual(info(1).ixexper_id,1)
+            assertTrue(isnan(info(2).run_id))
+            assertEqual(info(2).ixexper_id,2)
+            assertEqual(expt.runid_map.keys,uint32([1,2]));
             assertEqual(expt.runid_map.values,[1,2]);
 
         end
@@ -195,9 +197,11 @@ classdef test_experiment_cnstrct_and_properties < TestCase
             info = expt.expdata;
             assertTrue(expt.runid_recalculated)
             assertEqual(numel(info),2)
-            assertEqual(info(1).run_id,1)
-            assertEqual(info(2).run_id,2)
-            assertEqual(expt.runid_map.keys,[1,2]);
+            assertTrue(isnan(info(1).run_id))
+            assertEqual(info(1).ixexper_id,1)
+            assertTrue(isnan(info(2).run_id))
+            assertEqual(info(2).ixexper_id,2)
+            assertEqual(expt.runid_map.keys,uint32([1,2]));
             assertEqual(expt.runid_map.values,[1,2]);
 
             save(tmpfile, 'expt');
@@ -218,9 +222,11 @@ classdef test_experiment_cnstrct_and_properties < TestCase
             assertTrue( isa( expt.detector_arrays{1}, 'IX_detector_array') );
             info = expt.expdata;
             assertEqual(numel(info),2)
-            assertEqual(info(1).run_id,1)
-            assertEqual(info(2).run_id,2)
-            assertEqual(expt.runid_map.keys,[1,2]);
+            assertTrue(isnan(info(1).run_id))
+            assertEqual(info(1).ixexper_id,1)
+            assertTrue(isnan(info(2).run_id))
+            assertEqual(info(2).ixexper_id,2)
+            assertEqual(expt.runid_map.keys,uint32([1,2]));
             assertEqual(expt.runid_map.values,[1,2]);
         end
 
