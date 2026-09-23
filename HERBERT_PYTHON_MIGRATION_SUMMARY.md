@@ -57,6 +57,7 @@ Herbert is an actual Horace library dependency:
 - [`horace_paths.m`](herbert_core/horace_paths.m) resolves Herbert and Horace paths.
 - [`CMakeLists.txt`](CMakeLists.txt) builds and installs both `herbert_core` and `horace_core`.
 - [`documentation/adr/0007-use-herbert-as-library-dependency.md`](documentation/adr/0007-use-herbert-as-library-dependency.md) records the library-dependency decision.
+- [`HORACE_PYTHON_MIGRATION_SUMMARY.md`](HORACE_PYTHON_MIGRATION_SUMMARY.md) provides the corresponding migration analysis for the Horace domain.
 
 Before porting, define the shared boundary between future Python Herbert and Horace implementations:
 

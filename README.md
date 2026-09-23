@@ -12,3 +12,9 @@ Horace is licensed under GPL v3 and includes licensed libraries:
 
 - [MSMPI](https://docs.microsoft.com/en-us/message-passing-interface/microsoft-mpi)
 - [MPICH](https://www.mpich.org/)
+
+## Python Migration
+
+Comprehensive architectural analysis and phased migration roadmaps for porting Horace and Herbert to Python:
+- [Herbert Python Migration Summary](HERBERT_PYTHON_MIGRATION_SUMMARY.md) - Analysis of `herbert_core`, scientific runtime, loaders, MPI framework, and multifit.
+- [Horace Python Migration Summary](HORACE_PYTHON_MIGRATION_SUMMARY.md) - Analysis of `horace_core`, SQW/DnD data model, reciprocal space geometry, Tobyfit resolution convolution, out-of-core HDF5 handling, and C++ native kernels.
