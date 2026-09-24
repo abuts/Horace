@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyhorace"
+version = "0.1.0"
+description = "Python rewrite of the Horace neutron scattering analysis suite"
+readme = "README.md"
+authors = [
+  { name="Horace Developers" }
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "h5py>=3.8",
+    "matplotlib>=3.7",
+    "numba>=0.57",
+    "lmfit>=1.2"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+    "black",
+    "isort",
+    "mypy"
+]
+
+[tool.setuptools.packages.find]
+include = ["pyhorace*"]
