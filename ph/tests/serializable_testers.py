@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, ClassVar, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
+from pydantic import Field, field_validator
 
 from pyhorace.core.serializable import Serializable, register_serializable
 
@@ -14,8 +15,12 @@ from pyhorace.core.serializable import Serializable, register_serializable
 class SerializableTester1(Serializable):
     """Mock class 1 supporting version changes and custom from_old_struct."""
 
-    _class_version_override: Optional[int] = None
-    _fields_to_save: Sequence[str] = (
+    Prop_class1_1: Any = 10
+    Prop_class1_2: Any = 20
+    Prop_class1_3: Any = "new_value"
+
+    _class_version_override: ClassVar[Optional[int]] = None
+    _fields_to_save: ClassVar[Sequence[str]] = (
         "Prop_class1_1",
         "Prop_class1_2",
         "Prop_class1_3",
@@ -26,11 +31,14 @@ class SerializableTester1(Serializable):
         prop1: Any = 10,
         prop2: Any = 20,
         prop3: Any = "new_value",
+        **kwargs: Any,
     ) -> None:
-        super().__init__()
-        self.Prop_class1_1 = prop1
-        self.Prop_class1_2 = prop2
-        self.Prop_class1_3 = prop3
+        super().__init__(
+            Prop_class1_1=prop1,
+            Prop_class1_2=prop2,
+            Prop_class1_3=prop3,
+            **kwargs,
+        )
 
     @classmethod
     def ver_holder(cls, new_version: Optional[int] = None) -> int:
@@ -80,8 +88,13 @@ class SerializableTester1(Serializable):
 class SerializableTester2(Serializable):
     """Mock class 2 using set_positional_and_key_val_arguments."""
 
-    _version_override: int = 1
-    _fields_to_save: Sequence[str] = (
+    Prop_class2_1: Any = None
+    Prop_class2_2: Any = None
+    Prop_class2_3: Any = None
+    remains: List[Any] = Field(default_factory=list)
+
+    _version_override: ClassVar[int] = 1
+    _fields_to_save: ClassVar[Sequence[str]] = (
         "Prop_class2_1",
         "Prop_class2_2",
         "Prop_class2_3",
@@ -89,10 +102,10 @@ class SerializableTester2(Serializable):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__()
-        self.Prop_class2_1: Any = None
-        self.Prop_class2_2: Any = None
-        self.Prop_class2_3: Any = None
-        self.remains: List[Any] = []
+        self.Prop_class2_1 = None
+        self.Prop_class2_2 = None
+        self.Prop_class2_3 = None
+        self.remains = []
 
         if len(args) > 0 or len(kwargs) > 0:
             pos_names = self.saveable_fields()
@@ -126,7 +139,21 @@ class SerializableTester3(Serializable):
     Exercises dependent properties, check_combo_arg, and convert_old_struct.
     """
 
-    _version_override: int = 2
+    dia: Any = None
+    height: Any = None
+    wall: Any = None
+    atms: Any = None
+
+    _version_override: ClassVar[int] = 2
+
+    @field_validator("dia", "height", "wall", "atms")
+    @classmethod
+    def _validate_non_negative(cls, val: Any) -> Any:
+        if val is not None:
+            arr = np.asarray(val)
+            if np.any(arr < 0):
+                raise ValueError("Tube parameters must be greater or equal to zero")
+        return val
 
     def __init__(
         self,
@@ -134,8 +161,9 @@ class SerializableTester3(Serializable):
         height: Any = None,
         wall: Any = None,
         atms: Any = None,
+        **kwargs: Any,
     ) -> None:
-        super().__init__()
+        super().__init__(**kwargs)
         if dia is not None and height is not None and wall is not None and atms is not None:
             self.do_check_combo_arg = False
             self.dia = dia
@@ -189,10 +217,11 @@ class SerializableTester3(Serializable):
         return int(np.size(self.dia))
 
     def check_combo_arg(self) -> "SerializableTester3":
-        dia_arr = np.asarray(self.dia)
-        wall_arr = np.asarray(self.wall)
-        if np.any(dia_arr < 2 * wall_arr):
-            raise ValueError("Tube diameter(s) must be greater or equal to twice the wall thickness(es)")
+        if self.dia is not None and self.wall is not None:
+            dia_arr = np.asarray(self.dia)
+            wall_arr = np.asarray(self.wall)
+            if np.any(dia_arr < 2 * wall_arr):
+                raise ValueError("Tube diameter(s) must be greater or equal to twice the wall thickness(es)")
         return self
 
     def convert_old_struct(
@@ -213,7 +242,15 @@ class SerializableTester3(Serializable):
 class SerializableTesterWithInterdepProp(Serializable):
     """Mock class testing interdependent properties and partial keyword matching."""
 
-    _fields_to_save: Sequence[str] = (
+    Prop_class2_1: Any = None
+    Prop_class2_2: Any = None
+    Prop_class2_3: Any = None
+    partial_match_1_blue: Any = None
+    partial_match_2_green: Any = None
+    partial_match_3_yellow: Any = None
+    remains: List[Any] = Field(default_factory=list)
+
+    _fields_to_save: ClassVar[Sequence[str]] = (
         "Prop_class2_1",
         "Prop_class2_2",
         "Prop_class2_3",
@@ -224,49 +261,11 @@ class SerializableTesterWithInterdepProp(Serializable):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__()
-        self._Prop_class2_1: Any = None
-        self._Prop_class2_2: Any = None
-        self._Prop_class2_3: Any = None
-        self.partial_match_1_blue: Any = None
-        self.partial_match_2_green: Any = None
-        self.partial_match_3_yellow: Any = None
-        self.remains: List[Any] = []
-
         if len(args) > 0 or len(kwargs) > 0:
             pos_names = self.saveable_fields()
             _, self.remains = self.set_positional_and_key_val_arguments(
                 pos_names, True, *args, **kwargs
             )
-
-    @property
-    def Prop_class2_1(self) -> Any:
-        return self._Prop_class2_1
-
-    @Prop_class2_1.setter
-    def Prop_class2_1(self, val: Any) -> None:
-        self._Prop_class2_1 = val
-        if self.do_check_combo_arg:
-            self.check_combo_arg()
-
-    @property
-    def Prop_class2_2(self) -> Any:
-        return self._Prop_class2_2
-
-    @Prop_class2_2.setter
-    def Prop_class2_2(self, val: Any) -> None:
-        self._Prop_class2_2 = val
-        if self.do_check_combo_arg:
-            self.check_combo_arg()
-
-    @property
-    def Prop_class2_3(self) -> Any:
-        return self._Prop_class2_3
-
-    @Prop_class2_3.setter
-    def Prop_class2_3(self, val: Any) -> None:
-        self._Prop_class2_3 = val
-        if self.do_check_combo_arg:
-            self.check_combo_arg()
 
     def check_combo_arg(self) -> "SerializableTesterWithInterdepProp":
         p1 = self.Prop_class2_1
@@ -292,50 +291,27 @@ class SerializableTesterWithInterdepProp(Serializable):
 class SerializableTester4SetKeyValConstructor(Serializable):
     """Mock class testing string validation and dash options in set_positional_and_key_val_arguments."""
 
-    _fields_to_save: Sequence[str] = ("prop1_char", "prop2_char", "prop3_char")
+    prop1_char: str = ""
+    prop2_char: str = ""
+    prop3_char: str = ""
+
+    _fields_to_save: ClassVar[Sequence[str]] = ("prop1_char", "prop2_char", "prop3_char")
+
+    @field_validator("prop1_char", "prop2_char", "prop3_char", mode="before")
+    @classmethod
+    def _validate_char(cls, val: Any) -> str:
+        if not isinstance(val, str):
+            raise TypeError("This property accepts only char value")
+        return val
 
     def __init__(self, old_keyval_compat: bool = False, *args: Any, **kwargs: Any) -> None:
         super().__init__()
-        self._prop1_char: str = ""
-        self._prop2_char: str = ""
-        self._prop3_char: str = ""
-
         pos_names = self.saveable_fields()
         _, remains = self.set_positional_and_key_val_arguments(
             pos_names, old_keyval_compat, *args, **kwargs
         )
         if len(remains) > 0:
             raise ValueError(f"unrecognized property provided as input: {remains}")
-
-    @property
-    def prop1_char(self) -> str:
-        return self._prop1_char
-
-    @prop1_char.setter
-    def prop1_char(self, val: Any) -> None:
-        if not isinstance(val, str):
-            raise TypeError("This property accepts only char value")
-        self._prop1_char = val
-
-    @property
-    def prop2_char(self) -> str:
-        return self._prop2_char
-
-    @prop2_char.setter
-    def prop2_char(self, val: Any) -> None:
-        if not isinstance(val, str):
-            raise TypeError("This property accepts only char value")
-        self._prop2_char = val
-
-    @property
-    def prop3_char(self) -> str:
-        return self._prop3_char
-
-    @prop3_char.setter
-    def prop3_char(self, val: Any) -> None:
-        if not isinstance(val, str):
-            raise TypeError("This property accepts only char value")
-        self._prop3_char = val
 
     def class_version(self) -> int:
         return 1

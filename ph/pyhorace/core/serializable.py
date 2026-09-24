@@ -10,9 +10,10 @@ import math
 import pickle
 import warnings
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
+from typing import Any, ClassVar, Dict, List, Optional, Sequence, Tuple, Type, Union
 
 import numpy as np
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
 SERIALIZABLE_REGISTRY: Dict[str, Type["Serializable"]] = {}
 
@@ -23,23 +24,55 @@ def register_serializable(cls: Type["Serializable"]) -> Type["Serializable"]:
     return cls
 
 
-class Serializable(ABC):
+class Serializable(BaseModel, ABC):
     """
     Abstract base class for versioned serialization, property validation,
     and flexible construction matching MATLAB's @serializable.
+    Backed by Pydantic BaseModel for type validation and schema support.
     """
 
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        validate_assignment=True,
+        extra="allow",
+        populate_by_name=True,
+    )
+
+    _do_check_combo_arg: bool = PrivateAttr(default=False)
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self._do_check_combo_arg: bool = True
+        has_args = bool(args) or bool(kwargs)
+        if args:
+            pos_names = []
+            try:
+                pos_names = list(self.saveable_fields())
+            except Exception:
+                pass
+            if not pos_names and hasattr(type(self), "model_fields"):
+                pos_names = list(type(self).model_fields.keys())
+            for idx, arg in enumerate(args):
+                if idx < len(pos_names):
+                    kwargs[pos_names[idx]] = arg
+        super().__init__(**kwargs)
+        self._do_check_combo_arg = True
+        if has_args:
+            self.check_combo_arg()
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         SERIALIZABLE_REGISTRY[cls.__name__] = cls
 
+    @classmethod
+    def model_validate(cls, *args: Any, **kwargs: Any) -> "Serializable":
+        obj = super().model_validate(*args, **kwargs)
+        obj._do_check_combo_arg = True
+        obj.check_combo_arg()
+        return obj
+
     @property
     def do_check_combo_arg(self) -> bool:
         """Flag controlling interdependent property validation."""
-        return getattr(self, "_do_check_combo_arg", True)
+        return getattr(self, "_do_check_combo_arg", False)
 
     @do_check_combo_arg.setter
     def do_check_combo_arg(self, val: bool) -> None:
@@ -54,19 +87,17 @@ class Serializable(ABC):
     def do_check_combo_arg_(self, val: bool) -> None:
         self.do_check_combo_arg = val
 
-    @abstractmethod
     def class_version(self) -> int:
         """Return integer class version number."""
-        pass
+        return 1
 
     def classVersion(self) -> int:
         """MATLAB camelCase alias for class_version."""
         return self.class_version()
 
-    @abstractmethod
     def saveable_fields(self) -> Sequence[str]:
         """Return list of property names that fully define the state."""
-        pass
+        return list(type(self).model_fields.keys())
 
     def saveableFields(self) -> Sequence[str]:
         """MATLAB camelCase alias for saveable_fields."""
@@ -77,6 +108,20 @@ class Serializable(ABC):
         Validate interdependent properties. Subclasses override to enforce invariants.
         Should return self.
         """
+        if type(self).check_combo_arguments is not Serializable.check_combo_arguments:
+            return self.check_combo_arguments()
+        return self
+
+    def check_combo_arguments(self) -> "Serializable":
+        """Alias matching check_combo_arguments."""
+        if type(self).check_combo_arg is not Serializable.check_combo_arg:
+            return self.check_combo_arg()
+        return self
+
+    @model_validator(mode="after")
+    def _validate_combo_arguments(self) -> "Serializable":
+        if getattr(self, "_do_check_combo_arg", False):
+            self.check_combo_arg()
         return self
 
     # -------------------------------------------------------------------------

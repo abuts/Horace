@@ -71,14 +71,20 @@ Create `<class_name>.py` adhering to idiomatic Python and NumPy best practices:
 
 #### 1. Class Structure & Initialization
 - Map `classdef ClassName < SuperClass` to `class ClassName(SuperClass):` or standalone `class ClassName:`.
-- Use `@dataclass` where appropriate for simple data containers.
-- Map the constructor to `def __init__(self, ...):`:
+- For simple data containers without serialization or validation needs, use `@dataclass`.
+- **Serializable Classes and Data Models**: When translating classes that inherit from MATLAB `@serializable`, require serialization/deserialization, or define structured data schemas:
+  - Inherit from `Serializable` (backed by `pydantic.BaseModel`).
+  - **Standard Types & Range Validation**: Use Pydantic fields with type annotations and constraints (e.g. `Field(gt=0, le=100)`, `Annotated`, etc.) for per-property types and value ranges.
+  - **Complex Property Dependencies Validation**: Use `Serializable.check_combo_arg` (or `check_combo_arguments`) for multi-property invariants and interdependent constraint validation (e.g., `inner_dia < outer_dia` or conditional field requirements).
+  - Hook `check_combo_arg` into Pydantic's lifecycle via `@model_validator(mode='after')` such that it runs after Pydantic validates individual field types and ranges, gated by `self.do_check_combo_arg`.
+  - Support staged or sequential property updates by allowing `self.do_check_combo_arg = False` to temporarily suppress interdependent checks until all interdependent fields are set.
+- Map the constructor to `def __init__(self, ...):` or rely on Pydantic's / dataclass's generated initializer:
   - Replace MATLAB `nargin` checks with keyword arguments and default values (`None` or typed defaults).
-  - Explicitly initialize all instance attributes.
+  - Explicitly initialize all instance attributes or declare them as Pydantic fields.
 
 #### 2. Properties & Encapsulation
-- **Public stored properties**: standard instance attributes `self.prop = value`.
-- **Private properties (`Access = private/protected`)**: use single leading underscore `self._prop`.
+- **Public stored properties**: standard instance attributes or Pydantic fields `field_name: Type = default`.
+- **Private properties (`Access = private/protected`)**: use single leading underscore `self._prop` or Pydantic `PrivateAttr()`.
 - **Dependent properties (`Dependent`)**: use `@property` decorator:
   ```python
   @property

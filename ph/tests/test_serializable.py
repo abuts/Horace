@@ -13,6 +13,7 @@ from typing import List
 
 import numpy as np
 import pytest
+from pydantic import Field
 
 from pyhorace.core.serializable import Serializable
 from tests.serializable_testers import (
@@ -760,4 +761,67 @@ def test_mandatory_properties_validation():
     )
     assert t2.Prop_class2_1 == 10
     assert t2.Prop_class2_2 == 20
+
+
+class PydanticCylinderModel(Serializable):
+    inner_radius: float = Field(gt=0, description="Inner radius (m)")
+    outer_radius: float = Field(gt=0, description="Outer radius (m)")
+    height: float = Field(gt=0, le=100.0, default=1.0)
+    label: str = "cylinder"
+
+    def check_combo_arguments(self) -> "PydanticCylinderModel":
+        if self.inner_radius >= self.outer_radius:
+            raise ValueError(
+                f"inner_radius ({self.inner_radius}) must be strictly less than outer_radius ({self.outer_radius})"
+            )
+        return self
+
+
+def test_pydantic_range_and_combo_arguments_validation():
+    # Valid construction
+    cyl = PydanticCylinderModel(inner_radius=1.0, outer_radius=2.0, height=5.0)
+    assert cyl.inner_radius == 1.0
+    assert cyl.outer_radius == 2.0
+    assert cyl.height == 5.0
+    assert cyl.label == "cylinder"
+
+    # Pydantic range validation (Field gt=0)
+    with pytest.raises(ValueError):
+        PydanticCylinderModel(inner_radius=-1.0, outer_radius=2.0)
+
+    # Pydantic range validation (Field le=100)
+    with pytest.raises(ValueError):
+        PydanticCylinderModel(inner_radius=1.0, outer_radius=2.0, height=200.0)
+
+    # Complex interdependent property validation (check_combo_arguments)
+    with pytest.raises(ValueError, match="inner_radius .* must be strictly less than outer_radius"):
+        PydanticCylinderModel(inner_radius=5.0, outer_radius=2.0)
+
+    # Staged update using do_check_combo_arg = False
+    cyl.do_check_combo_arg = False
+    cyl.inner_radius = 10.0  # Temporarily exceeds outer_radius (2.0)
+    cyl.outer_radius = 20.0  # Now restored to consistent state (10.0 < 20.0)
+    cyl.do_check_combo_arg = True
+    cyl.check_combo_arguments()  # Interdependent check passes
+
+    # Direct assignment violation when do_check_combo_arg is True
+    with pytest.raises(ValueError, match="inner_radius .* must be strictly less than outer_radius"):
+        cyl.inner_radius = 50.0
+
+    # Serialization and Pydantic model_dump / model_validate
+    valid_cyl = PydanticCylinderModel(inner_radius=10.0, outer_radius=20.0, height=5.0)
+    dumped = valid_cyl.model_dump()
+    assert dumped["inner_radius"] == 10.0
+    assert dumped["outer_radius"] == 20.0
+
+    restored = PydanticCylinderModel.model_validate(dumped)
+    assert restored == valid_cyl
+    assert restored.equal_to_tol(valid_cyl)[0]
+
+    # Structure conversion with metadata
+    struct = valid_cyl.to_struct()
+    assert struct["serial_name"] == "PydanticCylinderModel"
+    assert struct["version"] == 1
+    assert struct["inner_radius"] == 10.0
+
 
