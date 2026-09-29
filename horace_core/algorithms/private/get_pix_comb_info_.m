@@ -1,6 +1,6 @@
 function  [sqw_sum_struc,data_range,run_id_array,job_disp]=get_pix_comb_info_(infiles, ...
     data_range,job_disp, ...
-    allow_equal_headers,keep_runid)
+    allow_equal_headers)
 % The part of write_nsqw_to_sqw algorithm, responsible for preparing write
 % pix operation
 %
@@ -68,8 +68,8 @@ if any(undef(:))
     data_range = pixfile_combine_info.recalc_data_range_from_loaders(ldrs,keep_runid);
 end
 
-[dnd_data,exper_combined,run_id_array,mhc] = combine_exper_and_img_( ...
-    experiments_from_files,img_hdrs,ldrs,allow_equal_headers,keep_runid, ...
+[dnd_data,exper_combined,pix_subst_list,mhc] = combine_exper_and_img_( ...
+    experiments_from_files,img_hdrs,ldrs,allow_equal_headers, ...
     job_disp,hor_log_level);
 
 
@@ -79,7 +79,7 @@ end
 % instead of the real pixels to place in target sqw file, place in pix field the
 % information about the way to get the contributing pixels
 pix = pixfile_combine_info(infiles,numel(dnd_data.npix),npixtot, ...
-    pos_npixstart,pos_pixstart,run_id_array);
+    pos_npixstart,pos_pixstart,pix_subst_list);
 pix.data_range = data_range;
 
 sqw_sum_struc= struct('main_header',mhc,'experiment_info',exper_combined,'detpar',[]);

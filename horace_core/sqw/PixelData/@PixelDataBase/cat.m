@@ -34,8 +34,12 @@ if ~isa(argi{1},'PixelDataBase')
         class(argi{1}));
 end
 pix_subst_info_place = cellfun(@(x)iscell(x),varargin);
-pix_subst_info = argi{pix_subst_info_place};
-argi = argi(~pix_subst_info_place);
+if any(pix_subst_info_place) % not yet implemented
+    pix_subst_info = argi{pix_subst_info_place};
+    argi = argi(~pix_subst_info_place);
+else
+    pix_subst_info ={};
+end
 
 
 

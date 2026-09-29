@@ -123,9 +123,10 @@ proj = line_proj('alatt',lat.alatt,'angdeg',lat.angdeg, 'type','aaa');
 
 sqw_data = DnDBase.dnd(axes_bl,proj);
 
-expdata = IX_experiment([fn,fe], [fp,filesep],obj.run_id,obj.ds_num, ...
+expdata = IX_experiment([fn,fe], [fp,filesep],obj.run_id, ...
     obj.efix,obj.emode,obj.en,lat);
 
+expdata.ixexper_id = obj.ds_num; % number of rundata in the list of rundata files
 detpar = obj.det_par;
 
 if isempty(detpar)

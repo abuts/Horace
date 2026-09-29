@@ -54,27 +54,29 @@ lattice = oriented_lattice('angular_units','rad');
 s1 = exp_inf.samples{1};
 lattice.alatt = s1.alatt;
 lattice.angdeg = s1.angdeg;
+
+expdata = exp_inf.expdata;
 % header keeps angular units in radians
-lattice.u      = exp_inf.expdata(1).cu;
-lattice.v      = exp_inf.expdata(1).cv;
-lattice.psi    = exp_inf.expdata(1).psi;
-lattice.omega = exp_inf.expdata(1).omega;
-lattice.dpsi  = exp_inf.expdata(1).dpsi;
-lattice.gl    = exp_inf.expdata(1).gl;
-lattice.gs    = exp_inf.expdata(1).gs;
+lattice.u      = expdata(1).cu;
+lattice.v      = expdata(1).cv;
+lattice.psi    = expdata(1).psi;
+lattice.omega = expdata(1).omega;
+lattice.dpsi  = expdata(1).dpsi;
+lattice.gl    = expdata(1).gl;
+lattice.gs    = expdata(1).gs;
 lattice.angular_units='deg';
 
 rd = rundatah();
-rd.ixexper_id = ixexper_id; % number of object in pixel idx(s) 
-rd.run_id  = exp_inf(1).run_id; % actual run_id from experiment info
+rd.ds_num  = ixexper_id; % number of object in pixel idx(s) 
+rd.run_id  = expdata(1).run_id; % actual run_id from experiment info
 
 rd.lattice = lattice;
 % Set lattice before loader, to have efix redefined on rundata rather then
 % in the loader
-rd.efix = exp_inf.expdata(1).efix;
+rd.efix = expdata(1).efix;
 % will define loader
 rd.det_par = detpar;
-rd.emode   = exp_inf.expdata(1).emode;
+rd.emode   = expdata(1).emode;
 %rd.data_file_name = fullfile(exp_inf.expdata(1).filepath,exp_inf.expdata(1).filename);
 
 rd.en  = en;

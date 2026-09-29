@@ -146,7 +146,7 @@ if ~use_mex
                 energy_idx = ones(1,ne*ndet);
             end
             sig_var =[obj.S(:)';((obj.ERR(:)).^2)'];
-            exper_id = ones(1,numel(detector_idx))*obj.exper_id;
+            exper_id = ones(1,numel(detector_idx))*obj.ds_num;
             pix = PixelDataBase.create([ucoords;exper_id;detector_idx;energy_idx;sig_var]);
             pix_img_range=pix.data_range;
     end

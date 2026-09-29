@@ -1,4 +1,4 @@
-function [dnd_data,exper_combined,run_id_array,mhc] = combine_exper_and_img_( ...
+function [dnd_data,exper_combined,pix_subst_list,mhc] = combine_exper_and_img_( ...
     experiments,img_metadata,inputs,allow_equal_headers, ...
     job_dp,hor_log_level)
 %COMBINE_EXPER_AND_IMG_  checks consistency of DnD image and combines input
@@ -34,7 +34,7 @@ img_range = check_img_consistency_(img_metadata,filenames);
 %     spe data inputs
 %   - emode, lattice parameters, u, v, sample must be the same for all spe
 %     data inputs.
-[exper_combined,nspe,run_id_array] = Experiment.combine(experiments,allow_equal_headers);
+[exper_combined,nspe,pix_subst_list] = Experiment.combine(experiments,allow_equal_headers);
 
 
 %  Build combined header
