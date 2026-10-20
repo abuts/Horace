@@ -1,73 +1,104 @@
 # End-to-End Class Translation Example
 
-This example demonstrates the complete translation cycle of a scientific MATLAB class and its unit test into Python with `pytest`.
+This example demonstrates the complete translation cycle of a scientific MATLAB `@serializable` class and its unit test into Python with `Serializable` and `pytest`.
 
 ---
 
 ## 1. Input: MATLAB Class (`Lattice.m`)
 
 ```matlab
-classdef Lattice
+classdef Lattice < serializable
     % LATTICE Direct and reciprocal crystal lattice representation
-    properties
-        a = 1.0;
-        b = 1.0;
-        c = 1.0;
-        alpha = 90.0;
-        beta = 90.0;
-        gamma = 90.0;
+    properties (Access = private)
+        a_ = 1.0;
+        b_ = 1.0;
+        c_ = 1.0;
+        alpha_ = 90.0;
+        beta_ = 90.0;
+        gamma_ = 90.0;
     end
 
     properties (Dependent)
+        a
+        b
+        c
+        alpha
+        beta
+        gamma
         volume
         reciprocal_lengths
     end
 
     methods
-        function obj = Lattice(a, b, c, alpha, beta, gamma)
+        function obj = Lattice(varargin)
             if nargin == 0
                 return;
             end
-            if nargin < 6
-                error('LATTICE:InvalidArgs', 'Must provide either 0 or 6 parameters');
+            pos_args = obj.saveableFields();
+            [obj, remains] = obj.set_positional_and_key_val_arguments( ...
+                pos_args, false, varargin{:});
+            if ~isempty(remains)
+                error('LATTICE:InvalidArgs', 'Unrecognised extra arguments provided');
             end
-            if any([a, b, c] <= 0)
-                error('LATTICE:InvalidLengths', 'Lattice parameters must be positive');
-            end
-            obj.a = double(a);
-            obj.b = double(b);
-            obj.c = double(c);
-            obj.alpha = double(alpha);
-            obj.beta = double(beta);
-            obj.gamma = double(gamma);
         end
 
+        function v = get.a(obj), v = obj.a_; end
+        function obj = set.a(obj, val)
+            if val <= 0
+                error('LATTICE:InvalidLengths', 'Lattice parameters must be positive');
+            end
+            obj.a_ = double(val);
+            if obj.do_check_combo_arg_
+                obj = obj.check_combo_arg();
+            end
+        end
+        % (Similarly for b, c, alpha, beta, gamma ...)
+
         function v = get.volume(obj)
-            ca = cosd(obj.alpha);
-            cb = cosd(obj.beta);
-            cg = cosd(obj.gamma);
-            v = obj.a * obj.b * obj.c * sqrt(1 - ca^2 - cb^2 - cg^2 + 2*ca*cb*cg);
+            ca = cosd(obj.alpha_);
+            cb = cosd(obj.beta_);
+            cg = cosd(obj.gamma_);
+            v = obj.a_ * obj.b_ * obj.c_ * sqrt(1 - ca^2 - cb^2 - cg^2 + 2*ca*cb*cg);
         end
 
         function r = get.reciprocal_lengths(obj)
             % Reciprocal lattice vector lengths: a* = 2*pi*(b x c)/V
-            sa = sind(obj.alpha);
-            sb = sind(obj.beta);
-            sg = sind(obj.gamma);
+            sa = sind(obj.alpha_);
+            sb = sind(obj.beta_);
+            sg = sind(obj.gamma_);
             v = obj.volume;
-            astar = (2 * pi * obj.b * obj.c * sa) / v;
-            bstar = (2 * pi * obj.a * obj.c * sb) / v;
-            cstar = (2 * pi * obj.a * obj.b * sg) / v;
+            astar = (2 * pi * obj.b_ * obj.c_ * sa) / v;
+            bstar = (2 * pi * obj.a_ * obj.c_ * sb) / v;
+            cstar = (2 * pi * obj.a_ * obj.b_ * sg) / v;
             r = [astar, bstar, cstar];
         end
 
+        function obj = check_combo_arg(obj)
+            ca = cosd(obj.alpha_);
+            cb = cosd(obj.beta_);
+            cg = cosd(obj.gamma_);
+            det_metric = 1 - ca^2 - cb^2 - cg^2 + 2*ca*cb*cg;
+            if det_metric <= 0
+                error('LATTICE:InvalidAngles', ...
+                    'Unit cell angles do not form a physically valid 3D basis');
+            end
+        end
+
         function q_cart = rlu_to_cart(obj, hkl)
-            % Converts (N x 3) HKL vectors to Cartesian coordinates (cubic approximation)
+            % Converts (N x 3) HKL vectors to Cartesian coordinates (cubic/orthorhombic)
             if size(hkl, 2) ~= 3
                 error('LATTICE:InvalidDims', 'HKL array must have 3 columns');
             end
             rl = obj.reciprocal_lengths;
             q_cart = hkl .* rl;
+        end
+
+        function ver = classVersion(~)
+            ver = 1;
+        end
+
+        function flds = saveableFields(~)
+            flds = {'a', 'b', 'c', 'alpha', 'beta', 'gamma'};
         end
     end
 end
@@ -93,9 +124,9 @@ classdef TestLattice < matlab.unittest.TestCase
             tc.assertEqual(lat.reciprocal_lengths, [pi, pi, pi], 'AbsTol', 1e-12);
         end
 
-        function test_invalid_lengths(tc)
+        function test_invalid_lengths_and_angles(tc)
             tc.verifyError(@() Lattice(-1, 2, 2, 90, 90, 90), 'LATTICE:InvalidLengths');
-            tc.verifyError(@() Lattice(2, 2), 'LATTICE:InvalidArgs');
+            tc.verifyError(@() Lattice(2, 2, 2, 120, 120, 120), 'LATTICE:InvalidAngles');
         end
 
         function test_rlu_to_cart(tc)
@@ -104,6 +135,14 @@ classdef TestLattice < matlab.unittest.TestCase
             q = lat.rlu_to_cart(hkl);
             expected = [pi, 0, 0; 0, pi/2, 0];
             tc.assertEqual(q, expected, 'AbsTol', 1e-12);
+        end
+
+        function test_serialization_roundtrip(tc)
+            lat = Lattice(2.0, 3.0, 4.0, 90, 90, 120);
+            bytes = lat.serialize();
+            [lat_rec, nbytes] = serializable.deserialize(bytes);
+            tc.assertEqual(nbytes, numel(bytes));
+            tc.assertEqual(lat, lat_rec);
         end
     end
 end
@@ -119,6 +158,7 @@ end
 import math
 import numpy as np
 import pytest
+from pyhorace.core.serializable import Serializable
 from lattice import Lattice
 
 
@@ -141,16 +181,16 @@ def test_custom_cubic():
     )
 
 
-def test_invalid_lengths():
+def test_invalid_lengths_and_angles():
     with pytest.raises(
         ValueError, match="Lattice parameters must be positive"
     ):
         Lattice(-1.0, 2.0, 2.0, 90.0, 90.0, 90.0)
 
     with pytest.raises(
-        ValueError, match="Must provide either 0 or 6 parameters"
+        ValueError, match="Unit cell angles do not form a physically valid 3D basis"
     ):
-        Lattice(2.0, 2.0)
+        Lattice(2.0, 2.0, 2.0, 120.0, 120.0, 120.0)
 
 
 def test_rlu_to_cart():
@@ -159,74 +199,106 @@ def test_rlu_to_cart():
     q = lat.rlu_to_cart(hkl)
     expected = np.array([[math.pi, 0.0, 0.0], [0.0, math.pi / 2, 0.0]])
     np.testing.assert_allclose(q, expected, atol=1e-12)
+
+
+def test_serialization_roundtrip():
+    lat = Lattice(2.0, 3.0, 4.0, 90.0, 90.0, 120.0)
+    raw_bytes = lat.serialize()
+    lat_rec, nbytes = Serializable.deserialize(raw_bytes)
+    assert nbytes == len(raw_bytes)
+    assert lat == lat_rec
 ```
 
 ---
 
 ## 4. Step 3 Translation: Python Class (`lattice.py`)
 
+Notice how:
+1. Stored properties (`a`, `b`, `c`, `alpha`, `beta`, `gamma`) are declared directly as Pydantic fields rather than repeating MATLAB's boilerplate `Dependent` properties + private `a_` attributes.
+2. Single-field validation (`a, b, c > 0`) uses `@field_validator`, while multi-property validation uses `check_combo_arg(self)` (which `Serializable` automatically invokes after initialization and on attribute assignment when `self.do_check_combo_arg` is `True`).
+3. `scipy.special.cosdg` and `sindg` are used so `cosd(90.0) == 0.0` exactly.
+
 ```python
 """Crystal lattice representation translated from Lattice.m."""
 
 from __future__ import annotations
+
 import math
-from typing import Optional
+from typing import Any, ClassVar, Sequence
 import numpy as np
+from pydantic import field_validator
+from scipy.special import cosdg, sindg
+
+from pyhorace.core.serializable import Serializable
 
 
-class Lattice:
+class Lattice(Serializable):
     """Direct and reciprocal crystal lattice representation."""
 
-    def __init__(
-        self,
-        a: Optional[float] = None,
-        b: Optional[float] = None,
-        c: Optional[float] = None,
-        alpha: Optional[float] = None,
-        beta: Optional[float] = None,
-        gamma: Optional[float] = None,
-    ) -> None:
-        args = [a, b, c, alpha, beta, gamma]
-        provided = [x is not None for x in args]
+    a: float = 1.0
+    b: float = 1.0
+    c: float = 1.0
+    alpha: float = 90.0
+    beta: float = 90.0
+    gamma: float = 90.0
 
-        if not any(provided):
-            # Default cubic cell
-            self.a: float = 1.0
-            self.b: float = 1.0
-            self.c: float = 1.0
-            self.alpha: float = 90.0
-            self.beta: float = 90.0
-            self.gamma: float = 90.0
-            return
+    _fields_to_save: ClassVar[Sequence[str]] = (
+        "a",
+        "b",
+        "c",
+        "alpha",
+        "beta",
+        "gamma",
+    )
 
-        if not all(provided):
-            raise ValueError("Must provide either 0 or 6 parameters")
-
-        if a <= 0 or b <= 0 or c <= 0:
+    @field_validator("a", "b", "c")
+    @classmethod
+    def _validate_positive_lengths(cls, val: float) -> float:
+        if val <= 0:
             raise ValueError("Lattice parameters must be positive")
+        return float(val)
 
-        self.a = float(a)
-        self.b = float(b)
-        self.c = float(c)
-        self.alpha = float(alpha)
-        self.beta = float(beta)
-        self.gamma = float(gamma)
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__()
+        if args or kwargs:
+            _, remains = self.set_positional_and_key_val_arguments(
+                self.saveable_fields(), False, *args, **kwargs
+            )
+            if remains:
+                raise ValueError("Unrecognised extra arguments provided")
+
+    def class_version(self) -> int:
+        return 1
+
+    def saveable_fields(self) -> Sequence[str]:
+        return self._fields_to_save
+
+    def check_combo_arg(self) -> "Lattice":
+        ca = float(cosdg(self.alpha))
+        cb = float(cosdg(self.beta))
+        cg = float(cosdg(self.gamma))
+        det_metric = 1.0 - ca**2 - cb**2 - cg**2 + 2.0 * ca * cb * cg
+        if det_metric <= 0.0:
+            raise ValueError(
+                "Unit cell angles do not form a physically valid 3D basis"
+            )
+        return self
 
     @property
     def volume(self) -> float:
         """Calculates direct unit cell volume in Angstrom^3."""
-        ca = math.cos(math.radians(self.alpha))
-        cb = math.cos(math.radians(self.beta))
-        cg = math.cos(math.radians(self.gamma))
+        ca = float(cosdg(self.alpha))
+        cb = float(cosdg(self.beta))
+        cg = float(cosdg(self.gamma))
         arg = 1.0 - ca**2 - cb**2 - cg**2 + 2.0 * ca * cb * cg
         return self.a * self.b * self.c * math.sqrt(max(arg, 0.0))
 
     @property
     def reciprocal_lengths(self) -> np.ndarray:
         """Reciprocal lattice vector lengths [a*, b*, c*] in Angstrom^-1."""
-        sa = math.sin(math.radians(self.alpha))
-        sb = math.sin(math.radians(self.beta))
-        sg = math.sin(math.radians(self.gamma))
+        sa = float(sindg(self.alpha))
+        sb = float(sindg(self.beta))
+        sg = float(sindg(self.gamma))
         v = self.volume
         astar = (2.0 * math.pi * self.b * self.c * sa) / v
         bstar = (2.0 * math.pi * self.a * self.c * sb) / v
@@ -248,12 +320,13 @@ class Lattice:
 ```bash
 $ pytest test_lattice.py -v
 ============================= test session starts =============================
-collected 4 items
+collected 5 items
 
-test_lattice.py::test_default_constructor PASSED                        [ 25%]
-test_lattice.py::test_custom_cubic PASSED                               [ 50%]
-test_lattice.py::test_invalid_lengths PASSED                            [ 75%]
-test_lattice.py::test_rlu_to_cart PASSED                                [100%]
+test_lattice.py::test_default_constructor PASSED                        [ 20%]
+test_lattice.py::test_custom_cubic PASSED                               [ 40%]
+test_lattice.py::test_invalid_lengths_and_angles PASSED                 [ 60%]
+test_lattice.py::test_rlu_to_cart PASSED                                [ 80%]
+test_lattice.py::test_serialization_roundtrip PASSED                    [100%]
 
-============================== 4 passed in 0.08s ==============================
+============================== 5 passed in 0.08s ==============================
 ```

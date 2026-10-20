@@ -1,6 +1,6 @@
 # MATLAB to Pytest Mapping Reference
 
-This document provides a translation mapping between MATLAB test patterns (both `matlab.unittest.TestCase` and script-based tests) and Python `pytest` equivalents.
+This document provides a translation mapping between MATLAB test patterns (`matlab.unittest.TestCase`, Horace/Herbert `TestCase` / `assertEqualToTol`, and script-based tests) and Python `pytest` equivalents.
 
 ---
 
@@ -8,17 +8,18 @@ This document provides a translation mapping between MATLAB test patterns (both 
 
 | MATLAB Assertion | Python / Pytest Equivalent | Notes |
 |---|---|---|
-| `tc.assertEqual(a, b)` | `assert a == b` | Exact equality (integers, strings, booleans). |
+| `tc.assertEqual(a, b)` / `assertEqual(a, b)` | `assert a == b` | Exact equality (integers, strings, booleans, `Serializable` objects). |
+| `assertEqualToTol(a, b, tol=[atol, rtol])` | `iseq, mess = a.equal_to_tol(b, tol=(atol, rtol)); assert iseq, mess` | Horace/Herbert tolerance comparison for `Serializable` objects (or `compare_values(a, b, tol=...)`). |
 | `tc.assertEqual(a, b, 'AbsTol', tol)` | `np.testing.assert_allclose(a, b, atol=tol, rtol=0)` | Floating-point comparison with absolute tolerance. For scalars: `assert a == pytest.approx(b, abs=tol)`. |
 | `tc.assertEqual(a, b, 'RelTol', tol)` | `np.testing.assert_allclose(a, b, rtol=tol, atol=0)` | Floating-point comparison with relative tolerance. For scalars: `assert a == pytest.approx(b, rel=tol)`. |
 | `tc.assertEqual(a, b, 'AbsTol', atol, 'RelTol', rtol)` | `np.testing.assert_allclose(a, b, atol=atol, rtol=rtol)` | Combined absolute and relative tolerance. |
-| `tc.verifyTrue(cond)` / `assert(cond)` | `assert cond` | Boolean condition evaluation. |
-| `tc.verifyFalse(cond)` | `assert not cond` | Negated boolean condition. |
+| `tc.verifyTrue(cond)` / `assertTrue(cond)` / `assert(cond)` | `assert cond` | Boolean condition evaluation. |
+| `tc.verifyFalse(cond)` / `assertFalse(cond)` | `assert not cond` | Negated boolean condition. |
 | `tc.verifyEmpty(x)` | `assert len(x) == 0` or `assert x.size == 0` | For lists/strings use `len()`, for NumPy arrays use `x.size == 0`. |
 | `tc.verifyNotEmpty(x)` | `assert len(x) > 0` or `assert x.size > 0` | Non-empty check. |
 | `tc.verifySize(arr, [m, n])` | `assert arr.shape == (m, n)` | Note: 1D array in MATLAB is often `(1, N)` or `(N, 1)`. In Python prefer `(N,)`. |
 | `tc.verifyClass(obj, 'Type')` | `assert isinstance(obj, Type)` | Type verification. |
-| `tc.verifyError(@() f(), 'ID:name')` | `with pytest.raises(ExpectedError, match="..."): f()` | Exception assertion with regex message matching. |
+| `assertExceptionThrown(@() f(), 'ID:name')` / `tc.verifyError(@() f(), 'ID:name')` | `with pytest.raises(ExpectedError, match="..."): f()` | Exception assertion with regex message matching. Note: Pydantic `ValidationError` is a subclass of `ValueError`. |
 | `tc.verifyWarning(@() f(), 'ID:name')` | `with pytest.warns(ExpectedWarning, match="..."): f()` | Warning capture. |
 | `tc.verifyGreaterThan(a, b)` | `assert a > b` | Scalar or array inequality (`np.all(a > b)`). |
 | `tc.verifyLessThan(a, b)` | `assert a < b` | Scalar or array inequality (`np.all(a < b)`). |
@@ -27,7 +28,7 @@ This document provides a translation mapping between MATLAB test patterns (both 
 
 ---
 
-## 2. Test Structure and Lifecycle
+## 2. Test Structure, Lifecycle, and `persistent` State Reset
 
 ### MATLAB `TestCase` Class Structure
 
@@ -47,6 +48,7 @@ classdef TestMyClass < matlab.unittest.TestCase
     methods (TestMethodSetup)
         function setup_method(tc)
             % Runs before each test method
+            MyClass.version_holder(2);
         end
     end
 
@@ -76,9 +78,11 @@ def fixture_data():
 
 
 @pytest.fixture(autouse=True)
-def setup_method():
-    """Runs before each test function (TestMethodSetup equivalent)."""
+def reset_state():
+    """Runs before and after each test function (TestMethodSetup / persistent state reset)."""
+    MyClass.version_holder(2)
     yield
+    MyClass.version_holder(2)
 
 
 def test_calculation(fixture_data):
@@ -107,25 +111,30 @@ When translating tests that rely on pre-computed `.mat` data:
 
 ---
 
-## 4. Key Traps in Numerical Parity
+## 4. Key Traps in Numerical & Semantic Parity
 
-1. **1-Based vs. 0-Based Indices**:
+1. **Value Classes vs. Python Reference Semantics**:
+   - In MATLAB, assigning `obj2 = obj1` or `arr = repmat(obj1, 1, 4)` for a non-`handle` class creates independent copies.
+   - In Python, `obj2 = obj1` or `[obj1] * 4` aliases the exact same instance! Always use `copy.copy(obj1)` or `[copy.deepcopy(obj1) for _ in range(4)]` when tests mutate copies or build object arrays.
+2. **1-Based vs. 0-Based Indices**:
    - In MATLAB: `indices = 1:5; arr(indices)`
    - In Python: `indices = np.arange(5); arr[indices]`
-2. **Column-Major (Fortran) vs. Row-Major (C) Order**:
-   - Reshaping a 2D matrix in MATLAB reads down columns first.
+3. **Degree-Based Trigonometry (`sind`, `cosd`, `tand`)**:
+   - MATLAB `cosd(90)` is `0.0` exactly, whereas `math.cos(math.radians(90))` is `6.123233995736766e-17`.
+   - Use `scipy.special.cosdg`, `sindg`, `tandg` for exact parity and NumPy array support.
+4. **Column-Major (Fortran) vs. Row-Major (C) Order**:
+   - Reshaping or linear-indexing a 2D/3D matrix in MATLAB reads down columns first.
    - When flattening or reshaping in Python, pass `order='F'` if exact column-major memory layout is expected:
      ```python
      # MATLAB: reshape(A, 4, 3)
      np.reshape(A, (4, 3), order="F")
      ```
-3. **Empty Arrays**:
+5. **Empty Arrays**:
    - MATLAB: `size([])` is `[0, 0]` and `isempty([])` is `true`.
    - NumPy: Empty arrays are created with `np.empty((0,))` or `np.array([])`. Check with `arr.size == 0`.
-4. **Division**:
-   - MATLAB `/` always performs floating-point division even on integer operands.
-   - Python `/` produces `float`; `//` produces integer floor division. Match MATLAB using `/`.
-5. **Tolerance Defaults**:
+6. **Division**:
+   - MATLAB `/` always performs floating-point division (or right matrix division) even on floats/arrays; note that integer types in MATLAB (`int32(3) / int32(2)`) round half away from zero (`2`), whereas Python `/` produces `float` (`1.5`) and `//` produces floor division (`1`).
+7. **Tolerance Defaults**:
    - When converting MATLAB tests that use unspecified default tolerances, use standard floating-point tolerances:
      - `float64` / `double`: `atol=1e-12`, `rtol=1e-7`
      - `float32` / `single`: `atol=1e-5`, `rtol=1e-5`
