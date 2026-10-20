@@ -53,7 +53,7 @@ Create `test_<class_name>.py` before or alongside the Python class.
 1. **Map Test Fixtures & Setup**:
    - `TestMethodSetup` -> `pytest.fixture(autouse=True)` or explicit fixture functions.
    - Resetting MATLAB `persistent` variables -> `pytest.fixture(autouse=True)` with `yield` to restore state before and after each test.
-   - Loading test `.mat` data -> `scipy.io.loadmat(..., squeeze_me=True)` or inline test data.
+   - Loading test `.mat` data -> `scipy.io.loadmat(..., squeeze_me=True)` or inline test data. To inspect variables, shapes, and struct fields inside a `.mat` fixture file, run [inspect_mat.py](./scripts/inspect_mat.py).
    - Copying template objects -> In MATLAB value classes, `obj2 = obj1` or `repmat(obj, ...)` copies by value. In Python, explicitly use `copy.copy(obj)` or `copy.deepcopy(obj)` when populating object lists or mutating copies in tests.
 2. **Map Assertions**:
    - Scalar equality: `assert actual == expected`
@@ -151,6 +151,7 @@ Create `<class_name>.py` adhering to idiomatic Python and NumPy best practices:
   arr.reshape((rows, cols), order='F')
   ```
 - **Precision**: Default to `np.float64` to match MATLAB's native `double` precision.
+- **Horace/Herbert Array & Binning Idioms**: See [MATLAB to NumPy / SciPy Idioms Reference](./references/matlab_to_numpy_idioms.md) for exact translations of `accumarray`, `unique(..., 'stable')`, `ismember`, `sub2ind`/`ind2sub`, `histcounts`, and `sortrows`.
 
 #### 6. Error & Warning Handling
 - Replace MATLAB `error('HERBERT:ClassName:invalid_argument', 'message')` or `error('HORACE:ClassName:invalid_argument', 'message')` with standard Python exceptions (`ValueError`, `TypeError`, `IndexError`, `RuntimeError`, `NotImplementedError`) preserving key diagnostic substrings checked by unit tests.
@@ -192,4 +193,6 @@ Once tests pass:
 ## Supporting Resources
 
 - [MATLAB to Pytest Mapping Reference](./references/matlab_to_pytest_mapping.md): Detailed assertion, exception, and syntax conversion table.
+- [MATLAB to NumPy / SciPy Idioms Reference](./references/matlab_to_numpy_idioms.md): Exact recipes for Horace/Herbert indexing, `accumarray`, `unique('stable')`, `ismember`, and linear algebra idioms.
 - [End-to-End Class Translation Example](./examples/class_translation_example.md): Complete walkthrough of translating a MATLAB `@serializable` class and its unit test to Python.
+- [inspect_mat.py](./scripts/inspect_mat.py): CLI helper script to inspect variables, shapes, dtypes, and struct fields in `.mat` test fixtures.
