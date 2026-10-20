@@ -19,10 +19,19 @@ from pyhorace.core.configurations import (
     set,
     warn_with_id,
 )
+from pyhorace.core.data_op_interface import (
+    DataOpArray,
+    DataOpInterface,
+    data_op_interface,
+    sigvar_size,
+    size_array_split,
+)
 from pyhorace.core.serializable import Serializable, register_serializable
 
 __all__ = [
     "ConfigData",
+    "DataOpArray",
+    "DataOpInterface",
     "HoraceConfig",
     "HoraceConfigError",
     "HoraceConfigWarning",
@@ -30,6 +39,7 @@ __all__ = [
     "config",
     "config_base",
     "config_store",
+    "data_op_interface",
     "get",
     "herbert_config",
     "hor_config",
@@ -40,5 +50,7 @@ __all__ = [
     "planner_config",
     "register_serializable",
     "set",
+    "sigvar_size",
+    "size_array_split",
     "warn_with_id",
 ]
