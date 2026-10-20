@@ -1,14 +1,15 @@
 ---
 name: matlab-class-to-python
 description: >-
-  Translate a single MATLAB class into an equivalent Python class, guided and validated
-  by converting its MATLAB unit test into a pytest suite to ensure identical numerical results.
-  Use when given a MATLAB class and its corresponding unit test to convert to Python.
+  Translate a MATLAB class or standalone function (including @ClassName folders and private/
+  helpers) into an equivalent Python module, guided and validated by converting its MATLAB
+  unit test into a pytest suite to ensure identical numerical results. Use when given a
+  MATLAB class, function, or unit test to convert to Python.
 ---
 
-# MATLAB Class to Python Translation Skill
+# MATLAB Class & Function to Python Translation Skill
 
-Translate a single MATLAB class into an idiomatic, high-performance Python class by using its MATLAB unit test as the executable specification of behavior and numerical correctness.
+Translate a MATLAB class or standalone function into an idiomatic, high-performance Python implementation by using its MATLAB unit test as the executable specification of behavior and numerical correctness.
 
 ## Core Principle: Test-Driven Translation (TDT)
 
@@ -111,12 +112,17 @@ Create `<class_name>.py` adhering to idiomatic Python and NumPy best practices:
 - **Constant properties (`Constant`)**: Class-level variables annotated with `ClassVar[Type]` or `typing.Final`.
 - **`persistent` variables**: Map MATLAB `persistent` function/method variables to `ClassVar` attributes on the class with `@classmethod` getter/setter helpers.
 
-#### 4. Method Translation, `nargout`, & Operators
+#### 4. Method & Function Translation, `nargout`, & Operators
 - Include explicit `self` as the first argument in instance methods; mark static methods with `@staticmethod` or `@classmethod`.
+- **Standalone Functions, Local Subfunctions, & `private/` Helpers**:
+  - Map local subfunctions at the bottom of a `.m` file and helper functions inside a sibling `private/` directory to module-private functions prefixed with a single underscore (`def _helper_name(...):`) in the same Python module (or a private submodule if shared across multiple files).
+  - **Function-level `persistent` variables**: In standalone functions, map `persistent` state to `@functools.lru_cache`, function attributes, or a module-level `_state` variable (with a reset helper invoked by an `autouse=True` `pytest.fixture`).
+  - **`varargin` & Flag Parsing (`parse_char_options` / `parse_keywords`)**: When a MATLAB function accepts trailing character flags (e.g. `'-nocell'`, `'-force'`, `'- legacy'`), provide idiomatic keyword-only boolean parameters (`*, nocell: bool = False, force: bool = False`) while optionally supporting legacy string flags in `*args` if existing callers/tests pass positional flag strings.
+  - **Function Handles & Cell Arrays**: Map MATLAB function handles (`@func`, `@(x) ...`) to `Callable` parameters, and cell arrays (`{a, b}`) to Python `list` or `tuple`.
 - **Handling `nargout` Dispatch**:
-  - Python has no `nargout`. When a MATLAB method behaves differently based on output count (e.g. `[ok, mess] = check(obj)` vs `check(obj)` throwing an error), either:
-    - Split into two clear methods (e.g., `equal_to_tol(other) -> Tuple[bool, str]` for detailed tuple return vs. `__eq__(other) -> bool` for boolean check), or
-    - Use an explicit keyword flag (e.g., `raise_on_error: bool = True`).
+  - Python has no `nargout`. When a MATLAB method or function behaves differently based on output count (e.g. `[ok, mess] = check(obj)` vs `check(obj)` throwing an error), either:
+    - Split into two clear functions/methods (e.g., `equal_to_tol(other) -> Tuple[bool, str]` for detailed tuple return vs. `__eq__(other) -> bool` for boolean check), or
+    - Return a consistent tuple (or `NamedTuple`) and/or accept an explicit keyword flag (e.g., `raise_on_error: bool = True`, `return_details: bool = False`).
 - **Map MATLAB Overloaded Operators to Python Dunder Methods** (always implement reflected `__r*__` operators when scalars or NumPy arrays can appear on the left-hand side, e.g., `2 * obj`):
   - `plus(a, b)` -> `__add__(self, other)` and `__radd__(self, other)`
   - `minus(a, b)` -> `__sub__(self, other)` and `__rsub__(self, other)`
@@ -147,7 +153,7 @@ Create `<class_name>.py` adhering to idiomatic Python and NumPy best practices:
 - **Precision**: Default to `np.float64` to match MATLAB's native `double` precision.
 
 #### 6. Error & Warning Handling
-- Replace MATLAB `error('HERBERT:ClassName:invalid_argument', 'message')` with standard Python exceptions (`ValueError`, `TypeError`, `IndexError`, `RuntimeError`, `NotImplementedError`) preserving key diagnostic substrings checked by unit tests.
+- Replace MATLAB `error('HERBERT:ClassName:invalid_argument', 'message')` or `error('HORACE:ClassName:invalid_argument', 'message')` with standard Python exceptions (`ValueError`, `TypeError`, `IndexError`, `RuntimeError`, `NotImplementedError`) preserving key diagnostic substrings checked by unit tests.
 - Replace MATLAB `warning('ID:name', 'message')` with `warnings.warn("message", UserWarning)` (or `DeprecationWarning`).
 
 ---
