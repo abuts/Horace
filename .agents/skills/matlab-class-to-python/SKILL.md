@@ -67,7 +67,6 @@ Create `test_<class_name>.py` before or alongside the Python class.
          obj.invalid_method_call()
      ```
 3. See [MATLAB to Pytest Mapping Reference](./references/matlab_to_pytest_mapping.md) for full syntax comparison.
-
 ---
 
 ### Step 3: Translate the MATLAB Class to Python
@@ -157,6 +156,13 @@ Create `<class_name>.py` adhering to idiomatic Python and NumPy best practices:
 - Replace MATLAB `error('HERBERT:ClassName:invalid_argument', 'message')` or `error('HORACE:ClassName:invalid_argument', 'message')` with standard Python exceptions (`ValueError`, `TypeError`, `IndexError`, `RuntimeError`, `NotImplementedError`) preserving key diagnostic substrings checked by unit tests.
 - Replace MATLAB `warning('ID:name', 'message')` with `warnings.warn("message", UserWarning)` (or `DeprecationWarning`).
 
+#### 7. Target Layout & Documentation
+- **File & Folder Layout**:
+  - Place each translated MATLAB class or standalone function into its own separate `.py` file inside the corresponding target Python subpackage (e.g., `pyhorace/core/configurations/<class_name>.py`), including an `__init__.py` in new package folders.
+  - Place translated unit tests and test helper classes in a `tests/` subfolder mirroring the package hierarchy (e.g., `tests/core/configurations/`). When MATLAB tests are grouped in a folder (e.g., `_test/test_config/`), create a matching folder in `tests/` and preserve the separate test files.
+- **Documentation & Docstrings**:
+  - Translate the **complete** MATLAB class, property, and function/method descriptions (`%` comment blocks) into Python docstrings (`"""..."""`), formatted according to standard Python conventions (NumPy or Google docstring style). Do **not** drop or summarize detailed explanations, parameter descriptions, or notes—adapt only MATLAB-specific syntax to Python equivalents.
+
 ---
 
 ### Step 4: Validate and Debug with `pytest`
@@ -185,7 +191,7 @@ pytest test_<class_name>.py -v
 
 Once tests pass:
 1. Add PEP 484 type annotations for all method signatures and properties.
-2. Port MATLAB function documentation blocks (`%` comments) to Python docstrings (Google or NumPy style).
+2. Verify that all MATLAB class, property, and method/function documentation blocks (`%` comments) have been completely ported to Python docstrings without truncation.
 3. Ensure no MATLAB-isms remain (e.g. unnecessary pre-allocation with `zeros()` before list comprehensions, manual index loops that can be vectorized).
 
 ---
