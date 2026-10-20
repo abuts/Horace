@@ -7,8 +7,6 @@ _test/test_serializers/test_serializable_class_2.m.
 from __future__ import annotations
 
 import copy
-import math
-import warnings
 from typing import List
 
 import numpy as np
@@ -16,7 +14,7 @@ import pytest
 from pydantic import Field
 
 from pyhorace.core.serializable import Serializable
-from tests.serializable_testers import (
+from .serializable_testers import (
     SerializableTester1,
     SerializableTester2,
     SerializableTester3,
