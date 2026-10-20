@@ -14,13 +14,7 @@ from .config_store import HoraceConfigError, config_store
 
 
 class planner_config(config_base):
-    """Class defines logging parameters of various Horace algorithms.
-       When an algorithm is running, this config class recors time spent
-       on each step of the algorithm and modifies algorithm logging 
-       frequency to provide reasonable user experience to display
-       algorithm progress with reasonable frequency.
-
-
+    """Configuration for `horace_planner` application (translated from `horace_core/configuration/@planner_config/planner_config.m`).
     To see the list of current configuration option values:
         >>> planner_config()
 
@@ -224,3 +218,4 @@ class planner_config(config_base):
 
 
 __all__ = ["planner_config"]
+
