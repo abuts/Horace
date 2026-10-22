@@ -248,6 +248,26 @@ class DataOpArray(np.ndarray):
             arr = arr.reshape((1, arr.shape[0]))
         return arr.view(cls)
 
+    @classmethod
+    def from_list(
+        cls, items: Any, shape: Tuple[int, ...] | None = None
+    ) -> "DataOpArray":
+        """Construct a ``DataOpArray`` from a flat sequence and optional shape."""
+        seq = list(items)
+        arr = np.empty(len(seq), dtype=object)
+        for i, item in enumerate(seq):
+            arr[i] = item
+        if shape is not None:
+            arr = arr.reshape(shape, order="F")
+        else:
+            arr = arr.reshape((1, len(seq)))
+        return arr.view(cls)
+
+    def __len__(self) -> int:
+        if self.ndim == 2 and (self.shape[0] == 1 or self.shape[1] == 1):
+            return self.size
+        return super().__len__()
+
     def __getitem__(self, idx: Any) -> Any:
         if isinstance(idx, (int, np.integer)):
             if self.ndim == 2 and (self.shape[0] == 1 or self.shape[1] == 1):

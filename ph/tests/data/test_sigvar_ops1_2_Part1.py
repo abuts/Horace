@@ -50,8 +50,8 @@ from pyhorace.core.data_op_interface import (
     uminus,
     uplus,
 )
+from pyhorace.data.ix_dataset_1d import IX_dataset_1d
 from pyhorace.data.sigvar import SigVar, sigvar
-from pyhorace.dataset.base import IXDataset
 
 
 class TestSigvarOps12Part1:
@@ -653,10 +653,12 @@ class TestSigvarIXDatasetOpsPart2:
 
     def setup_method(self):
         rng = np.random.default_rng(42)
-        self.p1 = IXDataset(signal=rng.random((20, 1)), error=rng.random((20, 1)), title="p1")
-        self.p2 = IXDataset(signal=rng.random((20, 1)), error=rng.random((20, 1)), title="p2")
-        self.p3 = IXDataset(signal=rng.random((20, 1)), error=rng.random((20, 1)), title="p3")
-        self.pbig = IXDataset(signal=rng.random((50, 1)), error=rng.random((50, 1)), title="pbig")
+        x20 = np.arange(1, 21, dtype=float)
+        x50 = np.arange(1, 51, dtype=float)
+        self.p1 = IX_dataset_1d(x20, rng.random((20, 1)), rng.random((20, 1)), "p1")
+        self.p2 = IX_dataset_1d(x20, rng.random((20, 1)), rng.random((20, 1)), "p2")
+        self.p3 = IX_dataset_1d(x20, rng.random((20, 1)), rng.random((20, 1)), "p3")
+        self.pbig = IX_dataset_1d(x50, rng.random((50, 1)), rng.random((50, 1)), "pbig")
 
     def test_wscal_20by1__wscal_20by1(self):
         rng = np.random.default_rng(101)
@@ -755,8 +757,8 @@ class TestDataOpInterfaceOrderAndAbstract:
 
     def test_priority_and_operation_order(self):
         sv_scal = sigvar(3.0, 1.0)
-        sv_img = sigvar([1.0, 2.0, 3.0], [0.1, 0.2, 0.3])
-        ix_img = IXDataset(signal=np.array([10.0, 20.0, 30.0]), error=np.array([1.0, 1.0, 1.0]))
+        sv_img = sigvar(np.array([[1.0], [2.0], [3.0]]), np.array([[0.1], [0.2], [0.3]]))
+        ix_img = IX_dataset_1d(np.arange(1, 4), np.array([10.0, 20.0, 30.0]), np.array([1.0, 1.0, 1.0]))
 
         prio, sv_size, has_pix, has_img = data_op_interface.get_priority(5.0)
         assert prio == 0
@@ -772,13 +774,13 @@ class TestDataOpInterfaceOrderAndAbstract:
 
         prio, sv_size, has_pix, has_img = data_op_interface.get_priority(sv_img)
         assert prio == 11
-        assert sv_size == (1, 3)
+        assert sv_size == (3, 1)
         assert not has_pix
         assert has_img
 
         prio, sv_size, has_pix, has_img = data_op_interface.get_priority(ix_img)
         assert prio == 12
-        assert sv_size == (1, 3)
+        assert sv_size == (3, 1)
         assert not has_pix
         assert has_img
 
