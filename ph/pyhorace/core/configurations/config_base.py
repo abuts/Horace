@@ -21,6 +21,23 @@ from .config_store import (
 )
 
 
+class _ClassOrInstanceMethod:
+    """Descriptor allowing a method on `config_base` to be called either on an
+    instance (`cfg.get(...)`) or directly on the class (`graph_config.get(...)`),
+    in which case a transient instance `cls()` is used.
+    """
+
+    def __init__(self, func: Any) -> None:
+        self.func = func
+        self.__doc__ = func.__doc__
+        self.__name__ = func.__name__
+
+    def __get__(self, instance: Any, owner: Any = None) -> Any:
+        if instance is None:
+            instance = owner()
+        return self.func.__get__(instance, owner)
+
+
 class config_base(ABC):
     """Base class for configurations, which have a single instance for the whole
     package and can be automatically stored/restored from disk using `config_store`.
@@ -312,11 +329,26 @@ class config_base(ABC):
                 res[fld] = getattr(self, fld)
         return res
 
+    @classmethod
+    def instance(cls) -> "config_base":
+        """Return an instance of this configuration class pointing to the
+        shared `config_store` singleton.
+        """
+        return cls()
+
+    @_ClassOrInstanceMethod
+    def reset(self) -> "config_base":
+        """Reset all configuration properties of this class back to their
+        default values.
+        """
+        return self.set("defaults")
+
+    @_ClassOrInstanceMethod
     def get(self, *args: Any) -> Any:
         """Retrieve configuration properties (`get(obj, ...)`).
 
         Supports:
-        - `obj.get()` -> `ConfigData` of all stored public properties
+        - `obj.get()` / `cls.get()` -> `ConfigData` of all stored public properties
         - `obj.get('defaults')` -> `ConfigData` of default properties
         - `obj.get('field1', 'field2', ...)` -> value or tuple of values
         """
@@ -357,6 +389,7 @@ class config_base(ABC):
             return results[0]
         return tuple(results)
 
+    @_ClassOrInstanceMethod
     def set(self, *args: Any, **kwargs: Any) -> "config_base":
         """Set configuration properties (`set(obj, ...)`).
 
@@ -431,6 +464,7 @@ class config_base(ABC):
             S = dict(config_store.instance().get_config(self))
 
         if S:
+            prev_state = self.get_all(public_only=False)
             current_saveable = self.saveable
             self.saveable = False
             self.do_check_combo_arg = False
@@ -446,11 +480,15 @@ class config_base(ABC):
                 self.do_check_combo_arg = True
                 self.check_combo_arg()
                 self.disable_setup_warnings = False
+            except Exception:
+                for fn, fv in prev_state.items():
+                    config_store.instance().set_value(self, fn, fv)
+                raise
             finally:
                 self.do_check_combo_arg = True
                 self.disable_setup_warnings = False
+                self.saveable = current_saveable
 
-            self.saveable = current_saveable
             if save_changes:
                 config_store.instance().store_config(self, "-forcesave")
 

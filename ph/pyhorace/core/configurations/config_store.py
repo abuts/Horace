@@ -134,7 +134,12 @@ def _parse_char_options(
     flags = [False] * len(known_options)
     remaining: List[Any] = []
     for arg in args:
-        if isinstance(arg, str) and arg.startswith("-"):
+        if (
+            isinstance(arg, str)
+            and arg.startswith("-")
+            and len(arg) >= 2
+            and arg[1].isalpha()
+        ):
             matches = [
                 idx
                 for idx, opt in enumerate(known_options)

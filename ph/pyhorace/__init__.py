@@ -3,6 +3,7 @@
 from pyhorace.core.configurations import (
     config_base,
     config_store,
+    graph_config,
     herbert_config,
     hor_config,
     hpc_config,
@@ -23,6 +24,7 @@ __all__ = [
     "config_base",
     "config_store",
     "data_op_interface",
+    "graph_config",
     "herbert_config",
     "hor_config",
     "hpc_config",

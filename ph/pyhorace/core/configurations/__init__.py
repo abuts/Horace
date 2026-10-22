@@ -9,6 +9,7 @@ Re-exports all configuration classes and helper functions from their individual 
 - `.hor_config` (`hor_config`)
 - `.herbert_config` (`herbert_config`)
 - `.planner_config` (`planner_config`)
+- `.graph_config` (`graph_config`)
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ from .config_store import (
     lastwarn,
     warn_with_id,
 )
+from .graph_config import graph_config
 from .herbert_config import herbert_config
 from .hor_config import hor_config
 from .hpc_config import hpc_config
@@ -42,6 +44,7 @@ __all__ = [
     "config_base",
     "config_store",
     "get",
+    "graph_config",
     "herbert_config",
     "hor_config",
     "hpc_config",
