@@ -472,3 +472,10 @@ class LineProjBase(aProjectionBase):
                 offset=uoffset,
                 label=ulabel,
             )
+
+    def copy_proj_defined_properties_to_axes(self, axes_bl: Any) -> Any:
+        """Copy line_proj properties including hkle_axes_directions to axes_bl."""
+        axes_bl = super().copy_proj_defined_properties_to_axes(axes_bl)
+        if hasattr(axes_bl, "hkle_axes_directions") and self.lattice_defined:
+            axes_bl.hkle_axes_directions = self.u_to_rlu
+        return axes_bl

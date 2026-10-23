@@ -20,7 +20,7 @@ class TestAxesBlocks:
 
     def test_sphere_axes_limits(self):
         ax = sphere_axes()
-        assert ax.type == "pddp"
+        assert ax.type == "pdde"
         with pytest.raises(HoraceError):
             ax.img_range = np.array([[-1.0, 0.0, -180.0, 0.0], [1.0, 180.0, 180.0, 10.0]])
         with pytest.raises(HoraceError):
@@ -28,7 +28,7 @@ class TestAxesBlocks:
 
     def test_cylinder_axes_limits(self):
         ax = cylinder_axes()
-        assert ax.type == "ppdp"
+        assert ax.type == "ppde"
         with pytest.raises(HoraceError):
             ax.img_range = np.array([[-1.0, -5.0, -180.0, 0.0], [1.0, 5.0, 180.0, 10.0]])
         with pytest.raises(HoraceError):
@@ -38,11 +38,11 @@ class TestAxesBlocks:
         edges = np.array([0.0, 1.0, 2.0, 3.0, 4.0])
         ok, rng = line_axes.bins_in_1Drange(edges, [0.5, 2.5])
         assert ok is True
-        np.testing.assert_array_equal(rng, [1, 3])
+        np.testing.assert_array_equal(rng, [True, True, True, False])
 
         ok2, rng2 = line_axes.bins_in_1Drange(edges, [5.0, 6.0])
         assert ok2 is False
-        assert rng2.size == 0
+        np.testing.assert_array_equal(rng2, [False, False, False, False])
 
     def test_axes_bin_pixels(self):
         ax = line_axes(

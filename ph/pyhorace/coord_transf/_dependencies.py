@@ -23,22 +23,10 @@ class HoraceError(ValueError, RuntimeError):
         super().__init__(full_msg)
 
 
-def rotvec_to_rotmat_rad(theta: Union[Sequence[float], np.ndarray], algorithm: int = 0) -> np.ndarray:
-    """Convert rotation vector(s) in radians to rotation matrix/matrices.
-
-    Parameters
-    ----------
-    theta : array_like
-        3-element vector or (3, m) array of rotation vectors in radians.
-        Gives the rotation matrix of a coordinate frame (passive rotation).
-    algorithm : int, optional
-        0 for explicit Rodrigues formula (fast), 1 for matrix exponential.
-
-    Returns
-    -------
-    rotmat : np.ndarray
-        (3, 3) or (3, 3, m) array of rotation matrices.
-    """
+def rotvec_to_rotmat_rad(
+    theta: Union[Sequence[float], np.ndarray], algorithm: int = 0
+) -> np.ndarray:
+    """Convert rotation vector(s) in radians to rotation matrix/matrices."""
     th = np.asarray(theta, dtype=float)
     if th.size == 3 and th.ndim <= 2 and (th.ndim == 1 or 1 in th.shape):
         t = th.reshape(3)
@@ -66,24 +54,14 @@ def rotvec_to_rotmat_rad(theta: Union[Sequence[float], np.ndarray], algorithm: i
             out[:, :, i] = rotvec_to_rotmat_rad(th[:, i], algorithm=algorithm)
         return out
 
-    raise HoraceError("HERBERT:rotvec_to_rotmat_rad:invalid_argument", "theta must be a 3-vector or 3xN array")
+    raise HoraceError(
+        "HERBERT:rotvec_to_rotmat_rad:invalid_argument",
+        "theta must be a 3-vector or 3xN array",
+    )
 
 
 def rotmat_to_rotvec_rad(rotmat: np.ndarray, algorithm: int = 0) -> np.ndarray:
-    """Convert rotation matrix/matrices to rotation vector(s) in radians.
-
-    Parameters
-    ----------
-    rotmat : np.ndarray
-        (3, 3) or (3, 3, m) rotation matrix/matrices relating two coordinate frames.
-    algorithm : int, optional
-        Algorithm selector (unused, kept for signature compatibility).
-
-    Returns
-    -------
-    theta : np.ndarray
-        (3,) or (3, m) rotation vector(s) in radians.
-    """
+    """Convert rotation matrix/matrices to rotation vector(s) in radians."""
     rm = np.asarray(rotmat, dtype=float)
     if rm.ndim == 2 and rm.shape == (3, 3):
         sN = np.array(
@@ -115,10 +93,15 @@ def rotmat_to_rotvec_rad(rotmat: np.ndarray, algorithm: int = 0) -> np.ndarray:
             out[:, i] = rotmat_to_rotvec_rad(rm[:, :, i], algorithm=algorithm)
         return out
 
-    raise HoraceError("HERBERT:rotmat_to_rotvec_rad:invalid_argument", "rotmat must be a 3x3 or 3x3xN array")
+    raise HoraceError(
+        "HERBERT:rotmat_to_rotvec_rad:invalid_argument",
+        "rotmat must be a 3x3 or 3x3xN array",
+    )
 
 
-def rotvec_to_rotmat(theta_deg: Union[Sequence[float], np.ndarray], algorithm: int = 0) -> np.ndarray:
+def rotvec_to_rotmat(
+    theta_deg: Union[Sequence[float], np.ndarray], algorithm: int = 0
+) -> np.ndarray:
     """Convert rotation vector(s) in degrees to rotation matrix/matrices."""
     return rotvec_to_rotmat_rad(np.deg2rad(theta_deg), algorithm=algorithm)
 
@@ -136,13 +119,19 @@ class crystal_alignment_info(Serializable):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__()
-        self._alatt: np.ndarray = np.array([2.0 * np.pi, 2.0 * np.pi, 2.0 * np.pi], dtype=float)
+        self._alatt: np.ndarray = np.array(
+            [2.0 * np.pi, 2.0 * np.pi, 2.0 * np.pi], dtype=float
+        )
         self._angdeg: np.ndarray = np.array([90.0, 90.0, 90.0], dtype=float)
         self._rotvec: np.ndarray = np.zeros(3, dtype=float)
         self._distance: np.ndarray = np.zeros(3, dtype=float)
         self._hkl_mode: bool = False
 
-        if len(args) == 1 and isinstance(args[0], crystal_alignment_info) and not kwargs:
+        if (
+            len(args) == 1
+            and isinstance(args[0], crystal_alignment_info)
+            and not kwargs
+        ):
             other = args[0]
             self._alatt = other._alatt.copy()
             self._angdeg = other._angdeg.copy()
@@ -162,7 +151,9 @@ class crystal_alignment_info(Serializable):
             self.rotvec = args[2]
         elif len(args) > 0:
             pos_names = ["alatt", "angdeg", "rotvec", "distance"]
-            self.set_positional_and_key_val_arguments(pos_names, False, *args, **kwargs)
+            self.set_positional_and_key_val_arguments(
+                pos_names, False, *args, **kwargs
+            )
             return
 
         if kwargs:
@@ -394,7 +385,9 @@ class fast_map(Serializable):
         orig_shape = k_arr.shape
         k_flat = k_arr.ravel()
         pos = np.searchsorted(self._keys, k_flat)
-        valid = (pos < self._keys.size) & (self._keys[np.minimum(pos, max(self._keys.size - 1, 0))] == k_flat)
+        valid = (pos < self._keys.size) & (
+            self._keys[np.minimum(pos, max(self._keys.size - 1, 0))] == k_flat
+        )
         if not np.all(valid):
             if not no_validity_checks:
                 raise HoraceError(
@@ -407,8 +400,11 @@ class fast_map(Serializable):
             out = self._values[pos]
         if orig_shape == ():
             return out[0] if out.size == 1 else out
-        # In MATLAB, values returned for row/col keys match integer/float vector
-        if out.dtype == float and np.all(np.isfinite(out)) and np.all(out == np.floor(out)):
+        if (
+            out.dtype == float
+            and np.all(np.isfinite(out))
+            and np.all(out == np.floor(out))
+        ):
             return out.astype(int).reshape(orig_shape)
         return out.reshape(orig_shape)
 
@@ -416,14 +412,26 @@ class fast_map(Serializable):
 class oriented_lattice(Serializable):
     """Class holding oriented crystal lattice parameters and goniometer angles."""
 
-    fields_to_define_: ClassVar[list[str]] = ["alatt", "angdeg", "psi", "u", "v", "omega", "dpsi", "gl", "gs"]
+    fields_to_define_: ClassVar[list[str]] = [
+        "alatt",
+        "angdeg",
+        "psi",
+        "u",
+        "v",
+        "omega",
+        "dpsi",
+        "gl",
+        "gs",
+    ]
 
     def class_version(self) -> int:
         return 2
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__()
-        self._alatt: np.ndarray = np.array([2.0 * np.pi, 2.0 * np.pi, 2.0 * np.pi], dtype=float)
+        self._alatt: np.ndarray = np.array(
+            [2.0 * np.pi, 2.0 * np.pi, 2.0 * np.pi], dtype=float
+        )
         self._angdeg: np.ndarray = np.array([90.0, 90.0, 90.0], dtype=float)
         self._psi: float = float("nan")
         self._u: np.ndarray = np.array([1.0, 0.0, 0.0], dtype=float)
@@ -458,12 +466,34 @@ class oriented_lattice(Serializable):
             self._check_combo()
             return
 
-        pos_names = ["alatt", "angdeg", "psi", "u", "v", "omega", "dpsi", "gl", "gs", "angular_units"]
+        pos_names = [
+            "alatt",
+            "angdeg",
+            "psi",
+            "u",
+            "v",
+            "omega",
+            "dpsi",
+            "gl",
+            "gs",
+            "angular_units",
+        ]
         self.set_positional_and_key_val_arguments(pos_names, False, *args, **kwargs)
         self._check_combo()
 
     def saveable_fields(self) -> list[str]:
-        return ["alatt", "angdeg", "psi", "u", "v", "omega", "dpsi", "gl", "gs", "angular_units"]
+        return [
+            "alatt",
+            "angdeg",
+            "psi",
+            "u",
+            "v",
+            "omega",
+            "dpsi",
+            "gl",
+            "gs",
+            "angular_units",
+        ]
 
     def _check_combo(self) -> None:
         if "alatt" not in self._defined_fields or "angdeg" not in self._defined_fields:
@@ -492,14 +522,19 @@ class oriented_lattice(Serializable):
 
     @alatt.setter
     def alatt(self, val: Any) -> None:
-        if val is None or (isinstance(val, (list, tuple, np.ndarray)) and np.asarray(val).size == 0):
+        if val is None or (
+            isinstance(val, (list, tuple, np.ndarray)) and np.asarray(val).size == 0
+        ):
             self._defined_fields.discard("alatt")
             return
         arr = np.asarray(val, dtype=float).ravel()
         if arr.size == 1:
             arr = np.repeat(arr, 3)
         if arr.size != 3 or np.any(arr <= 0):
-            raise HoraceError("HORACE:oriented_lattice:invalid_argument", "alatt must be 3 positive numbers")
+            raise HoraceError(
+                "HORACE:oriented_lattice:invalid_argument",
+                "alatt must be 3 positive numbers",
+            )
         self._alatt = arr
         self._defined_fields.add("alatt")
         self._check_combo()
@@ -512,7 +547,9 @@ class oriented_lattice(Serializable):
 
     @angdeg.setter
     def angdeg(self, val: Any) -> None:
-        if val is None or (isinstance(val, (list, tuple, np.ndarray)) and np.asarray(val).size == 0):
+        if val is None or (
+            isinstance(val, (list, tuple, np.ndarray)) and np.asarray(val).size == 0
+        ):
             self._defined_fields.discard("angdeg")
             return
         arr = np.asarray(val, dtype=float).ravel()
@@ -521,18 +558,27 @@ class oriented_lattice(Serializable):
         if self._angular_units == "rad":
             arr = np.rad2deg(arr)
         if arr.size != 3 or np.any(arr <= 0) or np.any(arr >= 180):
-            raise HoraceError("HORACE:oriented_lattice:invalid_argument", "angdeg must be 3 angles in (0, 180)")
+            raise HoraceError(
+                "HORACE:oriented_lattice:invalid_argument",
+                "angdeg must be 3 angles in (0, 180)",
+            )
         self._angdeg = arr
         self._defined_fields.add("angdeg")
         self._check_combo()
 
     @property
     def psi(self) -> float:
-        return self._psi if self._angular_units == "deg" else float(np.deg2rad(self._psi))
+        return (
+            self._psi
+            if self._angular_units == "deg"
+            else float(np.deg2rad(self._psi))
+        )
 
     @psi.setter
     def psi(self, val: Any) -> None:
-        if val is None or (isinstance(val, (list, tuple, np.ndarray)) and np.asarray(val).size == 0):
+        if val is None or (
+            isinstance(val, (list, tuple, np.ndarray)) and np.asarray(val).size == 0
+        ):
             self._psi = float("nan")
             self._defined_fields.discard("psi")
             return
@@ -549,7 +595,10 @@ class oriented_lattice(Serializable):
     def u(self, val: Any) -> None:
         arr = np.asarray(val, dtype=float).ravel()
         if arr.size != 3 or np.linalg.norm(arr) < 1e-12:
-            raise HoraceError("HORACE:oriented_lattice:invalid_argument", "u must be a non-zero 3-vector")
+            raise HoraceError(
+                "HORACE:oriented_lattice:invalid_argument",
+                "u must be a non-zero 3-vector",
+            )
         self._u = arr
         self._defined_fields.add("u")
         self._check_combo()
@@ -562,14 +611,21 @@ class oriented_lattice(Serializable):
     def v(self, val: Any) -> None:
         arr = np.asarray(val, dtype=float).ravel()
         if arr.size != 3 or np.linalg.norm(arr) < 1e-12:
-            raise HoraceError("HORACE:oriented_lattice:invalid_argument", "v must be a non-zero 3-vector")
+            raise HoraceError(
+                "HORACE:oriented_lattice:invalid_argument",
+                "v must be a non-zero 3-vector",
+            )
         self._v = arr
         self._defined_fields.add("v")
         self._check_combo()
 
     @property
     def omega(self) -> float:
-        return self._omega if self._angular_units == "deg" else float(np.deg2rad(self._omega))
+        return (
+            self._omega
+            if self._angular_units == "deg"
+            else float(np.deg2rad(self._omega))
+        )
 
     @omega.setter
     def omega(self, val: Any) -> None:
@@ -579,7 +635,11 @@ class oriented_lattice(Serializable):
 
     @property
     def dpsi(self) -> float:
-        return self._dpsi if self._angular_units == "deg" else float(np.deg2rad(self._dpsi))
+        return (
+            self._dpsi
+            if self._angular_units == "deg"
+            else float(np.deg2rad(self._dpsi))
+        )
 
     @dpsi.setter
     def dpsi(self, val: Any) -> None:
@@ -589,7 +649,11 @@ class oriented_lattice(Serializable):
 
     @property
     def gl(self) -> float:
-        return self._gl if self._angular_units == "deg" else float(np.deg2rad(self._gl))
+        return (
+            self._gl
+            if self._angular_units == "deg"
+            else float(np.deg2rad(self._gl))
+        )
 
     @gl.setter
     def gl(self, val: Any) -> None:
@@ -599,7 +663,11 @@ class oriented_lattice(Serializable):
 
     @property
     def gs(self) -> float:
-        return self._gs if self._angular_units == "deg" else float(np.deg2rad(self._gs))
+        return (
+            self._gs
+            if self._angular_units == "deg"
+            else float(np.deg2rad(self._gs))
+        )
 
     @gs.setter
     def gs(self, val: Any) -> None:
@@ -619,7 +687,10 @@ class oriented_lattice(Serializable):
         elif v.startswith("rad"):
             self._angular_units = "rad"
         else:
-            raise HoraceError("HORACE:oriented_lattice:invalid_argument", "angular_units must be 'deg' or 'rad'")
+            raise HoraceError(
+                "HORACE:oriented_lattice:invalid_argument",
+                "angular_units must be 'deg' or 'rad'",
+            )
 
     def is_defined(self, field_name: str) -> bool:
         return field_name in self._defined_fields
@@ -635,7 +706,9 @@ class oriented_lattice(Serializable):
         b = bmatrix(self._alatt, self._angdeg, nargout=1)
         return ubmatrix(self._u, self._v, b, nargout=nargout)
 
-    def calc_proj_matrix(self, n_matrix: int = 0, nargout: Optional[int] = None) -> Any:
+    def calc_proj_matrix(
+        self, n_matrix: int = 0, nargout: Optional[int] = None
+    ) -> Any:
         if nargout is None:
             nargout = _infer_nargout(default=3)
         psi_rad = 0.0 if np.isnan(self._psi) else float(np.deg2rad(self._psi))
@@ -658,6 +731,10 @@ class PixelDataBase:
     """Base interface for Horace pixel data containers."""
 
     DEFAULT_NUM_PIX_FIELDS = 9
+    EMPTY_RANGE_ = np.array(
+        [[np.inf, np.inf, np.inf, np.inf], [-np.inf, -np.inf, -np.inf, -np.inf]],
+        dtype=float,
+    )
 
     def __init__(self, data: Any = None) -> None:
         self._is_corrected: bool = False
@@ -701,7 +778,9 @@ class PixelDataBase:
             self._data = arr.copy()
             self._raw_data = arr.copy()
         else:
-            raise HoraceError("HORACE:PixelDataBase:invalid_argument", "data must be 9xN")
+            raise HoraceError(
+                "HORACE:PixelDataBase:invalid_argument", "data must be 9xN"
+            )
 
     @property
     def num_pixels(self) -> int:
@@ -775,7 +854,9 @@ class PixelDataBase:
     def pix_range(self) -> np.ndarray:
         if self.num_pixels == 0:
             return np.full((2, 4), np.nan, dtype=float)
-        return np.vstack([np.min(self._data[0:4, :], axis=1), np.max(self._data[0:4, :], axis=1)])
+        return np.vstack(
+            [np.min(self._data[0:4, :], axis=1), np.max(self._data[0:4, :], axis=1)]
+        )
 
     @property
     def is_corrected(self) -> bool:
@@ -793,7 +874,10 @@ class PixelDataBase:
     def alignment_matr(self, val: Any) -> None:
         rm = np.asarray(val, dtype=float)
         if rm.shape != (3, 3):
-            raise HoraceError("HORACE:PixelDataBase:invalid_argument", "alignment_matr must be 3x3")
+            raise HoraceError(
+                "HORACE:PixelDataBase:invalid_argument",
+                "alignment_matr must be 3x3",
+            )
         self._alignment_matr = rm.copy()
         self._is_corrected = not np.allclose(rm, np.eye(3))
         if self._is_corrected:
@@ -815,791 +899,91 @@ class PixelDataMemory(PixelDataBase):
     pass
 
 
-class AxesBlockBase(Serializable):
-    """Base class for axes block definitions (line_axes, sphere_axes, cylinder_axes)."""
+class DnDBase:
+    """Lightweight DnD container for axes/projection transformation unit tests."""
 
-    def class_version(self) -> int:
-        return 2
+    NUM_DIMS: Optional[int] = None
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__()
-        self._img_range: np.ndarray = np.zeros((2, 4), dtype=float)
-        self._nbins_all_dims: np.ndarray = np.ones(4, dtype=int)
-        self._single_bin_defines_iax: np.ndarray = np.ones(4, dtype=bool)
-        self._dax: Optional[np.ndarray] = None
-        self._offset: np.ndarray = np.zeros(4, dtype=float)
-        self._label: list[str] = ["\\zeta", "\\xi", "\\eta", "E"]
-        self._title: str = ""
-        self._filename: str = ""
-        self._filepath: str = ""
-        self._img_scales: np.ndarray = np.ones(4, dtype=float)
-        self._type: str = "ppr"
-        self._hkle_axes_directions: Optional[np.ndarray] = None
-        self._max_img_range: Optional[np.ndarray] = None
+        from pyhorace.coord_transf.axes_block_base import AxesBlockBase
+        from pyhorace.coord_transf.line_axes import line_axes
+        from pyhorace.coord_transf.line_proj import line_proj
 
-        if len(args) == 0 and not kwargs:
-            return
-        self._init_axes_args(*args, **kwargs)
+        self.axes: AxesBlockBase = line_axes()
+        self.proj: Any = line_proj()
+        self.s: np.ndarray = np.zeros((1, 1), dtype=float)
+        self.e: np.ndarray = np.zeros((1, 1), dtype=float)
+        self.npix: np.ndarray = np.zeros((1, 1), dtype=float)
 
-    def _init_axes_args(self, *args: Any, **kwargs: Any) -> None:
-        if len(args) == 0 and not kwargs:
-            return
-        if len(args) == 1 and isinstance(args[0], AxesBlockBase) and not kwargs:
+        if len(args) == 2 and isinstance(args[0], AxesBlockBase):
+            self.axes = copy.deepcopy(args[0])
+            self.proj = copy.deepcopy(args[1])
+            self.axes = self.proj.copy_proj_defined_properties_to_axes(self.axes)
+            if self.NUM_DIMS is not None and self.axes.dimensions != self.NUM_DIMS:
+                raise HoraceError(
+                    f"HORACE:{self.__class__.__name__}:invalid_argument",
+                    f"Axes dimensions ({self.axes.dimensions}) do not match {self.__class__.__name__} ({self.NUM_DIMS})",
+                )
+            sz = tuple(int(x) for x in self.axes.dims_as_ssize)
+            self.s = np.zeros(sz, dtype=float)
+            self.e = np.zeros(sz, dtype=float)
+            self.npix = np.zeros(sz, dtype=float)
+        elif len(args) == 1 and isinstance(args[0], DnDBase):
             other = args[0]
-            self._img_range = other._img_range.copy()
-            self._nbins_all_dims = other._nbins_all_dims.copy()
-            self._single_bin_defines_iax = other._single_bin_defines_iax.copy()
-            self._dax = None if other._dax is None else other._dax.copy()
-            self._offset = other._offset.copy()
-            self._label = list(other._label)
-            self._title = other._title
-            self._filename = other._filename
-            self._filepath = other._filepath
-            self._img_scales = other._img_scales.copy()
-            self._type = other._type
-            self._hkle_axes_directions = (
-                None if other._hkle_axes_directions is None else other._hkle_axes_directions.copy()
-            )
-            return
-        if len(args) == 1 and isinstance(args[0], dict) and not kwargs:
-            self.from_bare_struct(args[0])
-            return
-
-        # Check if initialized with 4 bin descriptors: e.g. line_axes([-1, 0.1, 1], [-2, 2], ...)
-        if (
-            len(args) == 4
-            and all(isinstance(a, (list, tuple, np.ndarray, int, float)) for a in args)
-            and not (
-                isinstance(args[0], np.ndarray) and args[0].shape == (2, 4)
-            )
-            and not (
-                isinstance(args[0], (list, tuple))
-                and len(args[0]) == 2
-                and isinstance(args[0][0], (list, tuple, np.ndarray))
-                and len(args[0][0]) == 4
-            )
-        ):
-            self._init_from_pbin(args, **kwargs)
-            return
-
-        if len(args) == 2 and not kwargs:
-            r0 = np.asarray(args[0], dtype=float)
-            n1 = np.asarray(args[1])
-            if r0.shape == (2, 4) and n1.size == 4:
-                self.img_range = r0
-                self.nbins_all_dims = n1
-                return
-
-        pos_names = [
-            "img_range",
-            "nbins_all_dims",
-            "single_bin_defines_iax",
-            "dax",
-            "offset",
-            "label",
-            "title",
-            "filename",
-            "filepath",
-        ]
-        self.set_positional_and_key_val_arguments(pos_names, False, *args, **kwargs)
-
-    def _init_from_pbin(self, pbin_list: Sequence[Any], **kwargs: Any) -> None:
-        img_range = np.zeros((2, 4), dtype=float)
-        nbins = np.ones(4, dtype=int)
-        sbd = np.ones(4, dtype=bool)
-        for i in range(4):
-            pb = np.asarray(pbin_list[i], dtype=float).ravel()
-            if pb.size == 0:
-                img_range[:, i] = [0.0, 0.0]
-                nbins[i] = 1
-                sbd[i] = True
-            elif pb.size == 1:
-                step = pb[0]
-                img_range[:, i] = [0.0, step]
-                nbins[i] = 1
-                sbd[i] = False
-            elif pb.size == 2:
-                img_range[:, i] = [pb[0], pb[1]]
-                nbins[i] = 1
-                sbd[i] = True
-            elif pb.size == 3:
-                lo, step, hi = pb[0], pb[1], pb[2]
-                if step == 0 or hi < lo:
-                    img_range[:, i] = [lo, hi]
-                    nbins[i] = 1
-                    sbd[i] = True
-                else:
-                    sbd[i] = False
-                    n_steps = int(np.floor((hi - lo + 1e-12 * abs(step)) / step)) + 1
-                    if n_steps < 1:
-                        n_steps = 1
-                    actual_hi = lo + (n_steps - 1) * step
-                    img_range[:, i] = [lo - 0.5 * step, actual_hi + 0.5 * step]
-                    nbins[i] = n_steps
-            else:
-                img_range[:, i] = [pb[0], pb[-1]]
-                nbins[i] = max(1, pb.size - 1)
-                sbd[i] = False
-        self._img_range = img_range
-        self._nbins_all_dims = nbins
-        self._single_bin_defines_iax = sbd
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
-    def saveable_fields(self) -> list[str]:
-        return [
-            "img_range",
-            "nbins_all_dims",
-            "single_bin_defines_iax",
-            "dax",
-            "offset",
-            "label",
-            "title",
-            "filename",
-            "filepath",
-            "img_scales",
-            "type",
-        ]
-
-    @property
-    def img_range(self) -> np.ndarray:
-        return self._img_range.copy()
-
-    @img_range.setter
-    def img_range(self, val: Any) -> None:
-        arr = np.asarray(val, dtype=float)
-        if arr.shape != (2, 4):
-            raise HoraceError("HORACE:AxesBlockBase:invalid_argument", "img_range must be a 2x4 array")
-        if self._max_img_range is not None:
-            for i in range(4):
-                lo_lim, hi_lim = self._max_img_range[0, i], self._max_img_range[1, i]
-                if not np.isinf(lo_lim) and arr[0, i] < lo_lim - 1e-9:
-                    raise HoraceError(
-                        "HORACE:AxesBlockBase:invalid_argument",
-                        f"img_range lower bound {arr[0, i]} is below minimum {lo_lim} for axis {i + 1}",
-                    )
-                if not np.isinf(hi_lim) and arr[1, i] > hi_lim + 1e-9:
-                    raise HoraceError(
-                        "HORACE:AxesBlockBase:invalid_argument",
-                        f"img_range upper bound {arr[1, i]} exceeds maximum {hi_lim} for axis {i + 1}",
-                    )
-        if np.any(arr[0, :] > arr[1, :] + 1e-12):
-            raise HoraceError(
-                "HORACE:AxesBlockBase:invalid_argument",
-                "img_range lower bounds must not exceed upper bounds",
-            )
-        self._img_range = arr.copy()
-
-    @property
-    def nbins_all_dims(self) -> np.ndarray:
-        return self._nbins_all_dims.copy()
-
-    @nbins_all_dims.setter
-    def nbins_all_dims(self, val: Any) -> None:
-        arr = np.asarray(val, dtype=int).ravel()
-        if arr.size != 4 or np.any(arr < 1):
-            raise HoraceError("HORACE:AxesBlockBase:invalid_argument", "nbins_all_dims must be 4 positive integers")
-        self._nbins_all_dims = arr.copy()
-        for i in range(4):
-            if arr[i] > 1:
-                self._single_bin_defines_iax[i] = False
-
-    @property
-    def single_bin_defines_iax(self) -> np.ndarray:
-        return self._single_bin_defines_iax.copy()
-
-    @single_bin_defines_iax.setter
-    def single_bin_defines_iax(self, val: Any) -> None:
-        arr = np.asarray(val, dtype=bool).ravel()
-        if arr.size != 4:
-            raise HoraceError("HORACE:AxesBlockBase:invalid_argument", "single_bin_defines_iax must have 4 elements")
-        self._single_bin_defines_iax = arr.copy()
-
-    @property
-    def iax(self) -> np.ndarray:
-        mask = (self._nbins_all_dims == 1) & self._single_bin_defines_iax
-        return np.where(mask)[0] + 1
-
-    @property
-    def pax(self) -> np.ndarray:
-        mask = ~((self._nbins_all_dims == 1) & self._single_bin_defines_iax)
-        return np.where(mask)[0] + 1
-
-    @property
-    def iint(self) -> np.ndarray:
-        idx = self.iax - 1
-        if idx.size == 0:
-            return np.zeros((2, 0), dtype=float)
-        return self._img_range[:, idx].copy()
-
-    @property
-    def p(self) -> list[np.ndarray]:
-        out = []
-        for idx in self.pax - 1:
-            n = int(self._nbins_all_dims[idx])
-            out.append(np.linspace(self._img_range[0, idx], self._img_range[1, idx], n + 1))
-        return out
-
-    @property
-    def pbin(self) -> list[np.ndarray]:
-        out = []
-        for i in range(4):
-            n = int(self._nbins_all_dims[i])
-            lo, hi = self._img_range[0, i], self._img_range[1, i]
-            if n == 1 and self._single_bin_defines_iax[i]:
-                out.append(np.array([lo, hi], dtype=float))
-            else:
-                step = (hi - lo) / n
-                fl = lo + 0.5 * step
-                fh = hi - 0.5 * step
-                out.append(np.array([fl, step, fh], dtype=float))
-        return out
-
-    @property
-    def step(self) -> np.ndarray:
-        return (self._img_range[1, :] - self._img_range[0, :]) / self._nbins_all_dims
-
-    @property
-    def dimensions(self) -> int:
-        return int(self.pax.size)
-
-    @property
-    def data_nbins(self) -> np.ndarray:
-        idx = self.pax - 1
-        if idx.size == 0:
-            return np.array([], dtype=int)
-        return self._nbins_all_dims[idx].copy()
-
-    @property
-    def dims_as_ssize(self) -> Tuple[int, ...]:
-        dn = self.data_nbins
-        if dn.size == 0:
-            return (1, 1)
-        if dn.size == 1:
-            return (int(dn[0]), 1)
-        return tuple(int(x) for x in dn)
-
-    @property
-    def dax(self) -> np.ndarray:
-        if self._dax is None or self._dax.size != self.pax.size:
-            return np.arange(1, self.pax.size + 1, dtype=int)
-        return self._dax.copy()
-
-    @dax.setter
-    def dax(self, val: Any) -> None:
-        if val is None:
-            self._dax = None
-            return
-        self._dax = np.asarray(val, dtype=int).ravel()
-
-    @property
-    def offset(self) -> np.ndarray:
-        return self._offset.copy()
-
-    @offset.setter
-    def offset(self, val: Any) -> None:
-        arr = np.asarray(val, dtype=float).ravel()
-        if arr.size == 3:
-            arr = np.append(arr, 0.0)
-        if arr.size != 4:
-            raise HoraceError("HORACE:AxesBlockBase:invalid_argument", "offset must have 3 or 4 elements")
-        self._offset = arr.copy()
-
-    @property
-    def label(self) -> list[str]:
-        return list(self._label)
-
-    @label.setter
-    def label(self, val: Any) -> None:
-        if isinstance(val, (list, tuple)) and len(val) == 4:
-            self._label = [str(x) for x in val]
-        else:
-            raise HoraceError("HORACE:AxesBlockBase:invalid_argument", "label must be a 4-element sequence of strings")
-
-    @property
-    def title(self) -> str:
-        return self._title
-
-    @title.setter
-    def title(self, val: Any) -> None:
-        self._title = "" if val is None else str(val)
-
-    @property
-    def filename(self) -> str:
-        return self._filename
-
-    @filename.setter
-    def filename(self, val: Any) -> None:
-        self._filename = "" if val is None else str(val)
-
-    @property
-    def filepath(self) -> str:
-        return self._filepath
-
-    @filepath.setter
-    def filepath(self, val: Any) -> None:
-        self._filepath = "" if val is None else str(val)
-
-    @property
-    def img_scales(self) -> np.ndarray:
-        return self._img_scales.copy()
-
-    @img_scales.setter
-    def img_scales(self, val: Any) -> None:
-        arr = np.asarray(val, dtype=float).ravel()
-        if arr.size == 3:
-            arr = np.append(arr, 1.0)
-        if arr.size != 4:
-            raise HoraceError("HORACE:AxesBlockBase:invalid_argument", "img_scales must have 3 or 4 elements")
-        self._img_scales = arr.copy()
-
-    @property
-    def ulen(self) -> np.ndarray:
-        return self.img_scales
-
-    @ulen.setter
-    def ulen(self, val: Any) -> None:
-        self.img_scales = val
-
-    @property
-    def type(self) -> str:
-        return self._type
-
-    @type.setter
-    def type(self, val: str) -> None:
-        s = str(val)
-        if len(s) == 3:
-            s = s + "p"
-        self._type = s
-
-    @property
-    def axes_units(self) -> str:
-        return self.type
-
-    @axes_units.setter
-    def axes_units(self, val: str) -> None:
-        self.type = val
-
-    @property
-    def hkle_axes_directions(self) -> Optional[np.ndarray]:
-        return None if self._hkle_axes_directions is None else self._hkle_axes_directions.copy()
-
-    @hkle_axes_directions.setter
-    def hkle_axes_directions(self, val: Any) -> None:
-        if val is None:
-            self._hkle_axes_directions = None
-        else:
-            self._hkle_axes_directions = np.asarray(val, dtype=float).copy()
+            self.axes = copy.deepcopy(other.axes)
+            self.proj = copy.deepcopy(other.proj)
+            self.s = other.s.copy()
+            self.e = other.e.copy()
+            self.npix = other.npix.copy()
 
     @staticmethod
-    def bins_in_1Drange(bin_edges: np.ndarray, range_1d: np.ndarray) -> Tuple[bool, np.ndarray]:
-        """Find 1-based inclusive bin index range overlapping with range_1d."""
-        edges = np.asarray(bin_edges, dtype=float).ravel()
-        rng = np.asarray(range_1d, dtype=float).ravel()
-        r_min, r_max = float(rng[0]), float(rng[1])
-        tol = 1e-12
-        if r_max < edges[0] + tol or r_min > edges[-1] - tol:
-            return False, np.array([], dtype=int)
-        # Bin i (0-based, i in 0..N-1) spans [edges[i], edges[i+1]]
-        # Overlaps [r_min, r_max] if edges[i+1] > r_min + tol and edges[i] < r_max - tol
-        n_bins = edges.size - 1
-        lower_edges = edges[:-1]
-        upper_edges = edges[1:]
-        overlap = (upper_edges > r_min + tol) & (lower_edges < r_max - tol)
-        if not np.any(overlap):
-            # Fallback if r_min == r_max inside an edge
-            overlap = (upper_edges >= r_min - tol) & (lower_edges <= r_max + tol)
-        idx = np.where(overlap)[0]
-        if idx.size == 0:
-            return False, np.array([], dtype=int)
-        return True, np.array([int(idx[0]) + 1, int(idx[-1]) + 1], dtype=int)
+    def dnd(*args: Any, **kwargs: Any) -> "DnDBase":
+        obj = DnDBase(*args, **kwargs)
+        dim_map = {0: d0d, 1: d1d, 2: d2d, 3: d3d, 4: d4d}
+        cls_target = dim_map.get(obj.axes.dimensions, DnDBase)
+        return cls_target(obj.axes, obj.proj)
 
-    def get_bin_nodes(self, *args: Any, nargout: Optional[int] = None) -> Any:
-        """Compute grid of bin boundaries or bin centers."""
-        if nargout is None:
-            nargout = _infer_nargout(default=1)
-        is_3d = False
-        bin_centre = False
-        halo = False
-        axes_only = False
-        custom_nbins = None
-
-        for a in args:
-            if isinstance(a, str):
-                al = a.lower()
-                if al == "-3d":
-                    is_3d = True
-                elif al == "-bin_centre":
-                    bin_centre = True
-                elif al == "-halo":
-                    halo = True
-                elif al == "-axes_only":
-                    axes_only = True
-                elif al == "-plot_edges":
-                    pass
-            elif isinstance(a, (list, tuple, np.ndarray)):
-                custom_nbins = np.asarray(a, dtype=int).ravel()
-
-        nbins = self._nbins_all_dims.copy()
-        if custom_nbins is not None:
-            if custom_nbins.size == 3:
-                nbins[:3] = custom_nbins
-            elif custom_nbins.size == 4:
-                nbins[:] = custom_nbins
-
-        axes_1d = []
-        ndim = 3 if (is_3d or nargout >= 2) else 4
-        for i in range(4):
-            lo, hi = self._img_range[0, i], self._img_range[1, i]
-            n = int(nbins[i])
-            edges = np.linspace(lo, hi, n + 1)
-            if bin_centre:
-                pts = 0.5 * (edges[:-1] + edges[1:])
-                if halo and i < 3:
-                    step = (hi - lo) / n
-                    if n > 1:
-                        pts = np.concatenate([[pts[0] - step], pts, [pts[-1] + step]])
-            else:
-                pts = edges
-                if halo and i < 3 and n > 1:
-                    step = (hi - lo) / n
-                    pts = np.concatenate([[pts[0] - step], pts, [pts[-1] + step]])
-            axes_1d.append(pts)
-
-        if axes_only:
-            if nargout >= 2:
-                return axes_1d[:3], axes_1d[3]
-            return axes_1d[:ndim]
-
-        if ndim == 3:
-            g0, g1, g2 = np.meshgrid(axes_1d[0], axes_1d[1], axes_1d[2], indexing="ij")
-            nodes = np.vstack([g0.ravel(order="F"), g1.ravel(order="F"), g2.ravel(order="F")])
-            if nargout >= 2:
-                return nodes, axes_1d[3]
-            return nodes
-        else:
-            g0, g1, g2, g3 = np.meshgrid(axes_1d[0], axes_1d[1], axes_1d[2], axes_1d[3], indexing="ij")
-            nodes = np.vstack(
-                [g0.ravel(order="F"), g1.ravel(order="F"), g2.ravel(order="F"), g3.ravel(order="F")]
-            )
-            return nodes
-
-    def get_char_size(self, this_proj: Any) -> np.ndarray:
-        """Compute characteristic cell size of this axes block in hkl coordinates."""
-        steps = self.step[:3]
-        corners_local = np.array(
-            [
-                [0.0, 0.0, 0.0],
-                [steps[0], 0.0, 0.0],
-                [0.0, steps[1], 0.0],
-                [0.0, 0.0, steps[2]],
-                [steps[0], steps[1], steps[2]],
-            ],
-            dtype=float,
-        ).T
-        base_pt = self._img_range[0, :3].reshape(3, 1)
-        pts_img = base_pt + corners_local
-        pts_hkl = this_proj.transform_img_to_hkl(pts_img)
-        min_hkl = np.min(pts_hkl, axis=1)
-        max_hkl = np.max(pts_hkl, axis=1)
-        return np.maximum(max_hkl - min_hkl, 1e-12)
-
-    def get_interp_nodes(self, targ_proj: Any, char_sizes: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        """Generate interpolation grid in target image coordinates so step <= char_sizes."""
-        corners, dE_edges = self.get_bin_nodes("-3D", nargout=2)
-        corners_hkl = targ_proj.transform_img_to_hkl(corners)
-        span_hkl = np.max(corners_hkl, axis=1) - np.min(corners_hkl, axis=1)
-        n_sub = np.maximum(1, np.ceil(span_hkl / np.maximum(char_sizes, 1e-6)).astype(int))
-        n_nodes = np.maximum(self._nbins_all_dims[:3], n_sub)
-        n_nodes = np.minimum(n_nodes, 100)  # cap to keep fast
-        axes_1d = [
-            np.linspace(self._img_range[0, i], self._img_range[1, i], int(n_nodes[i]) + 1)
-            for i in range(3)
-        ]
-        g0, g1, g2 = np.meshgrid(axes_1d[0], axes_1d[1], axes_1d[2], indexing="ij")
-        nodes = np.vstack([g0.ravel(order="F"), g1.ravel(order="F"), g2.ravel(order="F")])
-        return nodes, dE_edges
-
-    def bin_pixels(
-        self,
-        coord_transf: np.ndarray,
-        *args: Any,
-        nargout: Optional[int] = None,
-        **kwargs: Any,
-    ) -> Any:
-        """Bin transformed pixel coordinates into the axes block grid."""
-        if nargout is None:
-            nargout = _infer_nargout(default=1)
-
-        coords = np.asarray(coord_transf, dtype=float)
-        ndim = coords.shape[0]
-        n_pts = coords.shape[1]
-
-        npix_accum = None
-        s_accum = None
-        e_accum = None
-        pix_cand = None
-        unique_runid = None
-
-        force_double = False
-        nomex = False
-        test_input = False
-
-        pos_args = []
-        for a in args:
-            if isinstance(a, str):
-                al = a.lower()
-                if al == "-force_double":
-                    force_double = True
-                elif al == "-nomex":
-                    nomex = True
-                elif al == "-test_input":
-                    test_input = True
-            else:
-                pos_args.append(a)
-
-        if len(pos_args) >= 1 and pos_args[0] is not None and np.asarray(pos_args[0]).size > 0:
-            npix_accum = np.asarray(pos_args[0], dtype=float).copy()
-        if len(pos_args) >= 2 and pos_args[1] is not None and np.asarray(pos_args[1]).size > 0:
-            s_accum = np.asarray(pos_args[1], dtype=float).copy()
-        if len(pos_args) >= 3 and pos_args[2] is not None and np.asarray(pos_args[2]).size > 0:
-            e_accum = np.asarray(pos_args[2], dtype=float).copy()
-        if len(pos_args) >= 4:
-            pix_cand = pos_args[3]
-        if len(pos_args) >= 5:
-            unique_runid = pos_args[4]
-
-        grid_shape = tuple(int(x) for x in self._nbins_all_dims[:ndim])
-        if npix_accum is None:
-            npix_accum = np.zeros(grid_shape, dtype=float)
-        if s_accum is None and len(pos_args) >= 2:
-            s_accum = np.zeros(grid_shape, dtype=float)
-        if e_accum is None and len(pos_args) >= 3:
-            e_accum = np.zeros(grid_shape, dtype=float)
-
-        valid = np.ones(n_pts, dtype=bool)
-        bin_indices = np.zeros((ndim, n_pts), dtype=int)
-        tol = 1e-12
-
-        for d in range(ndim):
-            lo = self._img_range[0, d]
-            hi = self._img_range[1, d]
-            nb = int(self._nbins_all_dims[d])
-            c_d = coords[d, :]
-            in_d = (c_d >= lo - tol) & (c_d <= hi + tol)
-            valid &= in_d
-            if nb == 1:
-                bin_indices[d, :] = 0
-            else:
-                step = (hi - lo) / nb
-                idx_d = np.floor((c_d - lo) / step).astype(int)
-                # Points right on upper boundary hi belong to the last bin (nb - 1)
-                idx_d = np.where((c_d >= hi - tol) & (c_d <= hi + tol), nb - 1, idx_d)
-                idx_d = np.where((c_d >= lo - tol) & (c_d < lo), 0, idx_d)
-                in_idx = (idx_d >= 0) & (idx_d < nb)
-                valid &= in_idx
-                bin_indices[d, :] = np.clip(idx_d, 0, nb - 1)
-
-        valid_pos = np.where(valid)[0]
-        if valid_pos.size > 0:
-            # Compute Fortran-order flat indices into grid_shape
-            strides = [1]
-            for s_dim in grid_shape[:-1]:
-                strides.append(strides[-1] * s_dim)
-            flat_idx = np.zeros(valid_pos.size, dtype=int)
-            for d in range(ndim):
-                flat_idx += bin_indices[d, valid_pos] * strides[d]
-
-            npix_flat = npix_accum.ravel(order="F")
-            counts = np.bincount(flat_idx, minlength=npix_flat.size)
-            npix_flat += counts
-            npix_accum = npix_flat.reshape(grid_shape, order="F")
-
-            if s_accum is not None and pix_cand is not None:
-                if isinstance(pix_cand, PixelDataBase):
-                    sig = pix_cand.signal.ravel()[valid_pos]
-                    var = pix_cand.variance.ravel()[valid_pos]
-                else:
-                    arr_p = np.asarray(pix_cand, dtype=float)
-                    sig = arr_p[7, valid_pos] if arr_p.shape[0] >= 9 else np.zeros(valid_pos.size)
-                    var = arr_p[8, valid_pos] if arr_p.shape[0] >= 9 else np.zeros(valid_pos.size)
-                s_flat = s_accum.ravel(order="F")
-                e_flat = e_accum.ravel(order="F")
-                s_flat += np.bincount(flat_idx, weights=sig, minlength=s_flat.size)
-                e_flat += np.bincount(flat_idx, weights=var, minlength=e_flat.size)
-                s_accum = s_flat.reshape(grid_shape, order="F")
-                e_accum = e_flat.reshape(grid_shape, order="F")
-
-            if unique_runid is not None and pix_cand is not None:
-                if isinstance(pix_cand, PixelDataBase):
-                    r_ids = pix_cand.run_idx.ravel()[valid_pos]
-                else:
-                    r_ids = np.asarray(pix_cand)[4, valid_pos]
-                unique_runid = np.unique(np.concatenate([np.asarray(unique_runid).ravel(), r_ids]))
-
-            if pix_cand is not None:
-                order = np.argsort(flat_idx, kind="stable")
-                sorted_pos = valid_pos[order]
-                if isinstance(pix_cand, PixelDataBase):
-                    if test_input:
-                        pix_out_data = pix_cand.data[:, sorted_pos].copy()
-                        pix_out_data[0:ndim, :] = coords[:, sorted_pos]
-                        pix_ok = PixelDataMemory(pix_out_data)
-                    else:
-                        pix_ok = PixelDataMemory(pix_cand.data[:, sorted_pos].copy())
-                else:
-                    pix_ok = np.asarray(pix_cand)[:, sorted_pos]
-                indx = flat_idx[order] + 1
-                ok = valid
-            else:
-                pix_ok = np.array([])
-                indx = flat_idx + 1
-                ok = valid
-        else:
-            pix_ok = PixelDataMemory() if isinstance(pix_cand, PixelDataBase) else np.array([])
-            indx = np.array([], dtype=int)
-            ok = valid
-
-        # Squeeze singleton integration dimensions to match dims_as_ssize when appropriate
-        out_shape = self.dims_as_ssize
-        if npix_accum.size == int(np.prod(out_shape)):
-            npix_out = npix_accum.reshape(out_shape, order="F")
-            s_out = None if s_accum is None else s_accum.reshape(out_shape, order="F")
-            e_out = None if e_accum is None else e_accum.reshape(out_shape, order="F")
-        else:
-            npix_out = npix_accum
-            s_out = s_accum
-            e_out = e_accum
-
-        outputs = (npix_out, s_out, e_out, pix_ok, unique_runid, indx, ok)
-        if nargout == 1:
-            return npix_out
-        return outputs[:nargout]
-
-    @staticmethod
-    def get_from_old_data(data_struct: dict[str, Any]) -> "line_axes":
-        """Construct line_axes from legacy Horace data structure."""
-        p = data_struct.get("p", [])
-        pax = np.asarray(data_struct.get("pax", []), dtype=int).ravel()
-        iax = np.asarray(data_struct.get("iax", []), dtype=int).ravel()
-        iint = np.asarray(data_struct.get("iint", np.zeros((2, 0))), dtype=float)
-
-        img_range = np.zeros((2, 4), dtype=float)
-        nbins = np.ones(4, dtype=int)
-        sbd = np.ones(4, dtype=bool)
-
-        for idx_i, ax_num in enumerate(iax):
-            ax0 = int(ax_num) - 1
-            if iint.ndim == 2 and idx_i < iint.shape[1]:
-                img_range[:, ax0] = iint[:, idx_i]
-            nbins[ax0] = 1
-            sbd[ax0] = True
-
-        for idx_p, ax_num in enumerate(pax):
-            ax0 = int(ax_num) - 1
-            edges = np.asarray(p[idx_p], dtype=float).ravel()
-            img_range[:, ax0] = [edges[0], edges[-1]]
-            nbins[ax0] = max(1, edges.size - 1)
-            sbd[ax0] = False
-
-        ax = line_axes(img_range=img_range, nbins_all_dims=nbins, single_bin_defines_iax=sbd)
-        if "dax" in data_struct and data_struct["dax"] is not None:
-            ax.dax = data_struct["dax"]
-        if "uoffset" in data_struct and data_struct["uoffset"] is not None:
-            ax.offset = data_struct["uoffset"]
-        if "ulabel" in data_struct and data_struct["ulabel"] is not None:
-            ax.label = list(data_struct["ulabel"])
-        if "ulen" in data_struct and data_struct["ulen"] is not None:
-            ax.img_scales = data_struct["ulen"]
-        if "title" in data_struct and data_struct["title"] is not None:
-            ax.title = data_struct["title"]
-        if "filename" in data_struct and data_struct["filename"] is not None:
-            ax.filename = data_struct["filename"]
-        if "filepath" in data_struct and data_struct["filepath"] is not None:
-            ax.filepath = data_struct["filepath"]
-        return ax
+    def get_targ_range(self, targ_proj: Any = None, *args: Any) -> Any:
+        if targ_proj is None:
+            targ_proj = self.proj
+        return self.axes.get_targ_range(self.proj, targ_proj, *args)
 
 
-class line_axes(AxesBlockBase):
-    """Axes block for rectilinear (line_proj / ubmat_proj) coordinate systems."""
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+class d0d(DnDBase):
+    NUM_DIMS = 0
 
 
-class sphere_axes(AxesBlockBase):
-    """Axes block for spherical (sphere_proj / kf_sphere_proj) coordinate systems."""
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__()
-        self._label = ["|Q|", "\\theta", "\\phi", "En"]
-        self._type = "pddp"
-        self._max_img_range = np.array(
-            [
-                [0.0, 0.0, -180.0, -np.inf],
-                [np.inf, 180.0, 180.0, np.inf],
-            ],
-            dtype=float,
-        )
-        self._img_range = np.array(
-            [
-                [0.0, 0.0, -180.0, 0.0],
-                [1.0, 180.0, 180.0, 0.0],
-            ],
-            dtype=float,
-        )
-        if args or kwargs:
-            self._init_axes_args(*args, **kwargs)
-            self._validate_spherical_ranges()
-
-    def _validate_spherical_ranges(self) -> None:
-        is_deg = len(self._type) >= 3 and self._type[1].lower() == "d"
-        max_th = 180.0 if is_deg else np.pi
-        max_ph = 180.0 if is_deg else np.pi
-        self._max_img_range = np.array(
-            [
-                [0.0, 0.0, -max_ph, -np.inf],
-                [np.inf, max_th, max_ph, np.inf],
-            ],
-            dtype=float,
-        )
-        # Re-validate img_range against updated limits
-        self.img_range = self._img_range
+class d1d(DnDBase):
+    NUM_DIMS = 1
 
 
-class cylinder_axes(AxesBlockBase):
-    """Axes block for cylindrical (cylinder_proj) coordinate systems."""
+class d2d(DnDBase):
+    NUM_DIMS = 2
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__()
-        self._label = ["Q_{\\perp}", "Q_{||}", "\\phi", "En"]
-        self._type = "ppdp"
-        self._max_img_range = np.array(
-            [
-                [0.0, -np.inf, -180.0, -np.inf],
-                [np.inf, np.inf, 180.0, np.inf],
-            ],
-            dtype=float,
-        )
-        self._img_range = np.array(
-            [
-                [0.0, 0.0, -180.0, 0.0],
-                [1.0, 0.0, 180.0, 0.0],
-            ],
-            dtype=float,
-        )
-        if args or kwargs:
-            self._init_axes_args(*args, **kwargs)
-            self._validate_cylindrical_ranges()
 
-    def _validate_cylindrical_ranges(self) -> None:
-        is_deg = len(self._type) >= 3 and self._type[2].lower() == "d"
-        max_ph = 180.0 if is_deg else np.pi
-        self._max_img_range = np.array(
-            [
-                [0.0, -np.inf, -max_ph, -np.inf],
-                [np.inf, np.inf, max_ph, np.inf],
-            ],
-            dtype=float,
-        )
-        self.img_range = self._img_range
+class d3d(DnDBase):
+    NUM_DIMS = 3
+
+
+class d4d(DnDBase):
+    NUM_DIMS = 4
+
+
+def __getattr__(name: str) -> Any:
+    if name == "AxesBlockBase":
+        from pyhorace.coord_transf.axes_block_base import AxesBlockBase
+
+        return AxesBlockBase
+    if name == "line_axes":
+        from pyhorace.coord_transf.line_axes import line_axes
+
+        return line_axes
+    if name == "sphere_axes":
+        from pyhorace.coord_transf.sphere_axes import sphere_axes
+
+        return sphere_axes
+    if name == "cylinder_axes":
+        from pyhorace.coord_transf.cylinder_axes import cylinder_axes
+
+        return cylinder_axes
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

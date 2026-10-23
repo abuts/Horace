@@ -509,9 +509,11 @@ class aProjectionBase(Serializable, ABC):
             int(source_axes_block.nbins_all_dims[3]) + 1,
         ) + self._offset[3]
         t_en_range = targ_axes_block.img_range[:, 3] + targ_proj.offset[3]
-        any_en, en_ind_range = AxesBlockBase.bins_in_1Drange(s_en_edges, t_en_range)
+        any_en, is_within_en = AxesBlockBase.bins_in_1Drange(s_en_edges, t_en_range)
         if not any_en:
             return np.array([], dtype=int), np.array([], dtype=int)
+        idx_en = np.where(is_within_en)[0]
+        en_ind_range = np.array([int(idx_en[0]) + 1, int(idx_en[-1]) + 1], dtype=int)
 
         self.targ_proj = targ_proj
         targ_proj.targ_proj = self
@@ -634,9 +636,27 @@ class aProjectionBase(Serializable, ABC):
         *args: Any,
     ) -> AxesBlockBase:
         """Build an AxesBlockBase for this projection from default bounds and requested bin descriptors."""
+        axes_cls = self._get_axes_class()
+        ax = axes_cls()
+        if hasattr(ax, "angular_unit_is_rad") and hasattr(self, "type"):
+            t_str = str(self.type).lower()
+            if len(t_str) >= 3 and "r" in t_str[1:3]:
+                ax.angular_unit_is_rad = True
+            elif len(t_str) >= 3 and "d" in t_str[1:3]:
+                ax.angular_unit_is_rad = False
+
+        arr_bounds = np.asarray(default_bounds_cell_ind)
+        if arr_bounds.dtype == bool and arr_bounds.size == 4:
+            # MATLAB signature: get_proj_axes_block(cell_is_iax, pbin_or_ranges)
+            sbd_in = arr_bounds.ravel()
+            pbin_in = list(req_bin_range)
+            ax.init(*pbin_in)
+            ax.single_bin_defines_iax = sbd_in
+            return self.copy_proj_defined_properties_to_axes(ax)
+
         img_db_range = np.asarray(default_bounds_cell_ind, dtype=float)
         if img_db_range.shape != (2, 4):
-            img_db_range = np.zeros((2, 4), dtype=float)
+            img_db_range = ax._default_img_range.copy()
 
         img_range = np.zeros((2, 4), dtype=float)
         nbins = np.ones(4, dtype=int)
@@ -685,7 +705,10 @@ class aProjectionBase(Serializable, ABC):
                 nbins[i] = max(1, pb.size - 1)
                 sbd[i] = False
 
-        axes_cls = self._get_axes_class()
+        max_r = ax._max_img_range
+        img_range[0, :] = np.maximum(img_range[0, :], max_r[0, :])
+        img_range[1, :] = np.minimum(img_range[1, :], max_r[1, :])
+
         ax = axes_cls(img_range=img_range, nbins_all_dims=nbins, single_bin_defines_iax=sbd)
         return self.copy_proj_defined_properties_to_axes(ax)
 
@@ -694,12 +717,21 @@ class aProjectionBase(Serializable, ABC):
 
     def copy_proj_defined_properties_to_axes(self, axes_bl: AxesBlockBase) -> AxesBlockBase:
         """Copy projection-defined properties (offset, label, title, img_scales, type) to axes_bl."""
+        if hasattr(axes_bl, "angular_unit_is_rad") and hasattr(self, "type"):
+            t_str = str(self.type).lower()
+            if len(t_str) >= 3 and "r" in t_str[1:3]:
+                axes_bl.angular_unit_is_rad = True
+            elif len(t_str) >= 3 and "d" in t_str[1:3]:
+                axes_bl.angular_unit_is_rad = False
         axes_bl.offset = self.offset
         axes_bl.label = self.label
         if self.title:
             axes_bl.title = self.title
         axes_bl.img_scales = self.img_scales
-        axes_bl.type = self.type
+        t_val = str(self.type)
+        if len(t_val) == 3:
+            t_val = t_val + "e"
+        axes_bl.type = t_val[:4]
         return axes_bl
 
     def bin_pixels(
