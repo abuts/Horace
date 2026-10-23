@@ -43,6 +43,9 @@ Read the MATLAB class file (`<ClassName>.m`) and the corresponding unit test (`t
    - Note required numerical tolerances: absolute (`AbsTol`), relative (`RelTol`), or `[abs_tol, rel_tol]` pairs used in `equal_to_tol`.
    - Identify expected error conditions (`assertExceptionThrown`, `verifyError`, `assertError`) and warning checks (`verifyWarning`, `lastwarn`).
    - Identify external fixture files (e.g. `.mat` reference files).
+3. **Classify External Dependencies**:
+   - **Essential dependencies** (base classes, core helper functions, or field types required for construction and core unit tests): Translate alongside the target class, or clarify with the user whether to convert or stub them first.
+   - **Deferred / advanced-feature dependencies** (classes or subsystems to be converted in a later phase, e.g., `mfclass`/`multifit`, `pdf_table`, downstream `sqw`/`d1d` classes, or specialized I/O): Plan to preserve public signatures/docstrings and defer implementation cleanly (see Step 2.3 and Step 3.8).
 
 ---
 
@@ -66,7 +69,19 @@ Create `test_<class_name>.py` before or alongside the Python class.
      with pytest.raises(ExpectedException, match="error pattern"):
          obj.invalid_method_call()
      ```
-3. See [MATLAB to Pytest Mapping Reference](./references/matlab_to_pytest_mapping.md) for full syntax comparison.
+3. **Tests for Deferred / Unconverted Dependencies**:
+   - **Never delete unit tests** that exercise features depending on not-yet-converted classes. Translate the test method into `test_<class_name>.py` and decorate it with `@pytest.mark.xfail` (or `@pytest.mark.skip` if fixture construction itself requires the missing class):
+     ```python
+     @pytest.mark.xfail(
+         raises=NotImplementedError,
+         reason="TODO(port-dependency): Requires <UnconvertedClass>",
+         strict=True,
+     )
+     def test_advanced_feature(self):
+         ...
+     ```
+   - Using `strict=True` ensures `pytest` automatically flags the test as `XPASS` once `<UnconvertedClass>` is implemented later.
+4. See [MATLAB to Pytest Mapping Reference](./references/matlab_to_pytest_mapping.md) for full syntax comparison.
 ---
 
 ### Step 3: Translate the MATLAB Class to Python
@@ -163,6 +178,21 @@ Create `<class_name>.py` adhering to idiomatic Python and NumPy best practices:
 - **Documentation & Docstrings**:
   - Translate the **complete** MATLAB class, property, and function/method descriptions (`%` comment blocks) into Python docstrings (`"""..."""`), formatted according to standard Python conventions (NumPy or Google docstring style). Do **not** drop or summarize detailed explanations, parameter descriptions, or notes—adapt only MATLAB-specific syntax to Python equivalents.
 
+#### 8. Handling Unconverted / Deferred Dependencies
+When a class uses collaborator classes or advanced subsystems that have not yet been converted to Python:
+- **Do not silently omit methods**: Define the method on the class with its complete Python signature, type annotations (using `"UnconvertedClass"` string forward references or `Any`), and the **full translated MATLAB docstring**.
+- **Raise `NotImplementedError` with a searchable `TODO(port-dependency)` marker**:
+  ```python
+  def multifit(self, *args: Any, **kwargs: Any) -> Any:
+      """<Full translated MATLAB docstring>"""
+      # TODO(port-dependency): Requires @mfclass / multifit to be converted
+      raise NotImplementedError(
+          f"{type(self).__name__}.multifit is not yet implemented (requires mfclass)."
+      )
+  ```
+- **Properties or `saveable_fields` referencing unconverted classes**:
+  - If an unconverted class is stored as a property or appears in `.mat` fixtures / `saveable_fields`, type it as `Optional[Any] = None` or create a minimal stub class inheriting from `Serializable` (with matching `class_version` and `saveable_fields`) so `to_struct` / `from_struct` serialization round-trips succeed.
+
 ---
 
 ### Step 4: Validate and Debug with `pytest`
@@ -193,6 +223,7 @@ Once tests pass:
 1. Add PEP 484 type annotations for all method signatures and properties.
 2. Verify that all MATLAB class, property, and method/function documentation blocks (`%` comments) have been completely ported to Python docstrings without truncation.
 3. Ensure no MATLAB-isms remain (e.g. unnecessary pre-allocation with `zeros()` before list comprehensions, manual index loops that can be vectorized).
+4. **Report deferred dependencies**: In your final summary, list any stubbed methods, placeholder classes, and `@pytest.mark.xfail`/`skip` tests marked with `TODO(port-dependency)` so they can be tracked for subsequent conversions.
 
 ---
 
