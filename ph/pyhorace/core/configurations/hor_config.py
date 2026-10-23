@@ -92,7 +92,7 @@ class hor_config(config_base):
         self.fb_scale_factor_: int = 10
         self.ignore_nan_: bool = True
         self.ignore_inf_: bool = False
-        self.use_mex_: bool = True
+        self.use_mex_: bool = False
         self.delete_tmp_: bool = True
         self.force_mex_if_use_mex_: bool = False
         self.log_level_: int = 1

@@ -16,6 +16,7 @@ from pyhorace.coord_transf._dependencies import (
 )
 from pyhorace.coord_transf.bmatrix import _infer_nargout
 from pyhorace.coord_transf.expand_box import expand_box
+from pyhorace.core.configurations.config_store import config_store
 from pyhorace.core.serializable import Serializable
 
 EPS_SINGLE = float(np.finfo(np.float32).eps)
@@ -1460,15 +1461,86 @@ class AxesBlockBase(Serializable, ABC):
         opts = list(args)
         force_double = False
         nomex = False
+        force_mex = False
+        selected_only = False
+        test_mex_inputs = False
+        nosort = False
         extra_inputs = []
         for a in opts:
             if isinstance(a, str) and a == "-force_double":
                 force_double = True
             elif isinstance(a, str) and a == "-nomex":
                 nomex = True
+            elif isinstance(a, str) and a == "-force_mex":
+                force_mex = True
+            elif isinstance(a, str) and a == "-selected_only":
+                selected_only = True
+            elif isinstance(a, str) and a == "-test_mex_inputs":
+                test_mex_inputs = True
+            elif isinstance(a, str) and a == "-nosort":
+                nosort = True
             else:
                 extra_inputs.append(a)
-        _ = nomex
+
+        if nomex and force_mex:
+            raise HoraceError(
+                f"HORACE:{self._err_cls_name()}:invalid_argument",
+                "invalid arguments to bin_pixels: '-nomex' and '-force_mex' cannot be used together",
+            )
+
+        # Normalize empty 3-accumulator call: bin_pixels(coord, [], [], [])
+        if (
+            nargout == 1
+            and len(extra_inputs) == 3
+            and all(x is None or np.asarray(x).size == 0 for x in extra_inputs)
+        ):
+            extra_inputs = []
+
+        # Determine whether to use MEX code (matching normalize_bin_input_.m)
+        cand_is_cell = (
+            len(extra_inputs) >= 4 and isinstance(extra_inputs[3], (list, tuple))
+        ) or (len(extra_inputs) == 1 and isinstance(extra_inputs[0], (list, tuple)))
+
+        if nargout == 1 and len(extra_inputs) == 0:
+            use_mex = force_mex
+        elif cand_is_cell:
+            use_mex = False
+        elif force_mex:
+            use_mex = True
+        elif nomex:
+            use_mex = False
+        else:
+            use_mex = bool(config_store.instance().get_value("hor_config", "use_mex"))
+
+        if use_mex:
+            mode_to_bin = 4 if nargout >= 4 else nargout
+            npix_in = extra_inputs[0] if len(extra_inputs) >= 1 else None
+            s_in = extra_inputs[1] if len(extra_inputs) >= 2 else None
+            e_in = extra_inputs[2] if len(extra_inputs) >= 3 else None
+            pix_cand = (
+                extra_inputs[3]
+                if len(extra_inputs) >= 4
+                else (extra_inputs[0] if len(extra_inputs) == 1 else None)
+            )
+            mex_flags = []
+            if force_double:
+                mex_flags.append("-force_double")
+            if selected_only:
+                mex_flags.append("-selected_only")
+            if test_mex_inputs:
+                mex_flags.append("-test_mex_inputs")
+            if nosort:
+                mex_flags.append("-nosort")
+            return self.bin_pixels_with_mex_code(
+                coord_transf,
+                mode_to_bin,
+                npix_in,
+                s_in,
+                e_in,
+                pix_cand,
+                *mex_flags,
+                nargout=nargout,
+            )
 
         coords = np.asarray(coord_transf, dtype=float)
         if coords.ndim == 1:
@@ -1737,6 +1809,47 @@ class AxesBlockBase(Serializable, ABC):
 
         outs = (npix_out, s_out, e_out, pix_ok, uniq_pos, ok, ix)
         return outs[:nargout]
+
+    def bin_pixels_with_mex_code(
+        self,
+        coord: Any,
+        mode_to_bin: int,
+        npix: Any = None,
+        s: Any = None,
+        err: Any = None,
+        pix_cand: Any = None,
+        *args,
+        nargout: Optional[int] = None,
+        **kwargs,
+    ) -> Any:
+        """Bin pixel coordinates using C++/MEX routine ``bin_pixels_c``."""
+        _ = (coord, npix, s, err, pix_cand, nargout, kwargs)
+        mex_par = self.prepare_mex_code_input(mode_to_bin, *args)
+        if "-test_mex_inputs" in args:
+            return mex_par
+        # TODO(port-mex): Requires C++ MEX routine bin_pixels_c
+        raise NotImplementedError(
+            f"{self._err_cls_name()}.bin_pixels_with_mex_code (MEX bin_pixels_c) is not yet implemented."
+        )
+
+    def prepare_mex_code_input(self, mode_to_bin: int, *args) -> dict:
+        """Prepare parameter dictionary for C++/MEX routine ``bin_pixels_c``."""
+        force_double = "-force_double" in args
+        selected_only = "-selected_only" in args
+        test_mex_inputs = "-test_mex_inputs" in args
+        nosort = "-nosort" in args
+        return {
+            "range": self.img_range,
+            "nbins_all_dims": self.nbins_all_dims,
+            "pax": self.pax,
+            "mode": int(mode_to_bin),
+            "force_double": bool(force_double),
+            "selected_only": bool(selected_only),
+            "test_inputs": bool(test_mex_inputs),
+            "sort_pixels": not bool(nosort),
+            "thread_mode": 0,
+            "num_threads": 1,
+        }
 
     # ------------------------------------------------------------------
     # Integration & Rebinning (realign_bin_edges, rebin_data)

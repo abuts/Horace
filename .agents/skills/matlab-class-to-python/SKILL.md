@@ -46,6 +46,7 @@ Read the MATLAB class file (`<ClassName>.m`) and the corresponding unit test (`t
 3. **Classify External Dependencies**:
    - **Essential dependencies** (base classes, core helper functions, or field types required for construction and core unit tests): Translate alongside the target class, or clarify with the user whether to convert or stub them first.
    - **Deferred / advanced-feature dependencies** (classes or subsystems to be converted in a later phase, e.g., `mfclass`/`multifit`, `pdf_table`, downstream `sqw`/`d1d` classes, or specialized I/O): Plan to preserve public signatures/docstrings and defer implementation cleanly (see Step 2.3 and Step 3.8).
+   - **Configuration-selected MEX calls** (code branches controlled by `hor_config().use_mex`, `config_store.instance().get_value('hor_config', 'use_mex')`, `hpc_config`, or flags like `'-nomex'` / `'-force_mex'` that dispatch to compiled C/C++ MEX routines such as `bin_pixels_c`, `accumulate_cut_c`, `sort_pixels_by_bins`, etc.): Plan to preserve the configuration check and MEX wrapper methods while replacing the MEX execution with `NotImplementedError` for the time being (see Step 2.3 and Step 3.8).
 
 ---
 
@@ -69,8 +70,8 @@ Create `test_<class_name>.py` before or alongside the Python class.
      with pytest.raises(ExpectedException, match="error pattern"):
          obj.invalid_method_call()
      ```
-3. **Tests for Deferred / Unconverted Dependencies**:
-   - **Never delete unit tests** that exercise features depending on not-yet-converted classes. Translate the test method into `test_<class_name>.py` and decorate it with `@pytest.mark.xfail` (or `@pytest.mark.skip` if fixture construction itself requires the missing class):
+3. **Tests for Deferred / Unconverted Dependencies & MEX Paths**:
+   - **Never delete unit tests** that exercise features depending on not-yet-converted classes or MEX routines. Translate the test method into `test_<class_name>.py` and decorate it with `@pytest.mark.xfail` (or `@pytest.mark.skip` if fixture construction itself requires the missing class):
      ```python
      @pytest.mark.xfail(
          raises=NotImplementedError,
@@ -80,7 +81,8 @@ Create `test_<class_name>.py` before or alongside the Python class.
      def test_advanced_feature(self):
          ...
      ```
-   - Using `strict=True` ensures `pytest` automatically flags the test as `XPASS` once `<UnconvertedClass>` is implemented later.
+   - **Tests exercising MEX code paths**: When a MATLAB unit test runs with `hor_config().use_mex = true` or passes `'-force_mex'`, preserve the test case and either assert `pytest.raises(NotImplementedError)` or mark the MEX test case with `@pytest.mark.xfail(raises=NotImplementedError, reason="TODO(port-mex): Requires <mex_name>", strict=True)`. Ensure tests targeting the Python (MATLAB-equivalent) implementation run with `use_mex = False` (or `'-nomex'`).
+   - Using `strict=True` ensures `pytest` automatically flags the test as `XPASS` once `<UnconvertedClass>` or `<mex_name>` is implemented later.
 4. See [MATLAB to Pytest Mapping Reference](./references/matlab_to_pytest_mapping.md) for full syntax comparison.
 ---
 
@@ -178,8 +180,8 @@ Create `<class_name>.py` adhering to idiomatic Python and NumPy best practices:
 - **Documentation & Docstrings**:
   - Translate the **complete** MATLAB class, property, and function/method descriptions (`%` comment blocks) into Python docstrings (`"""..."""`), formatted according to standard Python conventions (NumPy or Google docstring style). Do **not** drop or summarize detailed explanations, parameter descriptions, or notes—adapt only MATLAB-specific syntax to Python equivalents.
 
-#### 8. Handling Unconverted / Deferred Dependencies
-When a class uses collaborator classes or advanced subsystems that have not yet been converted to Python:
+#### 8. Handling Unconverted / Deferred Dependencies & Configuration-Driven MEX Calls
+When a class uses collaborator classes, advanced subsystems, or compiled MEX files that have not yet been converted to Python:
 - **Do not silently omit methods**: Define the method on the class with its complete Python signature, type annotations (using `"UnconvertedClass"` string forward references or `Any`), and the **full translated MATLAB docstring**.
 - **Raise `NotImplementedError` with a searchable `TODO(port-dependency)` marker**:
   ```python
@@ -190,6 +192,20 @@ When a class uses collaborator classes or advanced subsystems that have not yet 
           f"{type(self).__name__}.multifit is not yet implemented (requires mfclass)."
       )
   ```
+- **Configuration-Driven MEX Calls**:
+  - When MATLAB code selects between a MATLAB fallback and a compiled MEX file based on configuration (e.g., `config_store.instance().get_value('hor_config', 'use_mex')` or `hor_config().use_mex`, or option flags like `'-nomex'` and `'-force_mex'`), **preserve the configuration check, option flags, and MEX wrapper methods** (such as `bin_pixels_with_mex_code` or `_project_and_bin_with_mex_code`) in Python.
+  - Inside the MEX branch or MEX wrapper method, raise `NotImplementedError` with a searchable `# TODO(port-mex):` comment naming the underlying MEX routine:
+    ```python
+    if use_mex:
+        return self.bin_pixels_with_mex_code(coord_transf, mode, npix, s, e, pix_cand, ...)
+
+    def bin_pixels_with_mex_code(self, *args: Any, **kwargs: Any) -> Any:
+        """<Full translated MATLAB docstring>"""
+        # TODO(port-mex): Requires C++ MEX routine bin_pixels_c
+        raise NotImplementedError(
+            f"{type(self).__name__}.bin_pixels_with_mex_code (bin_pixels_c) is not yet implemented."
+        )
+    ```
 - **Properties or `saveable_fields` referencing unconverted classes**:
   - If an unconverted class is stored as a property or appears in `.mat` fixtures / `saveable_fields`, type it as `Optional[Any] = None` or create a minimal stub class inheriting from `Serializable` (with matching `class_version` and `saveable_fields`) so `to_struct` / `from_struct` serialization round-trips succeed.
 
@@ -223,7 +239,7 @@ Once tests pass:
 1. Add PEP 484 type annotations for all method signatures and properties.
 2. Verify that all MATLAB class, property, and method/function documentation blocks (`%` comments) have been completely ported to Python docstrings without truncation.
 3. Ensure no MATLAB-isms remain (e.g. unnecessary pre-allocation with `zeros()` before list comprehensions, manual index loops that can be vectorized).
-4. **Report deferred dependencies**: In your final summary, list any stubbed methods, placeholder classes, and `@pytest.mark.xfail`/`skip` tests marked with `TODO(port-dependency)` so they can be tracked for subsequent conversions.
+4. **Report deferred dependencies and MEX stubs**: In your final summary, list any stubbed methods, placeholder classes, MEX call stubs (`TODO(port-mex)`), and `@pytest.mark.xfail`/`skip` tests marked with `TODO(port-dependency)` or `TODO(port-mex)` so they can be tracked for subsequent conversions.
 
 ---
 

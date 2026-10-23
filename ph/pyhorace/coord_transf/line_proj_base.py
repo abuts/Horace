@@ -12,6 +12,7 @@ from pyhorace.coord_transf._dependencies import AxesBlockBase, HoraceError, Pixe
 from pyhorace.coord_transf.a_projection_base import aProjectionBase
 from pyhorace.coord_transf.bmatrix import _infer_nargout, bmatrix
 from pyhorace.coord_transf.ubmatrix import ubmatrix
+from pyhorace.core.configurations.config_store import config_store
 
 
 class LineProjBase(aProjectionBase):
@@ -255,6 +256,69 @@ class LineProjBase(aProjectionBase):
         if self.lattice_defined:
             axes_bl.hkle_axes_directions = self.u_to_rlu
         return axes_bl
+
+    def bin_pixels(
+        self,
+        axes: AxesBlockBase,
+        in_pix: Any,
+        npix: Any = None,
+        s: Any = None,
+        e: Any = None,
+        *args: Any,
+        nargout: Optional[int] = None,
+    ) -> Any:
+        """Project and bin pixels into axes using MEX if configured, else Python."""
+        nomex = "-nomex" in args
+        force_mex = "-force_mex" in args
+        if nomex and force_mex:
+            raise HoraceError(
+                "HORACE:LineProjBase:invalid_argument",
+                "invalid arguments to bin_pixels: '-nomex' and '-force_mex' cannot be used together",
+            )
+        if nomex:
+            use_mex = False
+        elif force_mex:
+            use_mex = True
+        else:
+            use_mex = bool(config_store.instance().get_value("hor_config", "use_mex"))
+
+        if use_mex and not isinstance(in_pix, (list, tuple)):
+            return self._project_and_bin_with_mex_code(
+                axes, in_pix, npix, s, e, *args, nargout=nargout
+            )
+        return super().bin_pixels(axes, in_pix, npix, s, e, *args, nargout=nargout)
+
+    def _project_and_bin_with_mex_code(
+        self,
+        axes: AxesBlockBase,
+        in_pix: Any,
+        npix: Any = None,
+        s: Any = None,
+        e: Any = None,
+        *args: Any,
+        nargout: Optional[int] = None,
+    ) -> Any:
+        """Combined transformation and binning via C++/MEX routine ``bin_pixels_c``."""
+        if nargout is None:
+            nargout = _infer_nargout(default=5)
+        mode_to_bin = 4 if nargout >= 4 else nargout
+        mex_flags = [
+            a
+            for a in args
+            if isinstance(a, str)
+            and a in ("-force_double", "-selected_only", "-test_mex_inputs", "-nosort")
+        ]
+        # TODO(port-mex): Requires C++ MEX routine bin_pixels_c
+        return axes.bin_pixels_with_mex_code(
+            in_pix,
+            mode_to_bin,
+            npix,
+            s,
+            e,
+            in_pix,
+            *mex_flags,
+            nargout=nargout,
+        )
 
     # ------------------------------------------------------------------
     # Legacy Conversion Helpers
