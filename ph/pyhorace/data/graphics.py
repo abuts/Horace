@@ -18,10 +18,10 @@ import matplotlib
 import numpy as np
 
 # Use non-interactive Agg backend by default if no display or in headless test runs
-try:
-    matplotlib.use("Agg")
-except Exception:
-    pass
+#try:
+#    matplotlib.use("Agg")
+#except Exception:
+#    pass
 
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
