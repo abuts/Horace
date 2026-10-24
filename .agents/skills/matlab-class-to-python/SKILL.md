@@ -44,8 +44,9 @@ Read the MATLAB class file (`<ClassName>.m`) and the corresponding unit test (`t
    - Identify expected error conditions (`assertExceptionThrown`, `verifyError`, `assertError`) and warning checks (`verifyWarning`, `lastwarn`).
    - Identify external fixture files (e.g. `.mat` reference files).
 3. **Classify External Dependencies**:
-   - **Essential dependencies** (base classes, core helper functions, or field types required for construction and core unit tests): Translate alongside the target class, or clarify with the user whether to convert or stub them first.
-   - **Deferred / advanced-feature dependencies** (classes or subsystems to be converted in a later phase, e.g., `mfclass`/`multifit`, `pdf_table`, downstream `sqw`/`d1d` classes, or specialized I/O): Plan to preserve public signatures/docstrings and defer implementation cleanly (see Step 2.3 and Step 3.8).
+   - **Already-converted Python classes & functions**: Always search the target Python package (e.g., `pyhorace/`) first to identify base classes, collaborator classes, configurations, or utilities that have already been translated (such as `Serializable`, `data_op_interface`, `sigvar`, `hor_config`, `coord_transf` projections/axes, `sqw`/`DnDBase`, etc.). Import and use the existing Python classes directly—never re-implement or create duplicate stubs for classes that already exist in the codebase. When delegating to subagents, explicitly list the relevant already-converted modules in their prompt.
+   - **Essential dependencies** (base classes, core helper functions, or field types required for construction and core unit tests that do not yet exist in Python): Translate alongside the target class, or clarify with the user whether to convert or stub them first.
+   - **Deferred / advanced-feature dependencies** (classes or subsystems to be converted in a later phase, e.g., `mfclass`/`multifit`, `pdf_table`, or specialized I/O): Plan to preserve public signatures/docstrings and defer implementation cleanly (see Step 2.3 and Step 3.8).
    - **Configuration-selected MEX calls** (code branches controlled by `hor_config().use_mex`, `config_store.instance().get_value('hor_config', 'use_mex')`, `hpc_config`, or flags like `'-nomex'` / `'-force_mex'` that dispatch to compiled C/C++ MEX routines such as `bin_pixels_c`, `accumulate_cut_c`, `sort_pixels_by_bins`, etc.): Plan to preserve the configuration check and MEX wrapper methods while replacing the MEX execution with `NotImplementedError` for the time being (see Step 2.3 and Step 3.8).
 
 ---
@@ -208,6 +209,8 @@ When a class uses collaborator classes, advanced subsystems, or compiled MEX fil
     ```
 - **Properties or `saveable_fields` referencing unconverted classes**:
   - If an unconverted class is stored as a property or appears in `.mat` fixtures / `saveable_fields`, type it as `Optional[Any] = None` or create a minimal stub class inheriting from `Serializable` (with matching `class_version` and `saveable_fields`) so `to_struct` / `from_struct` serialization round-trips succeed.
+- **Reconnecting Previously Stubbed Dependencies**:
+  - When a newly translated class fulfills a dependency that was previously stubbed (via `TODO(port-dependency)` or placeholder classes) in already-converted Python modules, replace the temporary stubs with imports of the newly translated class, wire up any deferred methods, and remove obsolete `@pytest.mark.xfail` markers on the corresponding tests.
 
 ---
 

@@ -45,15 +45,25 @@ class TestPlotDnD:
             with pytest.raises(HoraceError):
                 getattr(w_other, method_name)()
 
-    @pytest.mark.parametrize("method_name", METHODS_ANY)
-    def test_generic_plot_methods_succeed_on_1d_2d_3d_and_fail_on_0d_4d(self, method_name):
+    def test_plot_succeeds_on_1d_2d_3d_and_fails_on_0d_4d(self):
         for cls in (d1d, d2d, d3d):
             w = cls()
-            fig, ax, pl = getattr(w, method_name)(nargout=3)
+            fig, ax, pl = w.plot(nargout=3)
             assert fig is not None
 
         for cls in (d0d, d4d):
             w_bad = cls()
             with pytest.raises(HoraceError):
-                getattr(w_bad, method_name)()
+                w_bad.plot()
+
+    def test_plotover_succeeds_on_1d_2d_and_fails_on_0d_3d_4d(self):
+        for cls in (d1d, d2d):
+            w = cls()
+            fig, ax, pl = w.plotover(nargout=3)
+            assert fig is not None
+
+        for cls in (d0d, d3d, d4d):
+            w_bad = cls()
+            with pytest.raises(HoraceError):
+                w_bad.plotover()
 

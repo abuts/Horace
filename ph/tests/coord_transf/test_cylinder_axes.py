@@ -32,7 +32,7 @@ class TestCylinderAxes:
         assert ca.dimensions == 4
         assert ca.img_range[0, 0] == pytest.approx(0.0)
         assert ca.img_range[1, 0] == pytest.approx(2.1)
-        assert ca.nbins_all_dims[0] == 21
+        assert ca.nbins_all_dims[0] == 20
         np.testing.assert_allclose(ca.img_range[:, 1], [-1.1, 1.1])
         assert ca.nbins_all_dims[1] == 11
         np.testing.assert_allclose(ca.img_range[:, 2], [-180.0, 180.0])

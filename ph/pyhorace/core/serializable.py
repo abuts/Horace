@@ -830,7 +830,11 @@ def compare_values(
             return True, ""
 
         if np.issubdtype(arr1.dtype, np.number) and np.issubdtype(arr2.dtype, np.number):
-            diff = np.abs(arr1 - arr2)
+            with np.errstate(invalid="ignore"):
+                diff = np.abs(arr1 - arr2)
+                same_inf = np.isinf(arr1) & np.isinf(arr2) & (np.sign(arr1) == np.sign(arr2))
+                if np.any(same_inf):
+                    diff = np.where(same_inf, 0.0, diff)
             if nan_equal:
                 nan_mask1 = np.isnan(arr1)
                 nan_mask2 = np.isnan(arr2)
@@ -841,7 +845,8 @@ def compare_values(
                 valid_mask = np.ones(arr1.shape, dtype=bool)
 
             denom = np.maximum(np.abs(arr1), np.abs(arr2))
-            allowed_err = atol + rtol * denom
+            with np.errstate(invalid="ignore"):
+                allowed_err = atol + rtol * denom
             violating = valid_mask & (diff > allowed_err)
 
             if np.any(violating):

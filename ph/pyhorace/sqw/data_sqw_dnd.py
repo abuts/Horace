@@ -22,6 +22,17 @@ from pyhorace.sqw.dnd_data import dnd_data
 from pyhorace.sqw.dnd_metadata import dnd_metadata
 
 
+def _mat_struct_to_dict(obj: Any) -> Any:
+    """Recursively convert scipy.io.matlab.mat_struct objects into dicts."""
+    if hasattr(obj, "_fieldnames"):
+        return {k: _mat_struct_to_dict(getattr(obj, k)) for k in obj._fieldnames}
+    if isinstance(obj, dict):
+        return {k: _mat_struct_to_dict(v) for k, v in obj.items()}
+    if isinstance(obj, np.ndarray) and obj.size == 0 and obj.dtype.kind in ("U", "S"):
+        return ""
+    return obj
+
+
 @register_serializable
 class data_sqw_dnd(Serializable):
     """Legacy wrapper combining dnd_metadata and dnd_data."""
@@ -44,6 +55,8 @@ class data_sqw_dnd(Serializable):
 
         if len(args) == 1 and not kwargs:
             arg0 = args[0]
+            if hasattr(arg0, "_fieldnames"):
+                arg0 = _mat_struct_to_dict(arg0)
             if isinstance(arg0, data_sqw_dnd):
                 self._metadata = copy.deepcopy(arg0._metadata)
                 self._nd_data = copy.deepcopy(arg0._nd_data)
@@ -53,6 +66,10 @@ class data_sqw_dnd(Serializable):
                 self._nd_data = copy.deepcopy(arg0.nd_data)
                 return
             if isinstance(arg0, dict):
+                if "array_dat" in arg0 and isinstance(arg0["array_dat"], dict):
+                    arg0 = arg0["array_dat"]
+                if "data_" in arg0 and isinstance(arg0["data_"], dict):
+                    arg0 = arg0["data_"]
                 if "metadata" in arg0 and "nd_data" in arg0:
                     self.from_bare_struct(arg0)
                 elif "serial_name" in arg0 and arg0.get("serial_name") == "data_sqw_dnd":

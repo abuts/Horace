@@ -190,7 +190,11 @@ class line_axes(AxesBlockBase):
         pax = np.asarray(d.get("pax", []), dtype=int).ravel()
         iax = np.asarray(d.get("iax", []), dtype=int).ravel()
         p_cell = d.get("p", [])
+        if pax.size == 1 and isinstance(p_cell, np.ndarray) and p_cell.dtype != object:
+            p_cell = [p_cell]
         iint = np.asarray(d.get("iint", np.zeros((2, 0))), dtype=float)
+        if iint.ndim == 1 and iint.size == 2 and iax.size == 1:
+            iint = iint.reshape((2, 1))
 
         for k, ax_num in enumerate(pax):
             idx = int(ax_num) - 1
@@ -208,14 +212,25 @@ class line_axes(AxesBlockBase):
             nbins[idx] = 1
             sbd[idx] = True
 
-        if "img_db_range" in d and d["img_db_range"] is not None:
-            db_r = np.asarray(d["img_db_range"], dtype=float)
-            if db_r.shape == (2, 4) and not np.any(np.isinf(db_r)):
-                img_range = db_r.copy()
-        elif "img_range" in d and d["img_range"] is not None:
-            db_r = np.asarray(d["img_range"], dtype=float)
-            if db_r.shape == (2, 4) and not np.any(np.isinf(db_r)):
-                img_range = db_r.copy()
+        if pax.size == 0 and iax.size == 0:
+            if "img_db_range" in d and d["img_db_range"] is not None:
+                db_r = np.asarray(d["img_db_range"], dtype=float)
+                if db_r.shape == (2, 4) and not np.any(np.isinf(db_r)):
+                    img_range = db_r.copy()
+            elif "img_range" in d and d["img_range"] is not None:
+                db_r = np.asarray(d["img_range"], dtype=float)
+                if db_r.shape == (2, 4) and not np.any(np.isinf(db_r)):
+                    img_range = db_r.copy()
+        elif np.any(np.isinf(img_range)):
+            inf_mask = np.isinf(img_range)
+            if "img_db_range" in d and d["img_db_range"] is not None:
+                db_r = np.asarray(d["img_db_range"], dtype=float)
+                if db_r.shape == (2, 4):
+                    img_range[inf_mask] = db_r[inf_mask]
+            elif "img_range" in d and d["img_range"] is not None:
+                db_r = np.asarray(d["img_range"], dtype=float)
+                if db_r.shape == (2, 4):
+                    img_range[inf_mask] = db_r[inf_mask]
 
         ax._do_check_combo_arg = True
         try:
@@ -231,7 +246,9 @@ class line_axes(AxesBlockBase):
             if "filepath" in d and d["filepath"] is not None:
                 ax.filepath = d["filepath"]
             if "label" in d and d["label"] is not None:
-                ax.label = d["label"]
+                ax.label = [str(x).strip() for x in np.asarray(d["label"]).ravel()]
+            elif "ulabel" in d and d["ulabel"] is not None:
+                ax.label = [str(x).strip() for x in np.asarray(d["ulabel"]).ravel()]
             if "ulen" in d and d["ulen"] is not None:
                 ax.ulen = d["ulen"]
             if "uoffset" in d and d["uoffset"] is not None:

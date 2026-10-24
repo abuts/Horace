@@ -94,6 +94,7 @@ class AxesBlockBase(Serializable, ABC):
         self._p: Optional[List[np.ndarray]] = None
         self._F_interp: Optional[Any] = None
         self._interp_grid_size: Optional[np.ndarray] = None
+        self._creation_date: str = ""
 
     # ------------------------------------------------------------------
     # Class-level defaults overridden by subclasses
@@ -112,6 +113,26 @@ class AxesBlockBase(Serializable, ABC):
     @property
     def _p_defines_bin_centers(self) -> np.ndarray:
         return np.ones(4, dtype=bool)
+
+    @property
+    def creation_date(self) -> str:
+        if self._creation_date:
+            return self._creation_date
+        import datetime
+
+        return datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
+    @creation_date.setter
+    def creation_date(self, val: Any) -> None:
+        self._creation_date = "" if val is None else str(val)
+
+    @property
+    def creation_date_defined(self) -> bool:
+        return bool(self._creation_date)
+
+    @property
+    def line_at_direct_ang(self) -> bool:
+        return True
 
     def class_version(self) -> int:
         return 3
@@ -239,11 +260,15 @@ class AxesBlockBase(Serializable, ABC):
 
     @type.setter
     def type(self, val: str) -> None:
-        if not isinstance(val, str) or len(val) != 4:
+        if not isinstance(val, str) or len(val) not in (3, 4):
             raise HoraceError(
                 f"HORACE:{self._err_cls_name()}:invalid_argument",
-                "type must be a 4-character string",
+                "type must be a 3- or 4-character string",
             )
+        if len(val) == 3:
+            val = val + "e"
+        if isinstance(getattr(type(self), "angular_unit_is_rad", None), property):
+            self.angular_unit_is_rad = val[2].lower() == "r"
         self._type = val
 
     @property
@@ -777,10 +802,9 @@ class AxesBlockBase(Serializable, ABC):
                 range_constrained = False
                 if min_v < lim[0]:
                     if abs(float(arr[0]) - lim[0]) < EPS_SINGLE:
-                        max_v = float(arr[2]) + step
-                    else:
-                        range_constrained = True
+                        max_v = max_v + half_step
                     min_v = float(lim[0])
+                    range_constrained = True
                 if max_v > lim[1]:
                     max_v = float(lim[1])
                     range_constrained = True
@@ -900,6 +924,38 @@ class AxesBlockBase(Serializable, ABC):
                 else:
                     res.append(np.array([r0, step, r1], dtype=float))
         return res
+
+    def get_cut_range(self, *args: str) -> List[np.ndarray]:
+        """Return binning range of existing data object so that cut within this range returns the same cut."""
+        full_range = False
+        for a in args:
+            if isinstance(a, str) and "-full_range".startswith(a.lower()) and a.startswith("-"):
+                full_range = True
+            else:
+                raise HoraceError(
+                    "HORACE:AxesBlockBase:invalid_argument",
+                    f"Unrecognized option to get_cut_range: {a!r}",
+                )
+
+        ndims = int(self.pax.size)
+        bin_range: List[np.ndarray] = []
+        for i in range(ndims):
+            p_i = self.p[i]
+            bin_centers = 0.5 * (p_i[:-1] + p_i[1:])
+            min_unref = float(np.min(bin_centers))
+            max_unref = float(np.max(bin_centers))
+            step = float(p_i[1] - p_i[0])
+            bin_range.append(np.array([min_unref, step, max_unref], dtype=float))
+
+        if not full_range:
+            return bin_range
+
+        fl_range: List[np.ndarray] = [np.array([], dtype=float) for _ in range(4)]
+        for idx, pax_num in enumerate(self.pax):
+            fl_range[int(pax_num) - 1] = bin_range[idx]
+        for idx, iax_num in enumerate(self.iax):
+            fl_range[int(iax_num) - 1] = self.iint[:, idx].copy()
+        return fl_range
 
     @staticmethod
     def get_img_range_from_cut_range(*args) -> np.ndarray:
@@ -1393,6 +1449,12 @@ class AxesBlockBase(Serializable, ABC):
         for i in range(4):
             r0 = float(self._img_range[0, i])
             r1 = float(self._img_range[1, i])
+            if np.isinf(r0) and np.isinf(r1):
+                r0, r1 = 0.0, 0.0
+            elif np.isinf(r0):
+                r0 = r1
+            elif np.isinf(r1):
+                r1 = r0
             nb = int(nbins[i])
             step = (r1 - r0) / nb
             edges = np.linspace(r0, r1, nb + 1, dtype=float)
@@ -1864,75 +1926,99 @@ class AxesBlockBase(Serializable, ABC):
                 f"Cannot realign axes of different types: {self.__class__.__name__} and {ax_other.__class__.__name__}",
             )
 
-        res = copy.deepcopy(ax_other)
-        new_range = res.img_range.copy()
-        new_nbins = res.nbins_all_dims.copy()
+        ax_nbins = ax_other._nbins_all_dims.copy()
+        ax_range = ax_other._img_range.copy()
+        sbd = np.zeros(4, dtype=bool)
+
+        want_pax = np.zeros(4, dtype=bool)
+        if ax_other.pax.size > 0:
+            want_pax[ax_other.pax - 1] = True
+        this_is_pax = np.zeros(4, dtype=bool)
+        if self.pax.size > 0:
+            this_is_pax[self.pax - 1] = True
+
+        this_range = self._img_range.copy()
+        this_nbins = self._nbins_all_dims.copy()
 
         for i in range(4):
-            r0_s, r1_s = float(self._img_range[0, i]), float(self._img_range[1, i])
-            nb_s = int(self._nbins_all_dims[i])
-            step_s = (r1_s - r0_s) / nb_s
-
-            r0_o, r1_o = float(ax_other._img_range[0, i]), float(ax_other._img_range[1, i])
-            nb_o = int(ax_other._nbins_all_dims[i])
-            step_o = (r1_o - r0_o) / nb_o
-
-            is_iax_o = bool(ax_other._single_bin_defines_iax[i])
-
-            if step_s == 0.0:
-                continue
-
-            if not is_iax_o and nb_o > 1:
-                ratio = step_o / step_s
-                if abs(ratio - round(ratio)) > 1e-4 or round(ratio) < 1:
-                    raise HoraceError(
-                        f"HORACE:{self._err_cls_name()}:invalid_argument",
-                        f"Target step {step_o} on axis {i + 1} is not an integer multiple of source step {step_s}",
+            origin_range = this_range[:, i].copy()
+            origin_nbins = int(this_nbins[i])
+            if want_pax[i]:
+                if this_is_pax[i]:
+                    req_range = ax_range[:, i].copy()
+                    req_nbins = int(ax_nbins[i])
+                    if req_range[0] >= origin_range[1] or req_range[1] <= origin_range[0]:
+                        raise HoraceError(
+                            "HORACE:realign_bin_edges:invalid_argument",
+                            "Input projection ranges lie outside of original axis edges",
+                        )
+                    base_step = (origin_range[1] - origin_range[0]) / origin_nbins
+                    if (req_range[1] - req_range[0]) < base_step:
+                        req_range[1] = req_range[0] + base_step
+                    req_step0 = (req_range[1] - req_range[0]) / req_nbins
+                    if req_range[1] > origin_range[1]:
+                        req_range[1] = origin_range[1]
+                    step_scaling_factor = int(
+                        np.floor(np.round(req_step0 / base_step, 12) + 0.5)
                     )
-                mult = int(round(ratio))
-                step_aligned = mult * step_s
-                edges_s = np.linspace(r0_s, r1_s, nb_s + 1)
-                # Align lower bound to nearest source bin edge <= r0_o + eps (or >= r0_s)
-                k0 = int(np.floor((r0_o - r0_s + 1e-9 * step_s) / step_s))
-                k0 = max(k0, 0)
-                k1 = int(np.ceil((r1_o - r0_s - 1e-9 * step_s) / step_s))
-                k1 = min(k1, nb_s)
-                if k1 <= k0:
-                    raise HoraceError(
-                        f"HORACE:{self._err_cls_name()}:invalid_argument",
-                        f"Target range [{r0_o}, {r1_o}] on axis {i + 1} has no overlap with source [{r0_s}, {r1_s}]",
-                    )
-                n_new = int(np.floor((k1 - k0) / mult))
-                if n_new < 1:
-                    n_new = 1
-                new_r0 = r0_s + k0 * step_s
-                new_r1 = new_r0 + n_new * step_aligned
-                new_range[:, i] = [new_r0, new_r1]
-                new_nbins[i] = n_new
+                    if step_scaling_factor < 1:
+                        req_step = base_step
+                    else:
+                        req_step = base_step * step_scaling_factor
+
+                    if origin_nbins <= 1:
+                        bin_edges = origin_range.copy()
+                    else:
+                        bin_edges = np.linspace(
+                            origin_range[0], origin_range[1], origin_nbins + 1
+                        )
+                    new_edge_1 = max(req_range[0], origin_range[0])
+                    ind = np.where(bin_edges <= new_edge_1)[0][-1]
+                    new_edge_1 = float(bin_edges[ind])
+
+                    req_range[0] = new_edge_1
+                    nbins = int(np.floor((req_range[1] - req_range[0]) / req_step))
+                    test_range = req_range[0] + nbins * req_step
+                    if test_range - req_range[1] < -2.0e-8:
+                        nbins = nbins + 1
+                        req_range[1] = req_range[0] + nbins * req_step
+                    else:
+                        req_range[1] = test_range
+                    ax_range[:, i] = req_range
+                    ax_nbins[i] = max(nbins, 1)
+                else:
+                    ax_nbins[i] = 1
+                    ax_range[:, i] = origin_range
+                    sbd[i] = True
             else:
-                # Integration axis or single bin: expand/align to enclosing source bin edges
-                if r1_o < r0_s - EPS_SINGLE or r0_o > r1_s + EPS_SINGLE:
-                    # Completely outside source range: keep as is
-                    continue
-                k0 = int(np.floor((max(r0_o, r0_s) - r0_s + 1e-9 * step_s) / step_s))
-                k0 = max(0, min(k0, nb_s - 1))
-                # If r0_o is strictly inside a bin, include that bin from its lower edge
-                if r0_o > r0_s + k0 * step_s + 1e-7 * step_s and is_iax_o:
-                    # Wait: in Horace realign_bin_edges_.m:
-                    # bins_in_1Drange finds all source bins that overlap with [r0_o, r1_o]!
-                    pass
-                edges_s = np.linspace(r0_s, r1_s, nb_s + 1)
-                any_in, is_in = self.bins_in_1Drange(edges_s, [r0_o, r1_o])
-                if any_in:
-                    idx = np.where(is_in)[0]
-                    new_range[0, i] = edges_s[idx[0]]
-                    new_range[1, i] = edges_s[idx[-1] + 1]
-                    new_nbins[i] = 1
+                ax_nbins[i] = 1
+                sbd[i] = True
+                iax_req = ax_range[:, i].copy()
+                if iax_req[0] < origin_range[0]:
+                    iax_req[0] = origin_range[0]
+                if iax_req[1] > origin_range[1]:
+                    iax_req[1] = origin_range[1]
+                if iax_req[1] < iax_req[0]:
+                    raise HoraceError(
+                        "HORACE:realign_bin_edges:invalid_argument",
+                        "Input integration ranges lie outside of original axis edges",
+                    )
+                if origin_nbins <= 1:
+                    bin_edges = origin_range.copy()
+                else:
+                    bin_edges = np.linspace(
+                        origin_range[0], origin_range[1], origin_nbins + 1
+                    )
+                min_ind = np.where(bin_edges <= iax_req[0])[0][-1]
+                max_ind = np.where(bin_edges >= iax_req[1])[0][0]
+                ax_range[:, i] = [bin_edges[min_ind], bin_edges[max_ind]]
 
+        res = copy.deepcopy(ax_other)
         res._do_check_combo_arg = True
         try:
-            res._set_img_range(new_range)
-            res._set_nbins_all_dims(new_nbins)
+            res._set_img_range(ax_range)
+            res._set_nbins_all_dims(ax_nbins)
+            res._single_bin_defines_iax = sbd
         finally:
             res._do_check_combo_arg = False
         res.check_combo_arg()
@@ -1960,12 +2046,21 @@ class AxesBlockBase(Serializable, ABC):
         for i in range(4):
             r0_s, r1_s = float(self._img_range[0, i]), float(self._img_range[1, i])
             nb_s = int(self._nbins_all_dims[i])
-            edges_s = np.linspace(r0_s, r1_s, nb_s + 1)
-            centers_s = 0.5 * (edges_s[:-1] + edges_s[1:])
+            if nb_s <= 1:
+                if np.isinf(r0_s) and np.isinf(r1_s):
+                    centers_s = np.array([0.0], dtype=float)
+                else:
+                    centers_s = np.array([0.5 * (r0_s + r1_s)], dtype=float)
+            else:
+                edges_s = np.linspace(r0_s, r1_s, nb_s + 1)
+                centers_s = 0.5 * (edges_s[:-1] + edges_s[1:])
 
             r0_o, r1_o = float(other_ax._img_range[0, i]), float(other_ax._img_range[1, i])
             nb_o = int(other_ax._nbins_all_dims[i])
-            edges_o = np.linspace(r0_o, r1_o, nb_o + 1)
+            if nb_o <= 1:
+                edges_o = np.array([r0_o, r1_o], dtype=float)
+            else:
+                edges_o = np.linspace(r0_o, r1_o, nb_o + 1)
 
             # Map each source bin center into target bin [0 .. nb_o - 1]
             new_shape = list(sig_weighted.shape)
@@ -2180,7 +2275,9 @@ class AxesBlockBase(Serializable, ABC):
         targ_proj: Any = None,
         *args: Any,
     ) -> Any:
-        """Compute range or default pbin of this axes block in target projection coordinate system."""
+        """Compute range or default pbin of this axes block in target projection coordinate system.
+        Ported from @AxesBlockBase/get_targ_range.m.
+        """
         return_binning = False
         range_requested = np.ones(4, dtype=bool)
 
@@ -2220,17 +2317,138 @@ class AxesBlockBase(Serializable, ABC):
             source_proj.targ_proj = targ_proj
             targ_proj.targ_proj = source_proj
 
-            hull_nodes = self.get_bin_nodes("-hull")
-            targ_coords = source_proj.from_this_to_targ_coord(hull_nodes)
-            targ_range = np.vstack(
-                [np.min(targ_coords, axis=1), np.max(targ_coords, axis=1)]
+            current_range = self.img_range.copy()
+            off_diff = source_proj.offset[:3] - targ_proj.offset[:3]
+            is_zero_off = float(np.max(np.abs(off_diff))) < 4.0 * float(
+                np.finfo(np.float32).eps
             )
-            targ_ax_tmp = targ_proj.get_proj_axes_block(
-                np.ones(4, dtype=bool), [[0, 1], [0, 1], [0, 1], [0, 1]]
-            )
-            max_r = targ_ax_tmp._max_img_range
-            targ_range[0, :] = np.maximum(targ_range[0, :], max_r[0, :])
-            targ_range[1, :] = np.minimum(targ_range[1, :], max_r[1, :])
+            if is_zero_off:
+                img_targ_center = np.zeros((3, 1), dtype=float)
+            else:
+                img_targ_center = source_proj.transform_hkl_to_img(
+                    np.asarray(targ_proj.offset[:3], dtype=float).reshape(3, 1)
+                )
+
+            # in_range(current_range[:, :3], img_targ_center)
+            coord = img_targ_center.ravel()[:3]
+            r_min = current_range[0, :3]
+            r_max = current_range[1, :3]
+            outside = (coord < r_min) | (coord > r_max)
+            equal = (coord == r_min) | (coord == r_max)
+            is_in = 1
+            if np.any(outside):
+                is_in = -1
+            if np.any(equal):
+                is_in = 0
+
+            from .line_proj_base import LineProjBase
+            from .curve_proj_base import CurveProjBase
+
+            if isinstance(source_proj, type(targ_proj)) and (
+                is_zero_off or isinstance(source_proj, LineProjBase)
+            ):
+                full_range = expand_box(current_range[0, :], current_range[1, :])
+                full_targ_range = source_proj.from_this_to_targ_coord(full_range)
+                targ_range = np.vstack(
+                    [np.min(full_targ_range, axis=1), np.max(full_targ_range, axis=1)]
+                )
+            else:
+                # search_for_range
+                range_defined = np.zeros((2, 4), dtype=bool)
+                out_range = np.vstack([np.full(4, -np.inf), np.full(4, np.inf)])
+                if is_in == -1:
+                    nbins_per_dim = np.ones(4, dtype=int)
+                    max_out_range = out_range.copy()
+                elif is_in == 0:
+                    nbins_per_dim = np.full(4, 10, dtype=int)
+                    max_out_range = out_range.copy()
+                    if isinstance(targ_proj, CurveProjBase):
+                        max_out_range[0, 0] = 0.0
+                        range_defined[0, 0] = True
+                else:  # is_in == 1
+                    nbins_per_dim = np.full(4, 10, dtype=int)
+                    axes_name = getattr(targ_proj, "axes_name", None)
+                    if axes_name is None and hasattr(targ_proj, "_get_axes_class"):
+                        t_cls = targ_proj._get_axes_class()
+                    else:
+                        from .line_axes import line_axes
+                        from .cylinder_axes import cylinder_axes
+                        from .sphere_axes import sphere_axes
+
+                        t_cls = {
+                            "line_axes": line_axes,
+                            "cylinder_axes": cylinder_axes,
+                            "sphere_axes": sphere_axes,
+                        }.get(axes_name, line_axes)
+                    taxes = t_cls(type=targ_proj.type)
+                    max_out_range = taxes._max_img_range.copy()
+                    range_defined = ~np.isinf(max_out_range)
+
+                do_3d = bool(getattr(source_proj, "do_3D_transformation", True))
+                if do_3d:
+                    img_r_work = current_range[:, :3]
+                    nbins_work = nbins_per_dim[:3].copy()
+                    out_range[:, 3] = current_range[:, 3]
+                    range_defined_work = range_defined[:, :3]
+                    max_out_work = max_out_range[:, :3]
+                    req_work = range_requested[:3]
+                else:
+                    img_r_work = current_range.copy()
+                    nbins_work = nbins_per_dim.copy()
+                    range_defined_work = range_defined
+                    max_out_work = max_out_range
+                    req_work = range_requested
+
+                range_known = np.all(range_defined_work, axis=0)
+                if not np.any(req_work[~range_known]):
+                    targ_range = out_range
+                else:
+                    def _build_hull_nd(rng: np.ndarray, nb: np.ndarray) -> np.ndarray:
+                        nd = rng.shape[1]
+                        ax = [
+                            np.array([rng[1, d]], dtype=float)
+                            if int(nb[d]) == 1
+                            else np.linspace(rng[0, d], rng[1, d], int(nb[d]))
+                            for d in range(nd)
+                        ]
+                        ax_rng = [np.array([rng[0, d], rng[1, d]]) for d in range(nd)]
+                        blocks = []
+                        for face_d in range(nd):
+                            grids_1d = [
+                                ax_rng[d] if d == face_d else ax[d] for d in range(nd)
+                            ]
+                            mg = np.meshgrid(*grids_1d, indexing="ij")
+                            block = np.vstack([g.ravel(order="F") for g in mg])
+                            blocks.append(block)
+                        return np.hstack(blocks)
+
+                    def _transf_range(nb: np.ndarray) -> np.ndarray:
+                        shell_pts = _build_hull_nd(img_r_work, nb)
+                        tr_shell = source_proj.from_this_to_targ_coord(shell_pts)
+                        loc_r = np.vstack(
+                            [np.min(tr_shell, axis=1), np.max(tr_shell, axis=1)]
+                        )
+                        if np.any(range_defined_work):
+                            loc_r[range_defined_work] = max_out_work[range_defined_work]
+                        return loc_r
+
+                    loc_range = _transf_range(nbins_work)
+                    difr = 1.0
+                    ic = 1
+                    while difr > 1e-3 and ic <= 5:
+                        nbins_work = 2 * nbins_work
+                        new_loc_range = _transf_range(nbins_work)
+                        min_difr = float(np.max(-(new_loc_range[0, :] - loc_range[0, :])))
+                        max_difr = float(np.max(new_loc_range[1, :] - loc_range[1, :]))
+                        difr = max(min_difr, max_difr)
+                        loc_range = new_loc_range
+                        ic += 1
+
+                    if do_3d:
+                        out_range[:, :3] = loc_range
+                    else:
+                        out_range = loc_range
+                    targ_range = out_range
 
         if not np.all(range_requested):
             targ_range[0, ~range_requested] = -np.inf
@@ -2239,19 +2457,24 @@ class AxesBlockBase(Serializable, ABC):
         if not return_binning:
             return targ_range
 
-        targ_ax = targ_proj.get_proj_axes_block(
-            self._single_bin_defines_iax.copy(),
-            [[0, 1], [0, 1], [0, 1], [0, 1]],
-        )
-        targ_ax._do_check_combo_arg = True
-        try:
-            targ_ax._img_range = targ_range.copy()
-            targ_ax._nbins_all_dims = self._nbins_all_dims.copy()
-            targ_ax._single_bin_defines_iax = self._single_bin_defines_iax.copy()
-        finally:
-            targ_ax._do_check_combo_arg = False
-        targ_ax.check_combo_arg()
-        return targ_ax.default_pbin()
+        nsteps = self._nbins_all_dims
+        binning = []
+        for i in range(4):
+            min_r = float(targ_range[0, i])
+            max_r = float(targ_range[1, i])
+            ns = int(nsteps[i])
+            if np.isinf(min_r) or np.isinf(max_r):
+                binning.append(np.array([], dtype=float))
+            elif ns == 1:
+                binning.append(np.array([min_r, max_r], dtype=float))
+            else:
+                step = (max_r - min_r) / ns
+                binning.append(
+                    np.array(
+                        [min_r + 0.5 * step, step, max_r - 0.5 * step], dtype=float
+                    )
+                )
+        return binning
 
     # ------------------------------------------------------------------
     # Plot Titles (data_plot_titles)

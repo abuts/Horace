@@ -108,7 +108,9 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
     _npix: np.ndarray = PrivateAttr(default_factory=lambda: np.zeros((1, 1), dtype=float))
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        in_d0d_init = getattr(self, "_in_d0d_init", False)
         Serializable.__init__(self)
+        self._in_d0d_init = in_d0d_init
         self._do_check_combo_arg = False
 
         ndims = self.NUM_DIMS if self.NUM_DIMS is not None else 0
@@ -404,10 +406,10 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
                 )
             dir_vec = np.asarray(varargin[i], dtype=float).ravel()
             bin_vec = np.asarray(varargin[i + 1], dtype=float).ravel()
-            if dir_vec.size != 4 or bin_vec.size != 3:
+            if dir_vec.size != 4 or bin_vec.size not in (2, 3):
                 raise HoraceError(
                     "HORACE:DnDBase:invalid_argument",
-                    f"Expected 4-element direction vector and 3-element binning vector, got sizes {dir_vec.size} and {bin_vec.size}",
+                    f"Expected 4-element direction vector and 2- or 3-element binning vector, got sizes {dir_vec.size} and {bin_vec.size}",
                 )
             if dir_vec[3] > 0:
                 if np.any(dir_vec[:3] != 0):
@@ -766,13 +768,19 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
     # ------------------------------------------------------------------
     # Serializable interface
     # ------------------------------------------------------------------
+    def class_version(self) -> int:
+        return self.class_version_
+
     def classVersion(self) -> int:
         return self.class_version_
 
-    def saveableFields(self) -> List[str]:
+    def saveable_fields(self) -> List[str]:
         if self.creation_date_defined:
             return list(self._fields_to_save)
         return [f for f in self._fields_to_save if f != "creation_date"]
+
+    def saveableFields(self) -> List[str]:
+        return self.saveable_fields()
 
     def check_combo_arg(self, no_proj_copy: bool = False) -> "DnDBase":
         """Validate interdependent properties axes, proj, s, e, npix."""
@@ -791,9 +799,10 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
             )
 
         expected_sz = tuple(int(x) for x in self._axes.dims_as_ssize)
+        expected_matlab_sz = matlab_size(np.empty(expected_sz))
         for name, arr in (("s", self._s), ("e", self._e), ("npix", self._npix)):
             actual_sz = matlab_size(arr)
-            if actual_sz != expected_sz:
+            if actual_sz != expected_matlab_sz and arr.shape != expected_sz:
                 if (
                     len(expected_sz) == 2
                     and expected_sz[1] == 1
@@ -926,20 +935,30 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
     # ------------------------------------------------------------------
     # Coordinate & bin methods
     # ------------------------------------------------------------------
-    def get_proj_and_pbin(self) -> Tuple[aProjectionBase, List[np.ndarray]]:
+    def get_proj_and_pbin(
+        self, nargout: Optional[int] = None
+    ) -> Union[aProjectionBase, Tuple[aProjectionBase, List[np.ndarray]]]:
         """Retrieve the projection and binning descriptors of this DnD dataset."""
+        if nargout is None:
+            nargout = _infer_nargout(default=2)
         pbin = self._axes.get_cut_range("-full_range")
         proj = copy.deepcopy(self._proj)
+        if nargout <= 1:
+            return proj
         return proj, pbin
 
-    def get_targ_range(self, targ_proj: Any = None, *args: Any) -> np.ndarray:
+    def get_targ_range(self, targ_proj: Any = None, *args: Any) -> Any:
         """Compute the range of this dataset's axes in a target projection."""
         if targ_proj is None:
             targ_proj = self._proj
         return self._axes.get_targ_range(self._proj, targ_proj, *args)
 
-    def calculate_q_bins(self) -> Tuple[List[np.ndarray], np.ndarray]:
+    def calculate_q_bins(
+        self, nargout: Optional[int] = None
+    ) -> Union[List[np.ndarray], Tuple[List[np.ndarray], np.ndarray]]:
         """Calculate qh, qk, ql, en for the centres of the bins of an n-dimensional dataset."""
+        if nargout is None:
+            nargout = _infer_nargout(default=2)
         pts = self._axes.get_bin_nodes("-bin_centre")
         hkle = self._proj.transform_img_to_hkl(pts)
         q = [
@@ -947,6 +966,8 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
             hkle[1, :].reshape(-1, 1),
             hkle[2, :].reshape(-1, 1),
         ]
+        if nargout <= 1:
+            return q
         if self._axes.dimensions > 0 and 4 in list(self._axes.pax):
             pax_list = list(self._axes.pax)
             en_idx = pax_list.index(4)
@@ -962,12 +983,19 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
                 en = np.array([[0.5 * (en_iint[0] + en_iint[1])]])
         return q, en
 
-    def calculate_qw_bins(self, *args: str) -> List[np.ndarray]:
+    def calculate_qw_bins(
+        self,
+        *args: str,
+        boundaries: bool = False,
+        edges: bool = False,
+        nargout: Optional[int] = None,
+    ) -> List[np.ndarray]:
         """Calculate qh, qk, ql, en for the centres (or boundaries/edges) of bins."""
         ok, mess, flags, _ = _parse_char_options(args, ["-boundaries", "-edges"])
         if not ok:
             raise HoraceError("HORACE:DnDBase:invalid_argument", mess)
-        boundaries, edges = flags
+        boundaries = boundaries or flags[0]
+        edges = edges or flags[1]
         if boundaries and edges:
             raise HoraceError(
                 "HORACE:DnDBase:invalid_argument",
@@ -989,17 +1017,20 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
             hkle[3, :].reshape(-1, 1),
         ]
 
-    def data_bin_limits(self) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
+    def data_bin_limits(
+        self, nargout: Optional[int] = None
+    ) -> Union[Optional[np.ndarray], Tuple[Optional[np.ndarray], Optional[np.ndarray]]]:
         """Get limits of the data in an n-dimensional dataset along the plot axes
         within which there are non-zero values of npix.
         """
+        if nargout is None:
+            nargout = _infer_nargout(default=2)
         ndim = self.dimensions
         if ndim == 0:
-            return None, None
-        s_shape = self._s.shape
+            return (None, None) if nargout >= 2 else None
         npix_arr = self._npix
         if np.all(npix_arr == 0):
-            return None, None
+            return (None, None) if nargout >= 2 else None
 
         val = np.zeros((ndim, 2), dtype=float)
         n = np.zeros((ndim, 2), dtype=int)
@@ -1011,7 +1042,7 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
                 any_along = np.any(npix_arr != 0, axis=other_axes)
             nz_indices = np.nonzero(any_along)[0]
             if nz_indices.size == 0:
-                return None, None
+                return (None, None) if nargout >= 2 else None
             ilo = int(nz_indices[0])
             ihi = int(nz_indices[-1])
             n[i, 0] = ilo + 1  # 1-based index
@@ -1019,6 +1050,8 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
             p_i = self._axes.p[i]
             val[i, 0] = float(p_i[ilo])
             val[i, 1] = float(p_i[ihi + 1])
+        if nargout <= 1:
+            return val
         return val, n
 
     def compact(self) -> "DnDBase":
@@ -1026,7 +1059,7 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
         wout = self.copy()
         if self.dimensions == 0:
             return wout
-        val, n = self.data_bin_limits()
+        val, n = self.data_bin_limits(nargout=2)
         if n is None:
             return wout
 
@@ -1034,7 +1067,8 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
         slices = []
         pbin_all: List[Any] = [None] * 4
         for idx, iax_num in enumerate(self._axes.iax):
-            pbin_all[int(iax_num) - 1] = self._axes.iint[:, idx].tolist()
+            iint_col = self._axes.iint[:, idx]
+            pbin_all[int(iax_num) - 1] = 0 if np.any(np.isinf(iint_col)) else iint_col.tolist()
 
         for i in range(ndim):
             ilo = int(n[i, 0]) - 1
@@ -1048,6 +1082,8 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
 
         ax_cls = type(self._axes)
         new_axes = ax_cls(*pbin_all)
+        for idx, iax_num in enumerate(self._axes.iax):
+            new_axes._img_range[:, int(iax_num) - 1] = self._axes.iint[:, idx]
         new_axes = self._proj.copy_proj_defined_properties_to_axes(new_axes)
         new_axes.title = self._axes.title
         new_axes.filename = self._axes.filename
@@ -1088,7 +1124,8 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
 
         pbin_all: List[Any] = [None] * 4
         for idx, iax_num in enumerate(self._axes.iax):
-            pbin_all[int(iax_num) - 1] = self._axes.iint[:, idx].tolist()
+            iint_col = self._axes.iint[:, idx]
+            pbin_all[int(iax_num) - 1] = 0 if np.any(np.isinf(iint_col)) else iint_col.tolist()
 
         slices = []
         tol = 1e-5
@@ -1125,6 +1162,8 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
 
         ax_cls = type(self._axes)
         new_axes = ax_cls(*pbin_all)
+        for idx, iax_num in enumerate(self._axes.iax):
+            new_axes._img_range[:, int(iax_num) - 1] = self._axes.iint[:, idx]
         new_axes = self._proj.copy_proj_defined_properties_to_axes(new_axes)
         new_axes.title = self._axes.title
         new_axes.filename = self._axes.filename
@@ -1351,38 +1390,327 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
     def cut_dnd(self, *args: Any, **kwargs: Any) -> Any:
         return self.cut(*args, **kwargs)
 
+    def process_and_validate_cut_inputs(
+        self, return_cut: Any, *args: Any
+    ) -> Tuple[aProjectionBase, List[List[Any]], Dict[str, Any]]:
+        """Parse and validate cut arguments. Ported from cut_parse_inputs_.m."""
+        ndim_in = int(self.dimensions)
+        if ndim_in == 0:
+            raise HoraceError(
+                "HORACE:cut:invalid_argument",
+                "Cannot take a cut from a zero-dimensional (d0d) object",
+            )
+
+        ok, mess, flags, params = _parse_char_options(
+            args, ["-nopix", "-pix", "-save", "-parallel"]
+        )
+        if not ok:
+            raise HoraceError("HORACE:cut:invalid_argument", mess)
+        nopix, pix_flag, save_cut, parallel = flags
+        if nopix and pix_flag:
+            raise HoraceError(
+                "HORACE:cut:invalid_argument",
+                "Options '-pix' and '-nopix' cannot be used together",
+            )
+
+        par = list(params)
+        outfile = None
+        if len(par) > 0 and isinstance(par[-1], (str, os.PathLike)) and str(par[-1]):
+            outfile = str(par.pop())
+
+        if len(par) > 0 and isinstance(par[0], aProjectionBase):
+            proj_given = True
+            targ_proj = copy.deepcopy(par[0])
+            targ_proj = targ_proj.copy_proj_param_from_source(self)
+            pbin_args = par[1:]
+        else:
+            proj_given = False
+            targ_proj = copy.deepcopy(self._proj)
+            pbin_args = par
+
+        n_expected = 4 if proj_given else ndim_in
+        if len(pbin_args) != n_expected:
+            raise HoraceError(
+                "HORACE:cut:invalid_argument",
+                f"Expected {n_expected} binning arguments, but got {len(pbin_args)}",
+            )
+
+        if proj_given:
+            pbin_full = list(pbin_args)
+        else:
+            pbin_full = [None] * 4
+            for idx, pax_num in enumerate(self._axes.pax):
+                pbin_full[int(pax_num) - 1] = pbin_args[idx]
+            for idx, iax_num in enumerate(self._axes.iax):
+                pbin_full[int(iax_num) - 1] = self._axes.iint[:, idx].copy()
+
+        # Check for 4-element multicut descriptors [plo, rdiff, phi, rwidth]
+        pbin_out: List[List[Any]] = [list(pbin_full)]
+        opt = {
+            "keep_pix": False,
+            "parallel": parallel,
+            "outfile": outfile,
+            "proj_given": proj_given,
+        }
+        return targ_proj, pbin_out, opt
+
     def cut(self, *args: Any, **kwargs: Any) -> Any:
         """Take a cut from a DnD object by integrating/rebinning over one or more axes."""
         nargout = kwargs.pop("nargout", None)
         if nargout is None:
             nargout = _infer_nargout(default=1)
 
-        targ_proj, pbin, opt = self.process_and_validate_cut_inputs(
+        targ_proj, pbin_list, opt = self.process_and_validate_cut_inputs(
             nargout if nargout > 0 else 1, *args
         )
 
-        targ_axes = self.define_target_axes_block(targ_proj, pbin)
-        s_out, e_out, npix_out = self._axes.rebin_data(
-            (self._s, self._e, self._npix), targ_axes, self._proj, targ_proj
-        )
-        wout = DnDBase.dnd(targ_axes, targ_proj, s_out, e_out, npix_out)
-        wout.title = self.title
+        results = []
+        for pbin in pbin_list:
+            targ_axes = self.define_target_axes_block(targ_proj, pbin)
+            if not opt["proj_given"]:
+                targ_axes = self._axes.realign_bin_edges(targ_axes)
+                s_out, e_out, npix_out = self._axes.rebin_data(
+                    (self._s, self._e, self._npix), targ_axes
+                )
+            else:
+                s_out, e_out, npix_out = self._interpolate_cut_data(
+                    targ_axes, targ_proj
+                )
+            wout = DnDBase.dnd(targ_axes, targ_proj, s_out, e_out, npix_out)
+            wout.title = self.title
+            if opt.get("outfile"):
+                wout.save(opt["outfile"])
+            results.append(wout)
 
-        if opt.get("outfile"):
-            wout.save(opt["outfile"])
-
+        res = results[0] if len(results) == 1 else DataOpArray(results)
         if nargout == 0 and opt.get("outfile"):
             return None
-        return wout
+        return res
+
+    def _interpolate_cut_data(
+        self, targ_axes: AxesBlockBase, targ_proj: aProjectionBase
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Interpolate signal and variance from self onto targ_axes with targ_proj.
+        Ported from @AxesBlockBase/private/calculate_density_.m and interpolate_data_.m.
+        """
+        from scipy.interpolate import RegularGridInterpolator
+        from ..coord_transf.line_axes import line_axes
+        from ..coord_transf.line_proj import line_proj
+
+        ref_axes = self._axes
+        ref_proj = self._proj
+        if not targ_proj.alatt_defined and ref_proj.alatt_defined:
+            targ_proj.alatt = ref_proj.alatt
+        if not targ_proj.angdeg_defined and ref_proj.angdeg_defined:
+            targ_proj.angdeg = ref_proj.angdeg
+        ref_proj.targ_proj = targ_proj
+        targ_proj.targ_proj = ref_proj
+
+        # 1. Calculate source signal density at source bin edges (calculate_density_.m)
+        is_pax = np.zeros(4, dtype=bool)
+        if ref_axes.pax.size > 0:
+            is_pax[ref_axes.pax - 1] = True
+
+        ref_nbins = ref_axes.nbins_all_dims.astype(int)
+        ref_range = ref_axes.img_range
+        dens_axes = [
+            np.linspace(ref_range[0, i], ref_range[1, i], int(ref_nbins[i]) + 1)
+            for i in range(4)
+        ]
+
+        if isinstance(ref_axes, line_axes):
+            base_cell_volume: Any = float(
+                np.prod((ref_range[1, :] - ref_range[0, :]) / ref_nbins)
+                * ref_axes.get_volume_scale()
+            )
+        else:
+            edges_3d_ref = [
+                dens_axes[i] if is_pax[i] else np.array([ref_range[0, i], ref_range[1, i]])
+                for i in range(3)
+            ]
+            de_edges_ref = (
+                dens_axes[3] if is_pax[3] else np.array([ref_range[0, 3], ref_range[1, 3]])
+            )
+            mg_ref = np.meshgrid(*edges_3d_ref, indexing="ij")
+            coords_ref = np.stack(mg_ref, axis=0)
+            v1_r = coords_ref[:, 1:, :-1, :-1] - coords_ref[:, :-1, :-1, :-1]
+            v2_r = coords_ref[:, :-1, 1:, :-1] - coords_ref[:, :-1, :-1, :-1]
+            v3_r = coords_ref[:, :-1, :-1, 1:] - coords_ref[:, :-1, :-1, :-1]
+            vol_3d_r = (
+                np.abs(np.sum(np.cross(v1_r, v2_r, axis=0) * v3_r, axis=0))
+                * ref_axes.get_volume_scale()
+            )
+            de_diff_r = np.diff(de_edges_ref)
+            base_cell_volume = (
+                vol_3d_r.ravel(order="F")[:, None] * de_diff_r[None, :]
+            ).reshape(self._s.shape, order="F")
+
+        base_shape_1 = [int(ref_nbins[i]) if is_pax[i] else 1 for i in range(4)]
+        ref_ds = (self._s / base_cell_volume).reshape(base_shape_1, order="F")
+        tile_reps = [1 if is_pax[i] else 2 for i in range(4)]
+        ref_ds_tiled = np.tile(ref_ds, tile_reps)
+        density = ref_ds_tiled
+        nearest_density = ref_ds_tiled
+
+        # Interpolate from bin centers (length N) to bin edges (length N+1) along pax
+        # with 'linear' interior interpolation and MATLAB 'nearest' boundary extrapolation
+        # (matching interpn + griddedInterpolant(..., 'linear', 'nearest') in calculate_density_.m)
+        for i in range(4):
+            if is_pax[i]:
+                n_i = density.shape[i]
+                sl_first = [slice(None)] * 4
+                sl_last = [slice(None)] * 4
+                sl_left = [slice(None)] * 4
+                sl_right = [slice(None)] * 4
+                sl_first[i] = slice(0, 1)
+                sl_last[i] = slice(-1, None)
+                sl_left[i] = slice(0, -1)
+                sl_right[i] = slice(1, None)
+                if n_i == 1:
+                    density = np.concatenate(
+                        [density[tuple(sl_first)], density[tuple(sl_last)]], axis=i
+                    )
+                else:
+                    mid = 0.5 * (density[tuple(sl_left)] + density[tuple(sl_right)])
+                    density = np.concatenate(
+                        [density[tuple(sl_first)], mid, density[tuple(sl_last)]],
+                        axis=i,
+                    )
+                nearest_idx = np.minimum(np.arange(n_i + 1), n_i - 1)
+                nearest_density = np.take(nearest_density, nearest_idx, axis=i)
+
+        for i in range(4):
+            if is_pax[i]:
+                sl_b0 = [slice(None)] * 4
+                sl_b1 = [slice(None)] * 4
+                sl_b0[i] = 0
+                sl_b1[i] = -1
+                density[tuple(sl_b0)] = nearest_density[tuple(sl_b0)]
+                density[tuple(sl_b1)] = nearest_density[tuple(sl_b1)]
+
+        # 2. Determine target grid refinement (interpolate_data_.m lines 65-91)
+        hull_3d = ref_axes.get_bin_nodes("-3D", "-hull")
+        edges_pix = ref_proj.transform_img_to_pix(hull_3d)
+        range_3d = np.vstack([np.min(edges_pix, axis=1), np.max(edges_pix, axis=1)])
+        range_4d = np.hstack([range_3d, ref_range[:, 3:4]])
+        char_size = (range_4d[1, :] - range_4d[0, :]) / ref_nbins
+
+        range_cc = targ_axes.get_targ_range(targ_proj, line_proj(type="aaa"))
+        # Restore cross-linked projections (mutated by get_targ_range in Python)
+        ref_proj.targ_proj = targ_proj
+        targ_proj.targ_proj = ref_proj
+
+        targ_axes_span = range_cc[1, :] - range_cc[0, :]
+        nbins_all_dims = targ_axes.nbins_all_dims.astype(int).copy()
+        targ_step = targ_axes_span / nbins_all_dims
+        too_coarse = targ_step > (0.5 * char_size)
+        while np.any(too_coarse):
+            nbins_all_dims[too_coarse] *= 2
+            targ_step = targ_axes_span / nbins_all_dims
+            too_coarse = targ_step > (0.5 * char_size)
+
+        # 3. Compute target cell volumes in reference coordinate system (lines 95-106)
+        targ_range = targ_axes.img_range
+        edges_3d_1d = [
+            np.linspace(targ_range[0, i], targ_range[1, i], int(nbins_all_dims[i]) + 1)
+            for i in range(3)
+        ]
+        de_edges = np.linspace(
+            targ_range[0, 3], targ_range[1, 3], int(nbins_all_dims[3]) + 1
+        )
+        mg_edges = np.meshgrid(*edges_3d_1d, indexing="ij")
+        nodes_3d_edges = np.vstack([g.ravel(order="F") for g in mg_edges])
+        inodes_edges = targ_proj.from_this_to_targ_coord(nodes_3d_edges)
+
+        npts_e = [int(nbins_all_dims[i]) + 1 for i in range(3)]
+        coords_e = inodes_edges.reshape((3, npts_e[0], npts_e[1], npts_e[2]), order="F")
+        v1 = coords_e[:, 1:, :-1, :-1] - coords_e[:, :-1, :-1, :-1]
+        v2 = coords_e[:, :-1, 1:, :-1] - coords_e[:, :-1, :-1, :-1]
+        v3 = coords_e[:, :-1, :-1, 1:] - coords_e[:, :-1, :-1, :-1]
+        vol_3d = (
+            np.abs(np.sum(np.cross(v1, v2, axis=0) * v3, axis=0))
+            * ref_axes.get_volume_scale()
+        )
+        de_diff = np.diff(de_edges)
+        targ_cell_volume = (
+            vol_3d.ravel(order="F")[:, None] * de_diff[None, :]
+        ).ravel(order="F")
+
+        # 4. Evaluate interpolated density at target bin centers and bin into targ_axes
+        centers_3d_1d = [0.5 * (e[:-1] + e[1:]) for e in edges_3d_1d]
+        de_centers = 0.5 * (de_edges[:-1] + de_edges[1:])
+        mg_centers = np.meshgrid(*centers_3d_1d, indexing="ij")
+        nodes_3d_centers = np.vstack([g.ravel(order="F") for g in mg_centers])
+        inodes_centers = targ_proj.from_this_to_targ_coord(nodes_3d_centers)
+
+        n_3d = nodes_3d_centers.shape[1]
+        n_de = de_centers.size
+        de_row = np.repeat(de_centers, n_3d).reshape(1, -1)
+        inodes_4d = np.vstack([np.tile(inodes_centers, (1, n_de)), de_row])
+        nodes_4d = np.vstack([np.tile(nodes_3d_centers, (1, n_de)), de_row])
+
+        rgi = RegularGridInterpolator(
+            tuple(dens_axes),
+            density,
+            method="linear",
+            bounds_error=False,
+            fill_value=0.0,
+        )
+        interp_ds = rgi(inodes_4d.T)
+        signal = interp_ds.ravel(order="F") * targ_cell_volume
+
+        targ_sz = tuple(int(x) for x in targ_axes.dims_as_ssize)
+        if float(np.sum(signal)) == 0.0:
+            return (
+                np.zeros(targ_sz, dtype=float),
+                np.zeros(targ_sz, dtype=float),
+                np.ones(targ_sz, dtype=float),
+            )
+
+        _, s_list, _ = targ_axes.bin_pixels(
+            nodes_4d, None, None, None, [signal], nargout=3
+        )
+        s_out = s_list[0] if isinstance(s_list, list) else s_list
+        e_out = np.full(targ_sz, np.inf, dtype=float)
+        npix_out = np.ones(targ_sz, dtype=float)
+        return s_out, e_out, npix_out
 
     def define_target_axes_block(
         self, targ_proj: aProjectionBase, pbin: Sequence[Any], sym: Any = None
     ) -> AxesBlockBase:
-        """Build the target AxesBlockBase for a cut operation."""
-        cur_range = self.get_targ_range(targ_proj)
-        cur_pbin = self._axes.get_cut_range()
-        targ_axes = targ_proj.get_proj_axes_block(cur_range, cur_pbin, pbin)
-        return targ_axes
+        """Build the target AxesBlockBase for a cut operation.
+        Ported from @SQWDnDBase/private/define_target_axes_block.m.
+        """
+        default_needed = []
+        for pb in pbin:
+            if pb is None:
+                default_needed.append(True)
+            else:
+                arr = np.asarray(pb, dtype=float).ravel()
+                need = (
+                    arr.size < 2
+                    or np.isinf(arr[0])
+                    or np.isinf(arr[-1])
+                    or (arr.size == 3 and arr[1] == 0)
+                )
+                default_needed.append(bool(need))
+
+        if any(default_needed):
+            source_binning = self.get_targ_range(targ_proj, default_needed, "-binning")
+        else:
+            source_binning = [np.array([]), np.array([]), np.array([]), np.array([])]
+
+        axes_name = getattr(targ_proj, "axes_name", None)
+        if axes_name is None and hasattr(targ_proj, "_get_axes_class"):
+            axes_name = targ_proj._get_axes_class().__name__
+        ax_cls = _axes_cls_for_name(axes_name or "line_axes")
+        ax_instance = ax_cls()
+        ax_instance = targ_proj.copy_proj_defined_properties_to_axes(ax_instance)
+        targ_ax_block = AxesBlockBase.build_from_input_binning(
+            ax_instance, source_binning, list(pbin)
+        )
+        targ_ax_block = targ_proj.copy_proj_defined_properties_to_axes(targ_ax_block)
+        return targ_ax_block
 
     def rebin(self, *args: Any) -> "DnDBase":
         """Rebin a DnD dataset along its plot axes.
@@ -1392,26 +1720,29 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
             >> wout = w.rebin(targ_axes)
             >> wout = w.rebin(pbin1, pbin2, ...)
         """
+        ok, mess, flags, rem_args = _parse_char_options(args, ["-keep_contents"])
+        if not ok:
+            raise HoraceError("HORACE:DnDBase:invalid_argument", mess)
+        keep_contents = flags[0]
+        args = tuple(rem_args)
+
         ndim = int(self.dimensions)
         if ndim == 0:
             if len(args) >= 1 and isinstance(args[0], DnDBase):
                 other_obj = args[0]
-                ok, mess, flags, rem = _parse_char_options(args[1:], ["-keep_contents"])
-                if not ok:
-                    raise HoraceError("HORACE:DnDBase:invalid_argument", mess)
-                if rem:
+                if len(args) > 1:
                     raise HoraceError(
                         "HORACE:DnDBase:invalid_argument",
-                        f"Unrecognised option(s) to 0D rebin: {rem}",
+                        f"Unrecognised option(s) to 0D rebin: {args[1:]}",
                     )
-                keep_contents = flags[0]
                 wout = self.copy()
                 ax = copy.deepcopy(other_obj._axes)
-                pax_0 = [int(x) - 1 for x in ax.pax]
-                nb = ax.nbins_all_dims.copy()
-                for p_idx in pax_0:
-                    nb[p_idx] = 1
-                ax.nbins_all_dims = nb
+                ax._do_check_combo_arg = True
+                ax._nbins_all_dims = np.ones(4, dtype=int)
+                ax._single_bin_defines_iax = np.ones(4, dtype=bool)
+                ax._dax = np.array([], dtype=int)
+                ax._do_check_combo_arg = False
+                ax.check_combo_arg()
                 wout._do_check_combo_arg = False
                 wout._axes = ax
                 wout._proj = copy.deepcopy(other_obj._proj)
@@ -1458,7 +1789,8 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
             # Binning description for plot axes
             pbin_all: List[Any] = [None] * 4
             for idx, iax_num in enumerate(self._axes.iax):
-                pbin_all[int(iax_num) - 1] = self._axes.iint[:, idx].tolist()
+                iint_col = self._axes.iint[:, idx]
+                pbin_all[int(iax_num) - 1] = [] if np.any(np.isinf(iint_col)) else iint_col.tolist()
             for idx, pax_num in enumerate(self._axes.pax):
                 if idx < len(args):
                     pbin_all[int(pax_num) - 1] = args[idx]
@@ -1466,6 +1798,8 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
                     pbin_all[int(pax_num) - 1] = []
             targ_proj = copy.deepcopy(self._proj)
             targ_axes = self.define_target_axes_block(targ_proj, pbin_all)
+            for idx, iax_num in enumerate(self._axes.iax):
+                targ_axes._img_range[:, int(iax_num) - 1] = self._axes.iint[:, idx]
         else:
             raise HoraceError(
                 "HORACE:DnDBase:invalid_argument",
@@ -1473,7 +1807,7 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
             )
 
         s_out, e_out, npix_out = self._axes.rebin_data(
-            (self._s, self._e, self._npix), targ_axes, self._proj, targ_proj
+            (self._s, self._e, self._npix), targ_axes
         )
         wout = DnDBase.dnd(targ_axes, targ_proj, s_out, e_out, npix_out)
         wout.title = self.title
@@ -1722,10 +2056,8 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
         s_new = val.reshape(self._s.shape, order="F").copy()
         e_new = np.zeros_like(s_new)
 
-        has_any_pix = np.any(self._npix != 0)
         if all_flag:
-            if not has_any_pix:
-                wout._npix = np.ones_like(self._npix)
+            wout._npix = np.ones_like(self._npix)
         else:
             nopix = self._npix == 0
             s_new[nopix] = 0.0
@@ -1754,12 +2086,11 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
             val = np.asarray(_call_user_func(sqwfunc, *qw, pars=pars), dtype=float)
             s_new = val.reshape(self._s.shape, order="F").copy()
 
-        wout = self.copy()
-        wout._s = s_new
-        wout._e = np.zeros_like(s_new)
-        if all_bins and not has_any_pix:
-            wout._npix = np.ones_like(self._npix)
-        return wout
+        self._s = s_new
+        self._e = np.zeros_like(s_new)
+        if all_bins:
+            self._npix = np.ones_like(self._npix)
+        return self
 
     def dispersion(
         self, dispreln: Callable[..., Any], pars: Any, nargout: Optional[int] = None
@@ -1784,7 +2115,8 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
             npix_q = np.sum(self._npix.reshape(grid_shape, order="F"), axis=en_axis_pos)
             pbin_all: List[Any] = [None] * 4
             for idx, iax_num in enumerate(self._axes.iax):
-                pbin_all[int(iax_num) - 1] = self._axes.iint[:, idx].tolist()
+                iint_col = self._axes.iint[:, idx]
+                pbin_all[int(iax_num) - 1] = 0 if np.any(np.isinf(iint_col)) else iint_col.tolist()
             for idx, pax_num in enumerate(pax_list):
                 p_i = self._axes.p[idx]
                 if pax_num == 4:
@@ -1794,6 +2126,8 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
                     centres = 0.5 * (p_i[:-1] + p_i[1:])
                     pbin_all[pax_num - 1] = [float(centres[0]), step, float(centres[-1])]
             q_axes = type(self._axes)(*pbin_all)
+            for idx, iax_num in enumerate(self._axes.iax):
+                q_axes._img_range[:, int(iax_num) - 1] = self._axes.iint[:, idx]
             q_axes = self._proj.copy_proj_defined_properties_to_axes(q_axes)
             q_axes.title = self._axes.title
             q_axes.filename = self._axes.filename
@@ -1849,7 +2183,7 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
         """Change the crystal lattice and orientation of a DnD object."""
         alignment_info = self.parse_change_crystal_arguments(*args)
         wout = self.copy()
-        wout._proj = wout._proj.set_proj_alignment(alignment_info)
+        wout._proj = wout._proj.align_proj(alignment_info)
         wout._axes = wout._proj.copy_proj_defined_properties_to_axes(wout._axes)
         return wout
 

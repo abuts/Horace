@@ -140,6 +140,30 @@ class SQWDnDBase(
     # ------------------------------------------------------------------
     # Shared SQWDnDBase methods
     # ------------------------------------------------------------------
+    def copy(self) -> "SQWDnDBase":
+        """Return a deep copy of this object."""
+        return copy.deepcopy(self)
+
+    def equal_to_tol(
+        self,
+        other: Any,
+        *args: Any,
+        return_msg: bool = False,
+        nargout: Optional[int] = None,
+        **kwargs: Any,
+    ) -> Any:
+        """Compare two SQWDnDBase objects within tolerance."""
+        if nargout is None:
+            nargout = _infer_nargout(default=1)
+        if type(self) is not type(other):
+            iseq = False
+            mess = f"Objects being compared are not of the same type ({type(self).__name__} vs {type(other).__name__})"
+        else:
+            iseq, mess = Serializable.equal_to_tol(self, other, *args, **kwargs)
+        if return_msg or nargout >= 2:
+            return bool(iseq), mess
+        return bool(iseq)
+
     @staticmethod
     def dimensions_match(
         objs: Union["SQWDnDBase", Sequence["SQWDnDBase"], np.ndarray],
@@ -235,7 +259,7 @@ class SQWDnDBase(
         """Evaluate S(Q, w) function on a DnD or SQW object."""
         opts = self._parse_eval_options(*args, **kwargs)
         wout = self.copy()
-        wout.sqw_eval_nopix(sqwfunc, pars, opts)
+        wout = wout.sqw_eval_nopix(sqwfunc, pars, opts)
         return wout
 
     def disp2sqw_eval(
@@ -255,6 +279,8 @@ class SQWDnDBase(
         wout = self.copy()
         wout.s = val_arr
         wout.e = np.zeros_like(wout.s)
+        if all_bins:
+            wout.npix = np.ones_like(wout.npix)
         return wout
 
     def disp2sqw(

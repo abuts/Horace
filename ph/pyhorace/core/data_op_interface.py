@@ -333,6 +333,28 @@ class DataOpArray(np.ndarray):
     def __pos__(self) -> Any:
         return uplus(self)
 
+    def copy(self) -> "DataOpArray":
+        return copy.deepcopy(self)
+
+    def equal_to_tol(
+        self,
+        other: Any,
+        *args: Any,
+        return_msg: bool = False,
+        **kwargs: Any,
+    ) -> Any:
+        if not isinstance(other, (DataOpArray, np.ndarray, list, tuple)):
+            return (False, "Not an array") if return_msg else False
+        other_arr = np.asarray(other, dtype=object)
+        if self.size != other_arr.size:
+            return (False, "Array sizes differ") if return_msg else False
+        for a, b in zip(self.ravel(order="F"), other_arr.ravel(order="F")):
+            res = a.equal_to_tol(b, *args, return_msg=True, **kwargs)
+            ok, mess = res if isinstance(res, tuple) else (bool(res), "")
+            if not ok:
+                return (False, mess) if return_msg else False
+        return (True, "") if return_msg else True
+
 
 class data_op_interface(ABC):
     """DATA_OP_INTERFACE defines the operations which are available on

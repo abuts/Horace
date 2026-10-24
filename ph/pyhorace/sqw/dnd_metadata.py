@@ -91,11 +91,13 @@ class dnd_metadata(Serializable):
                 self.check_combo_arg()
                 return
             if isinstance(arg0, dict):
-                if "axes" not in arg0 and ("npax" in arg0 or "u_to_rlu" in arg0 or "u_to_rlu_legacy" in arg0):
+                if "array_dat" in arg0 and isinstance(arg0["array_dat"], dict):
+                    arg0 = arg0["array_dat"]
+                if "axes" not in arg0 and ("npax" in arg0 or "u_to_rlu" in arg0 or "u_to_rlu_legacy" in arg0 or "pax" in arg0):
                     self._proj = line_proj.get_from_old_data(arg0)
                     self._axes = line_axes.get_from_old_data(arg0)
                     self.check_combo_arg()
-                elif "serial_name" in arg0:
+                elif "serial_name" in arg0 and arg0.get("serial_name") == "dnd_metadata":
                     loaded = self.from_struct(arg0)
                     if isinstance(loaded, dnd_metadata):
                         self._axes = loaded._axes

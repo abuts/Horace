@@ -94,13 +94,15 @@ class TestBinaryOpsDnD:
 
     @pytest.mark.parametrize("op_name,op_func", BINARY_OPS[:4])
     def test_dnd_and_sqw(self, d2d_obj, sqw_obj, op_name, op_func):
+        from pyhorace.sqw import sqw
+
         d = d2d_obj.copy()
         d.s = np.abs(d.s) + 2.0
         s_obj = sqw_obj.copy()
         s_obj.data.s = np.abs(s_obj.data.s) + 1.0
 
         res = op_func(d, s_obj)
-        assert isinstance(res, d2d)
+        assert isinstance(res, sqw)
         sv_res = getattr(sigvar(d.s, d.e), op_name)(sigvar(s_obj.data.s, s_obj.data.e))
         mask = (d.npix == 0) | (s_obj.data.npix == 0)
         exp_s = sv_res.s.copy()
@@ -108,8 +110,8 @@ class TestBinaryOpsDnD:
         exp_s[mask] = 0.0
         exp_e[mask] = 0.0
 
-        np.testing.assert_allclose(res.s, exp_s, rtol=1e-12, atol=1e-12)
-        np.testing.assert_allclose(res.e, exp_e, rtol=1e-12, atol=1e-12)
+        np.testing.assert_allclose(res.data.s, exp_s, rtol=1e-12, atol=1e-12)
+        np.testing.assert_allclose(res.data.e, exp_e, rtol=1e-12, atol=1e-12)
 
     def test_incompatible_dnd_shapes_raise_error(self, d2d_obj):
         d_sec = d2d_obj.section([0, 0.2], [0, 0.2])

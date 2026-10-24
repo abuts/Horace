@@ -256,7 +256,7 @@ class aProjectionBase(Serializable, ABC):
 
     @title.setter
     def title(self, val: Any) -> None:
-        if val is None:
+        if val is None or (isinstance(val, np.ndarray) and val.size == 0):
             self._title = ""
         elif isinstance(val, str):
             self._title = val
@@ -344,6 +344,22 @@ class aProjectionBase(Serializable, ABC):
     @property
     def can_mex_cut(self) -> bool:
         return False
+
+    def copy_proj_param_from_source(self, cut_source: Any) -> "aProjectionBase":
+        """Copy lattice parameters (alatt, angdeg) from cut_source projection."""
+        source_proj = (
+            cut_source.data.proj
+            if hasattr(cut_source, "data") and hasattr(cut_source.data, "proj")
+            else cut_source.proj
+        )
+        self._do_check_combo_arg = False
+        try:
+            self.alatt = source_proj.alatt
+            self.angdeg = source_proj.angdeg
+        finally:
+            self._do_check_combo_arg = True
+        self.check_combo_arg()
+        return self
 
     # ------------------------------------------------------------------
     # Abstract & Core Coordinate Transformation Methods
@@ -714,6 +730,10 @@ class aProjectionBase(Serializable, ABC):
 
     def _get_axes_class(self) -> type:
         return line_axes
+
+    @property
+    def axes_name(self) -> str:
+        return self._get_axes_class().__name__
 
     def copy_proj_defined_properties_to_axes(self, axes_bl: AxesBlockBase) -> AxesBlockBase:
         """Copy projection-defined properties (offset, label, title, img_scales, type) to axes_bl."""

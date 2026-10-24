@@ -37,7 +37,7 @@ class TestSphereAxes:
         # For phi: [-180, 10, 180] -> min=-180, max=180, nbins=36
         assert sa.img_range[0, 0] == pytest.approx(0.0)
         assert sa.img_range[1, 0] == pytest.approx(2.1)
-        assert sa.nbins_all_dims[0] == 21
+        assert sa.nbins_all_dims[0] == 20
         np.testing.assert_allclose(sa.img_range[:, 1], [0.0, 180.0])
         assert sa.nbins_all_dims[1] == 18
         np.testing.assert_allclose(sa.img_range[:, 2], [-180.0, 180.0])

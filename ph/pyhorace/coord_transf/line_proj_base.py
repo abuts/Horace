@@ -469,34 +469,147 @@ class LineProjBase(aProjectionBase):
         alatt: np.ndarray,
         angdeg: np.ndarray,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, str, bool]:
-        """Extract (u, v, w, type, nonorthogonal) from legacy u_to_rlu and ulen."""
+        """Extract (u, v, w, type, nonorthogonal) from legacy u_to_rlu and ulen.
+        Ported from @LineProjBase/private/uv_from_u_to_rlu_.m.
+        """
         b = bmatrix(alatt, angdeg, nargout=1)
         u_rlu_3 = np.asarray(u_to_rlu, dtype=float)[:3, :3]
         ulen_3 = np.asarray(ulen, dtype=float).ravel()[:3]
 
-        # Check orthogonality in Crystal Cartesian space
-        u_cc = b @ u_rlu_3
-        # Normalize columns
-        norms = np.linalg.norm(u_cc, axis=0)
-        u_cc_unit = u_cc / np.maximum(norms, 1e-12)
-        gram = u_cc_unit.T @ u_cc_unit
-        nonortho = not np.allclose(gram, np.eye(3), atol=1e-5)
+        ub_inv = u_rlu_3 / ulen_3.reshape(1, 3)
+        umat = np.linalg.inv(b @ ub_inv)
+        cross_proj = np.array(
+            [
+                float(np.dot(umat[0, :], umat[1, :])),
+                float(np.dot(umat[0, :], umat[2, :])),
+                float(np.dot(umat[1, :], umat[2, :])),
+            ]
+        )
+        ortho = not bool(np.any(np.abs(cross_proj) > 1e-8))
+        nonortho = not ortho
 
-        u = u_rlu_3[:, 0].copy()
-        v = u_rlu_3[:, 1].copy()
-        w = u_rlu_3[:, 2].copy()
+        if ortho:
+            ubmat = umat @ b
+            ubmatinv = np.linalg.inv(ubmat)
+            uvw_orth_hkl = np.linalg.solve(b, umat.T)
+            lt = []
+            for i in range(3):
+                ulen_i_r = 1.0 / float(np.max(np.abs(ubmatinv[:, i])))
+                if ulen_3[i] == 1.0:
+                    lt.append("a")
+                elif abs(ulen_3[i] - ulen_i_r) < 1e-7:
+                    lt.append("r")
+                else:
+                    lt.append("p")
+                    uvw_orth_hkl[:, i] = uvw_orth_hkl[:, i] * ulen_3[i]
+            u = uvw_orth_hkl[:, 0].copy()
+            v = uvw_orth_hkl[:, 1].copy()
+            w = uvw_orth_hkl[:, 2].copy()
+            ptype = "".join(lt)
+        else:
+            transf_cc = np.linalg.inv(umat)
+            uvw = np.linalg.solve(b, transf_cc)
+            uvw_orth = transf_cc
+            lt = []
+            eps_s = 4.0 * float(np.finfo(np.float32).eps)
+            for i in range(3):
+                veclen = float(np.linalg.norm(uvw_orth[:, i]))
+                vec = uvw[:, i]
+                scale = 1.0
+                if abs(veclen - ulen_3[i]) < eps_s:
+                    t_ch = "p"
+                elif ulen_3[i] == 1.0:
+                    t_ch = "a"
+                else:
+                    scale_p = ulen_3[i] / veclen
+                    scale_r = float(np.sqrt(ulen_3[i] / veclen / np.max(np.abs(vec))))
+                    if abs(veclen * scale_r - ulen_3[i]) < eps_s:
+                        scale = scale_r
+                        t_ch = "r"
+                    else:
+                        scale = scale_p
+                        t_ch = "p"
+                if scale != 1.0:
+                    uvw[:, i] = scale * uvw[:, i]
+                lt.append(t_ch)
+            u = uvw[:, 0].copy()
+            v = uvw[:, 1].copy()
+            w = uvw[:, 2].copy()
+            ptype = "".join(lt)
 
-        # Infer type characters ('a' if ulen == 1 and norm(u_cc) == 1, 'r' if max(abs) == 1, else 'p')
-        type_chars = []
-        for i in range(3):
-            if abs(ulen_3[i] - 1.0) < 1e-6 and abs(norms[i] - 1.0) < 1e-6:
-                type_chars.append("a")
-            elif abs(np.max(np.abs(u_rlu_3[:, i])) - 1.0) < 1e-6 and i == 2:
-                type_chars.append("r")
-            else:
-                type_chars.append("p")
+        return u, v, w, ptype, nonortho
 
-        return u, v, w, "".join(type_chars), nonortho
+    def equal_to_tol(
+        self,
+        other: Any,
+        tol: Union[float, Sequence[float]] = (0.0, 0.0),
+        nan_equal: bool = True,
+        ignore_str: bool = False,
+        name_a: str = "obj1",
+        name_b: str = "obj2",
+    ) -> Tuple[bool, str]:
+        """Compare two LineProjBase projections via their transformation matrices.
+        Ported from @LineProjBase/private/eq_to_tol_single_.m.
+        """
+        from pyhorace.core.serializable import compare_values
+
+        if not isinstance(other, LineProjBase):
+            return (
+                False,
+                f"Objects are of different classes: '{type(self).__name__}' and '{type(other).__name__}'",
+            )
+        obj1_def = self.alatt_defined and self.angdeg_defined
+        obj2_def = other.alatt_defined and other.angdeg_defined
+        if not obj1_def and not obj2_def:
+            return super().equal_to_tol(
+                other,
+                tol=tol,
+                nan_equal=nan_equal,
+                ignore_str=ignore_str,
+                name_a=name_a,
+                name_b=name_b,
+            )
+        if obj1_def != obj2_def:
+            return (
+                False,
+                f"Object {name_a} defined={obj1_def} and Object {name_b} defined={obj2_def}",
+            )
+        q_to_img_1, shift_1, ulen_1 = self.get_pix_img_transformation(4, nargout=3)
+        q_to_img_2, shift_2, ulen_2 = other.get_pix_img_transformation(4, nargout=3)
+        mat_eq, mess1 = compare_values(
+            q_to_img_1,
+            q_to_img_2,
+            tol=tol,
+            nan_equal=nan_equal,
+            ignore_str=ignore_str,
+            name_a=f"{name_a}.q_to_img",
+            name_b=f"{name_b}.q_to_img",
+        )
+        if not mat_eq:
+            return False, f"Q_to_img: {mess1}"
+        shift_eq, mess2 = compare_values(
+            shift_1,
+            shift_2,
+            tol=tol,
+            nan_equal=nan_equal,
+            ignore_str=ignore_str,
+            name_a=f"{name_a}.shift",
+            name_b=f"{name_b}.shift",
+        )
+        if not shift_eq:
+            return False, f"shift(s): {mess2}"
+        len_eq, mess3 = compare_values(
+            ulen_1,
+            ulen_2,
+            tol=tol,
+            nan_equal=nan_equal,
+            ignore_str=ignore_str,
+            name_a=f"{name_a}.ulen",
+            name_b=f"{name_b}.ulen",
+        )
+        if not len_eq:
+            return False, f"ulen(s): {mess3}"
+        return True, ""
 
     @staticmethod
     def get_from_old_data(data_struct: dict[str, Any]) -> "LineProjBase":

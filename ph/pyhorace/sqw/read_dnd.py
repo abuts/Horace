@@ -151,9 +151,8 @@ def _read_binary_sqw_dnd(path: str, read_pixels: bool = False) -> Tuple[DnDBase,
             "pax": pax,
             "p": p,
             "dax": dax,
+            "img_db_range": img_range,
         }
-        if img_range is not None:
-            old_data["img_range"] = img_range
 
         proj = line_proj.get_from_old_data(old_data)
         ax = line_axes.get_from_old_data(old_data)
@@ -273,6 +272,20 @@ class sqw(SQWDnDBase):
     def has_pixels(self) -> bool:
         return self._pix.num_pixels > 0
 
+    def calculate_q_bins(self, nargout: Optional[int] = None) -> Any:
+        return self._data.calculate_q_bins(nargout=nargout)
+
+    def calculate_qw_bins(
+        self,
+        *args: Any,
+        boundaries: bool = False,
+        edges: bool = False,
+        nargout: Optional[int] = None,
+    ) -> Any:
+        return self._data.calculate_qw_bins(
+            *args, boundaries=boundaries, edges=edges, nargout=nargout
+        )
+
     def sigvar(self) -> sigvar:
         return self._data.sigvar()
 
@@ -289,8 +302,14 @@ class sqw(SQWDnDBase):
     def classVersion(self) -> int:
         return 4
 
+    def class_version(self) -> int:
+        return self.classVersion()
+
     def saveableFields(self) -> List[str]:
         return ["data"]
+
+    def saveable_fields(self) -> List[str]:
+        return self.saveableFields()
 
 
 def read_sqw(file: str) -> Any:

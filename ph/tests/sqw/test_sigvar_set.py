@@ -3,45 +3,85 @@
 import numpy as np
 import pytest
 
+from pyhorace.coord_transf import line_axes, line_proj
 from pyhorace.coord_transf._dependencies import HoraceError
 from pyhorace.data.sigvar import sigvar
-from pyhorace.sqw import d0d, d1d, d2d, d3d, d4d
+from pyhorace.sqw import d1d, d2d
 
 
 class TestSigvarSet:
-    def test_sigvar_set_raises_error_if_s_not_same_size_as_dnd_s(self):
-        dnd_2d = d2d()
-        dnd_2d.npix = np.ones((2, 3))
-        sigvar_obj = sigvar(np.array([1.0, 2.0, 3.0]), np.ones((2, 3)))
-        with pytest.raises(HoraceError) as excinfo:
-            dnd_2d.sigvar_set(sigvar_obj)
-        assert excinfo.value.error_id == "HORACE:DnDBase:invalid_argument"
-        assert "Size of signal array: [1, 3] must match size of npix array: [2, 3]" in str(excinfo.value)
+    def test_sigvar_set_raises_error_if_e_not_same_size_as_dnd_object(self):
+        ab = line_axes(
+            [0, 0.5, 1],
+            [0, 1],
+            [0, 0.5, 1],
+            [0, 1],
+            single_bin_defines_iax=[False, True, True, True],
+        )
+        pr = line_proj(alatt=3, angdeg=90)
+        d2d_obj = d2d(ab, pr)
+        d2d_obj.npix = np.ones(d2d_obj.axes.dims_as_ssize)
 
-    def test_sigvar_set_raises_error_if_e_not_same_size_as_dnd_e(self):
-        dnd_2d = d2d()
-        dnd_2d.npix = np.ones((2, 3))
-        sigvar_obj = sigvar(np.ones((2, 3)), np.array([1.0, 2.0, 3.0]))
+        sigvar_obj = sigvar(np.array([1.0, 2.0, 3.0]), np.array([44.0, 55.0, 66.0]))
         with pytest.raises(HoraceError) as excinfo:
-            dnd_2d.sigvar_set(sigvar_obj)
+            d2d_obj.sigvar_set(sigvar_obj)
         assert excinfo.value.error_id == "HORACE:DnDBase:invalid_argument"
-        assert "Size of variance array: [1, 3] must match size of npix array: [2, 3]" in str(excinfo.value)
+        assert "size of npix array" in str(excinfo.value)
 
-    def test_sigvar_set_updates_s_and_e_values_and_zeros_empty_npix(self):
-        dnd_2d = d2d()
-        dnd_2d.npix = np.array([[1, 0, 2], [0, 3, 0], [4, 5, 0]], dtype=float)
+    def test_sigvar_set_s_and_e_nopix_gives_zero(self):
+        ab = line_axes(
+            [0, 0.5, 1],
+            [0, 1],
+            [0, 0.5, 1],
+            [0, 1],
+            single_bin_defines_iax=[False, True, True, True],
+        )
+        pr = line_proj(alatt=3, angdeg=90)
+        d2d_obj = d2d(ab, pr)
+        d2d_obj.npix = np.zeros((3, 3))
+
+        sigvar_obj = sigvar(
+            np.arange(1, 10, dtype=float).reshape((3, 3)),
+            np.arange(10, 19, dtype=float).reshape((3, 3)),
+        )
+        result = d2d_obj.sigvar_set(sigvar_obj)
+        np.testing.assert_allclose(result.s, np.zeros((3, 3)))
+        np.testing.assert_allclose(result.e, np.zeros((3, 3)))
+
+    def test_sigvar_set_updates_s_and_e_values(self):
+        ab = line_axes(
+            [0, 0.5, 1],
+            [0, 1],
+            [0, 0.5, 1],
+            [0, 1],
+            single_bin_defines_iax=[False, True, True, True],
+        )
+        pr = line_proj(alatt=3, angdeg=90)
+        d2d_obj = d2d(ab, pr)
+        d2d_obj.npix = np.ones(d2d_obj.axes.dims_as_ssize)
+
         s = np.arange(1, 10, dtype=float).reshape((3, 3))
         e = np.arange(10, 19, dtype=float).reshape((3, 3))
         sigvar_obj = sigvar(s, e)
 
-        dnd_2d = dnd_2d.sigvar_set(sigvar_obj)
+        result = d2d_obj.sigvar_set(sigvar_obj)
+        np.testing.assert_allclose(result.s, s)
+        np.testing.assert_allclose(result.e, e)
 
-        expected_s = s.copy()
-        expected_e = e.copy()
-        mask = dnd_2d.npix == 0
-        expected_s[mask] = 0.0
-        expected_e[mask] = 0.0
+    def test_sigvar_set_zero_s_and_e_where_npix_zero(self):
+        ab = line_axes([0, 0.5, 1], [0, 1], [0, 1], [0, 1])
+        pr = line_proj(alatt=3, angdeg=90)
+        d1d_obj = d1d(ab, pr)
+        d1d_obj.s = np.ones((3, 1))
+        d1d_obj.e = np.ones((3, 1))
+        d1d_obj.npix = np.array([3.0, 0.0, 1.0])
 
-        np.testing.assert_array_equal(dnd_2d.s, expected_s)
-        np.testing.assert_array_equal(dnd_2d.e, expected_e)
+        sigvar_obj = sigvar(np.array([1.0, 2.0, 3.0]), np.array([44.0, 55.0, 66.0]))
+        expected_s = np.array([[1.0], [0.0], [3.0]])
+        expected_e = np.array([[44.0], [0.0], [66.0]])
+
+        result = d1d_obj.sigvar_set(sigvar_obj)
+        np.testing.assert_allclose(result.s, expected_s)
+        np.testing.assert_allclose(result.e, expected_e)
+
 

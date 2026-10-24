@@ -22,10 +22,15 @@ class TestAxesBlockIntegration:
 
     def test_realign_bin_edges_commensurate_and_noncommensurate(self):
         ax_src = line_axes([-1.0, 0.1, 1.0], [-2.0, 0.2, 2.0], [-1.0, 1.0], [0.0, 1.0, 10.0])
-        # Non-commensurate step 0.15 on axis 1 throws
-        ax_bad = line_axes([-0.5, 0.15, 0.5], [-1.0, 1.0], [-1.0, 1.0], [0.0, 1.0, 10.0])
+        # Non-overlapping range on axis 1 throws
+        ax_bad = line_axes([2.0, 0.15, 3.0], [-1.0, 1.0], [-1.0, 1.0], [0.0, 1.0, 10.0])
         with pytest.raises(HoraceError):
             ax_src.realign_bin_edges(ax_bad)
+
+        # Non-commensurate step 0.15 on axis 1 rounds to nearest integer multiple of 0.1 (0.2)
+        ax_nc = line_axes([-0.5, 0.15, 0.5], [-1.0, 1.0], [-1.0, 1.0], [0.0, 1.0, 10.0])
+        ax_nc_aligned = ax_src.realign_bin_edges(ax_nc)
+        assert ax_nc_aligned.step[0] == pytest.approx(0.2)
 
         # Commensurate step 0.2 on axis 1, integration on axis 2
         ax_cut = line_axes([-0.5, 0.2, 0.5], [-0.95, 0.95], [-1.0, 1.0], [1.0, 2.0, 9.0])
