@@ -321,7 +321,7 @@ class AxesBlockBase(Serializable, ABC):
         if np.array_equal(arr, self.EMPTY_RANGE_):
             self._img_range = self.EMPTY_RANGE_.copy()
             return
-        if np.any(np.isnan(arr)) or np.any(np.isinf(arr)):
+        if np.any(np.isnan(arr)) or np.any(arr[0, :] == np.inf) or np.any(arr[1, :] == -np.inf):
             raise HoraceError(
                 f"HORACE:{self._err_cls_name()}:invalid_argument",
                 "img_range cannot contain Inf or NaN unless it is EMPTY_RANGE_",

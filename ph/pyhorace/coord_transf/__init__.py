@@ -1,16 +1,10 @@
 """Coordinate transformation, projection, and axes block classes for PyHorace."""
 
 from pyhorace.coord_transf._dependencies import (
-    DnDBase,
     HoraceError,
     PixelDataBase,
     PixelDataMemory,
     crystal_alignment_info,
-    d0d,
-    d1d,
-    d2d,
-    d3d,
-    d4d,
     fast_map,
     oriented_lattice,
     rotmat_to_rotvec,
@@ -74,3 +68,13 @@ __all__ = [
     "ubmat_proj",
     "ubmatrix",
 ]
+
+
+def __getattr__(name: str):
+    if name in ("DnDBase", "SQWDnDBase", "d0d", "d1d", "d2d", "d3d", "d4d", "dnd", "dnd_metadata", "dnd_data", "data_sqw_dnd"):
+        import importlib
+
+        _sqw = importlib.import_module("pyhorace.sqw")
+        return getattr(_sqw, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+

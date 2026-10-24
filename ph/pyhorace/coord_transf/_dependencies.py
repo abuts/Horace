@@ -899,77 +899,12 @@ class PixelDataMemory(PixelDataBase):
     pass
 
 
-class DnDBase:
-    """Lightweight DnD container for axes/projection transformation unit tests."""
-
-    NUM_DIMS: Optional[int] = None
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        from pyhorace.coord_transf.axes_block_base import AxesBlockBase
-        from pyhorace.coord_transf.line_axes import line_axes
-        from pyhorace.coord_transf.line_proj import line_proj
-
-        self.axes: AxesBlockBase = line_axes()
-        self.proj: Any = line_proj()
-        self.s: np.ndarray = np.zeros((1, 1), dtype=float)
-        self.e: np.ndarray = np.zeros((1, 1), dtype=float)
-        self.npix: np.ndarray = np.zeros((1, 1), dtype=float)
-
-        if len(args) == 2 and isinstance(args[0], AxesBlockBase):
-            self.axes = copy.deepcopy(args[0])
-            self.proj = copy.deepcopy(args[1])
-            self.axes = self.proj.copy_proj_defined_properties_to_axes(self.axes)
-            if self.NUM_DIMS is not None and self.axes.dimensions != self.NUM_DIMS:
-                raise HoraceError(
-                    f"HORACE:{self.__class__.__name__}:invalid_argument",
-                    f"Axes dimensions ({self.axes.dimensions}) do not match {self.__class__.__name__} ({self.NUM_DIMS})",
-                )
-            sz = tuple(int(x) for x in self.axes.dims_as_ssize)
-            self.s = np.zeros(sz, dtype=float)
-            self.e = np.zeros(sz, dtype=float)
-            self.npix = np.zeros(sz, dtype=float)
-        elif len(args) == 1 and isinstance(args[0], DnDBase):
-            other = args[0]
-            self.axes = copy.deepcopy(other.axes)
-            self.proj = copy.deepcopy(other.proj)
-            self.s = other.s.copy()
-            self.e = other.e.copy()
-            self.npix = other.npix.copy()
-
-    @staticmethod
-    def dnd(*args: Any, **kwargs: Any) -> "DnDBase":
-        obj = DnDBase(*args, **kwargs)
-        dim_map = {0: d0d, 1: d1d, 2: d2d, 3: d3d, 4: d4d}
-        cls_target = dim_map.get(obj.axes.dimensions, DnDBase)
-        return cls_target(obj.axes, obj.proj)
-
-    def get_targ_range(self, targ_proj: Any = None, *args: Any) -> Any:
-        if targ_proj is None:
-            targ_proj = self.proj
-        return self.axes.get_targ_range(self.proj, targ_proj, *args)
-
-
-class d0d(DnDBase):
-    NUM_DIMS = 0
-
-
-class d1d(DnDBase):
-    NUM_DIMS = 1
-
-
-class d2d(DnDBase):
-    NUM_DIMS = 2
-
-
-class d3d(DnDBase):
-    NUM_DIMS = 3
-
-
-class d4d(DnDBase):
-    NUM_DIMS = 4
-
-
 def __getattr__(name: str) -> Any:
+    if name in ("DnDBase", "SQWDnDBase", "d0d", "d1d", "d2d", "d3d", "d4d", "dnd", "dnd_metadata", "dnd_data", "data_sqw_dnd"):
+        import importlib
+
+        _sqw = importlib.import_module("pyhorace.sqw")
+        return getattr(_sqw, name)
     if name == "AxesBlockBase":
         from pyhorace.coord_transf.axes_block_base import AxesBlockBase
 
