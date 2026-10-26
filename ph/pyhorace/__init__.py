@@ -12,6 +12,13 @@ from pyhorace.core.configurations import (
     planner_config,
 )
 from pyhorace.core.data_op_interface import DataOpArray, DataOpInterface, data_op_interface
+from pyhorace.core.hashable import (
+    Hashable,
+    HashableArray,
+    build_hash,
+    hashable,
+    isequal,
+)
 from pyhorace.core.serializable import Serializable
 from pyhorace.data.sigvar import SigVar, sigvar
 import pyhorace.coord_transf as coord_transf  # Ensure coord_transf initializes before sqw
@@ -37,9 +44,12 @@ __all__ = [
     "DataOpArray",
     "DataOpInterface",
     "DnDBase",
+    "Hashable",
+    "HashableArray",
     "SQWDnDBase",
     "Serializable",
     "SigVar",
+    "build_hash",
     "config_base",
     "config_store",
     "d0d",
@@ -53,9 +63,11 @@ __all__ = [
     "dnd_data",
     "dnd_metadata",
     "graph_config",
+    "hashable",
     "herbert_config",
     "hor_config",
     "hpc_config",
+    "isequal",
     "log_config",
     "parallel_config",
     "planner_config",

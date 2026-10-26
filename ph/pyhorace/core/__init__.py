@@ -27,25 +27,37 @@ from pyhorace.core.data_op_interface import (
     sigvar_size,
     size_array_split,
 )
+from pyhorace.core.hashable import (
+    Hashable,
+    HashableArray,
+    build_hash,
+    hashable,
+    isequal,
+)
 from pyhorace.core.serializable import Serializable, register_serializable
 
 __all__ = [
     "ConfigData",
     "DataOpArray",
     "DataOpInterface",
+    "Hashable",
+    "HashableArray",
     "HoraceConfig",
     "HoraceConfigError",
     "HoraceConfigWarning",
     "Serializable",
+    "build_hash",
     "config",
     "config_base",
     "config_store",
     "data_op_interface",
     "get",
     "graph_config",
+    "hashable",
     "herbert_config",
     "hor_config",
     "hpc_config",
+    "isequal",
     "lastwarn",
     "log_config",
     "parallel_config",
