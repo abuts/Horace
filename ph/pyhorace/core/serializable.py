@@ -39,6 +39,24 @@ class Serializable(BaseModel, ABC):
     )
 
     _do_check_combo_arg: bool = PrivateAttr(default=False)
+    _container_callback: Optional[Tuple[Any, int]] = PrivateAttr(default=None)
+
+    def _notify_container_mutation(self) -> None:
+        if getattr(self, "_do_check_combo_arg", False):
+            cb = getattr(self, "_container_callback", None)
+            if cb is not None:
+                container, idx = cb
+                container._on_item_mutated(idx, self)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        is_private_or_flag = name.startswith("_") or name in (
+            "do_check_combo_arg",
+            "do_check_combo_arg_",
+            "hash_value_",
+        )
+        super().__setattr__(name, value)
+        if not is_private_or_flag and type(self).__setattr__ is Serializable.__setattr__:
+            self._notify_container_mutation()
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         has_args = bool(args) or bool(kwargs)

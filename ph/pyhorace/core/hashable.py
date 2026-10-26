@@ -112,6 +112,7 @@ class hashable(Serializable, ABC):
                     self._hash_value = prev_hash
             except Exception:
                 self.clear_hash()
+            self._notify_container_mutation()
 
     # -------------------------------------------------------------------------
     # Structure Conversion (to_struct / from_struct)
@@ -185,9 +186,30 @@ class hashable(Serializable, ABC):
     def _clone_for_hash(self) -> "hashable":
         """Create an independent shallow copy of self with its own private attributes."""
         cloned = self.model_copy()
+        if self.__pydantic_extra__ is not None:
+            cloned.__pydantic_extra__ = dict(self.__pydantic_extra__)
         cloned._do_check_combo_arg = self._do_check_combo_arg
         cloned._hash_value = self._hash_value
+        cloned._container_callback = None
         return cloned
+
+    @staticmethod
+    def _set_hashed_field(obj: Any, fld: str, val: Any) -> None:
+        """Store updated nested hashable field without triggering reconstructing property setters."""
+        old_flag = obj.do_check_combo_arg
+        try:
+            obj.do_check_combo_arg = False
+            prop = getattr(type(obj), fld, None)
+            priv_name = f"_{fld}"
+            if isinstance(prop, property) and hasattr(obj, priv_name):
+                if getattr(obj, "__pydantic_extra__", None) is not None and priv_name in obj.__pydantic_extra__:
+                    obj.__pydantic_extra__[priv_name] = val
+                else:
+                    object.__setattr__(obj, priv_name, val)
+            else:
+                object.__setattr__(obj, fld, val)
+        finally:
+            obj.do_check_combo_arg = old_flag
 
     def to_hashable_array(self) -> Tuple["hashable", bytes]:
         """
@@ -213,12 +235,7 @@ class hashable(Serializable, ABC):
                 if not val.hash_defined:
                     val, h_val, new_hash = build_hash(val)
                     if new_hash:
-                        old_flag = obj.do_check_combo_arg
-                        try:
-                            obj.do_check_combo_arg = False
-                            object.__setattr__(obj, fld, val)
-                        finally:
-                            obj.do_check_combo_arg = old_flag
+                        self._set_hashed_field(obj, fld, val)
                 else:
                     h_val = val.hash_value
                 if isinstance(h_val, list):
@@ -230,12 +247,7 @@ class hashable(Serializable, ABC):
             ):
                 updated_seq, h_val, new_hash = build_hash(val)
                 if new_hash:
-                    old_flag = obj.do_check_combo_arg
-                    try:
-                        obj.do_check_combo_arg = False
-                        object.__setattr__(obj, fld, updated_seq)
-                    finally:
-                        obj.do_check_combo_arg = old_flag
+                    self._set_hashed_field(obj, fld, updated_seq)
                 if isinstance(h_val, list):
                     chunks.append("".join(x or "" for x in h_val).encode("utf-8"))
                 elif isinstance(h_val, str):

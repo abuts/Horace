@@ -22,7 +22,7 @@ from pyhorace.core.hashable import (
 )
 
 
-class IX_experiment(hashable):
+class _MockIXExperiment(hashable):
     """
     Test helper class matching MATLAB's IX_experiment subclass of hashable
     used in test_hashable_methods.m.
@@ -83,6 +83,9 @@ class IX_experiment(hashable):
             "gl",
             "gs",
         ]
+
+
+IX_experiment = _MockIXExperiment
 
 
 def build_IX_array(

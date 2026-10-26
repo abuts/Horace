@@ -264,7 +264,9 @@ class IX_experiment(Goniometer):
             S["u_to_rlu"] = self.u_to_rlu
         return S
 
-    def from_bare_struct(self, S: Dict[str, Any]) -> "IX_experiment":
+    def from_bare_struct(self, S: Union[Dict[str, Any], List[Dict[str, Any]]]) -> Any:
+        if isinstance(S, list):
+            return super().from_bare_struct(S)
         s_copy = dict(S)
         self._do_check_combo_arg = False
         try:
