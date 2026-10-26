@@ -127,9 +127,9 @@ def _read_binary_sqw_dnd(path: str, read_pixels: bool = False) -> Tuple[DnDBase,
                 if not np.any(np.isinf(ur)) and not np.any(np.isnan(ur)):
                     img_range = ur
             if read_pixels:
-                rem_npix = f.read(8)
-                if len(rem_npix) == 8:
-                    (num_pixels,) = struct.unpack("<Q", rem_npix)
+                hdr12 = f.read(12)
+                if len(hdr12) == 12:
+                    _, num_pixels = struct.unpack("<iQ", hdr12)
                     raw_pix = f.read(36 * num_pixels)
                     if len(raw_pix) == 36 * num_pixels:
                         pix_arr = np.frombuffer(raw_pix, dtype="<f4").astype(float).reshape((9, num_pixels), order="F")
@@ -216,10 +216,17 @@ class sqw(SQWDnDBase):
                 path = str(arg)
                 if not os.path.isfile(path):
                     raise HoraceError("HORACE:sqw:invalid_argument", f"File does not exist: {path}")
-                dnd_obj, pix_obj, _ = _read_binary_sqw_dnd(path, read_pixels=False)
+                file_backed = bool(kwargs.get("file_backed", False))
+                dnd_obj, pix_obj, _ = _read_binary_sqw_dnd(path, read_pixels=True)
                 self._data = dnd_obj
                 if pix_obj is not None:
-                    self._pix = pix_obj
+                    if file_backed:
+                        from pyhorace.data.pixels.pixel_data_file_backed import PixelDataFileBacked
+
+                        self._pix = PixelDataFileBacked(path)
+                    else:
+                        pix_obj.full_filename = path
+                        self._pix = pix_obj
                 return
             if isinstance(arg, sqw):
                 self._data = arg._data.copy()
@@ -312,15 +319,23 @@ class sqw(SQWDnDBase):
         return self.saveableFields()
 
 
-def read_sqw(file: str) -> Any:
+def read_sqw(file: str, file_backed: bool = False) -> Any:
     """Read an SQW or DnD object from a Horace binary file."""
     if isinstance(file, (list, tuple)):
         from pyhorace.core.data_op_interface import DataOpArray
 
-        return DataOpArray([read_sqw(f) for f in file])
-    dnd_obj, pix_obj, sqw_type = _read_binary_sqw_dnd(str(file), read_pixels=False)
+        return DataOpArray([read_sqw(f, file_backed=file_backed) for f in file])
+    dnd_obj, pix_obj, sqw_type = _read_binary_sqw_dnd(str(file), read_pixels=True)
     if sqw_type == 1:
         obj = sqw(dnd_obj)
+        if pix_obj is not None:
+            if file_backed:
+                from pyhorace.data.pixels.pixel_data_file_backed import PixelDataFileBacked
+
+                obj._pix = PixelDataFileBacked(str(file))
+            else:
+                pix_obj.full_filename = str(file)
+                obj._pix = pix_obj
         return obj
     return dnd_obj
 

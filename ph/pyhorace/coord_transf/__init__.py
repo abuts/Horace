@@ -2,8 +2,6 @@
 
 from pyhorace.coord_transf._dependencies import (
     HoraceError,
-    PixelDataBase,
-    PixelDataMemory,
     crystal_alignment_info,
     fast_map,
     oriented_lattice,
@@ -71,6 +69,16 @@ __all__ = [
 
 
 def __getattr__(name: str):
+    if name in (
+        "PixelDataBase",
+        "PixelDataMemory",
+        "PixelDataFileBacked",
+        "PixelData",
+    ):
+        import importlib
+
+        _pix = importlib.import_module("pyhorace.data.pixels")
+        return getattr(_pix, name)
     if name in ("DnDBase", "SQWDnDBase", "d0d", "d1d", "d2d", "d3d", "d4d", "dnd", "dnd_metadata", "dnd_data", "data_sqw_dnd"):
         import importlib
 

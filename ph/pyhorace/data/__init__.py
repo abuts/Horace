@@ -105,6 +105,27 @@ from .ix_dataset_2d import IX_data_2d, IX_dataset_2d
 from .ix_dataset_3d import IX_data_3d, IX_dataset_3d
 from .sigvar import SigVar, sigvar
 
+
+def __getattr__(name: str):
+    if name in (
+        "FileBackedPixInterface",
+        "FileBackedPixStub",
+        "MultipixBase",
+        "PixelData",
+        "PixelDataBase",
+        "PixelDataFileBacked",
+        "PixelDataMemory",
+        "pix_data",
+        "pix_metadata",
+        "pix_write_handle",
+        "pixfile_combine_info",
+        "pixobj_combine_info",
+    ):
+        from . import pixels
+
+        return getattr(pixels, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 SERIALIZABLE_REGISTRY["IX_data_1d"] = IX_dataset_1d
 SERIALIZABLE_REGISTRY["IX_data_2d"] = IX_dataset_2d
 SERIALIZABLE_REGISTRY["IX_data_3d"] = IX_dataset_3d

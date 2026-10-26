@@ -834,6 +834,34 @@ class data_op_interface(ABC):
             if hasattr(wout, "sigvar_set") and callable(wout.sigvar_set):
                 return wout.sigvar_set(result)
             return result
+        elif page_op_kind in (1, 2, 3):
+            if (
+                isinstance(wout, data_op_interface)
+                and type(wout).binary_op_manager_single
+                is not data_op_interface.binary_op_manager_single
+            ):
+                return wout.binary_op_manager_single(
+                    w1, w2, binary_op, ignore_cell_sorting
+                )
+            if hasattr(wout, "_pix") and hasattr(wout, "has_pixels") and wout.has_pixels():
+                npix_arr = getattr(getattr(wout, "data", wout), "npix", None)
+                op_pix = (
+                    operand._pix
+                    if (page_op_kind == 3 and hasattr(operand, "_pix"))
+                    else operand
+                )
+                wout._pix = wout._pix.do_binary_op(
+                    op_pix,
+                    binary_op,
+                    flip=flip,
+                    npix=npix_arr,
+                )
+            sv1 = sigvar(w1)
+            sv2 = sigvar(w2)
+            result = binary_op(sv1, sv2)
+            if hasattr(wout, "sigvar_set") and callable(wout.sigvar_set):
+                return wout.sigvar_set(result)
+            return result
         else:
             raise ValueError(
                 "HERBERT:data_op_interface:invalid_argument: "
@@ -868,10 +896,16 @@ class data_op_interface(ABC):
             out = np.empty(arr.shape, dtype=object)
             out_flat = out.ravel(order="F")
             for i, elem in enumerate(arr.ravel(order="F")):
-                res = unary_op(sigvar(elem))
-                elem_copy = elem.copy() if hasattr(elem, "copy") and callable(elem.copy) else copy.deepcopy(elem)
-                out_flat[i] = elem_copy.sigvar_set(res) if hasattr(elem_copy, "sigvar_set") else res
+                if hasattr(elem, "do_unary_op") and callable(elem.do_unary_op):
+                    out_flat[i] = elem.do_unary_op(unary_op)
+                else:
+                    res = unary_op(sigvar(elem))
+                    elem_copy = elem.copy() if hasattr(elem, "copy") and callable(elem.copy) else copy.deepcopy(elem)
+                    out_flat[i] = elem_copy.sigvar_set(res) if hasattr(elem_copy, "sigvar_set") else res
             return out.reshape(arr.shape, order="F").view(DataOpArray)
+
+        if hasattr(w1, "do_unary_op") and callable(w1.do_unary_op):
+            return w1.do_unary_op(unary_op)
 
         res = unary_op(sigvar(w1))
         w_copy = w1.copy() if hasattr(w1, "copy") and callable(w1.copy) else copy.deepcopy(w1)

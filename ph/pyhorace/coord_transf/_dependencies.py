@@ -727,179 +727,22 @@ class oriented_lattice(Serializable):
         )
 
 
-class PixelDataBase:
-    """Base interface for Horace pixel data containers."""
-
-    DEFAULT_NUM_PIX_FIELDS = 9
-    EMPTY_RANGE_ = np.array(
-        [[np.inf, np.inf, np.inf, np.inf], [-np.inf, -np.inf, -np.inf, -np.inf]],
-        dtype=float,
-    )
-
-    def __init__(self, data: Any = None) -> None:
-        self._is_corrected: bool = False
-        self._alignment_matr: np.ndarray = np.eye(3, dtype=float)
-        self._raw_data: np.ndarray = np.zeros((9, 0), dtype=float)
-        if data is None:
-            self._data = np.zeros((9, 0), dtype=float)
-        elif isinstance(data, PixelDataBase):
-            self._data = data._data.copy()
-            self._raw_data = data._raw_data.copy()
-            self._is_corrected = data._is_corrected
-            self._alignment_matr = data._alignment_matr.copy()
-        elif isinstance(data, (int, np.integer)):
-            n = int(data)
-            self._data = np.zeros((9, n), dtype=float)
-            self._data[4, :] = 1.0
-            self._raw_data = self._data.copy()
-        else:
-            arr = np.asarray(data, dtype=float)
-            if arr.size == 0:
-                self._data = np.zeros((9, 0), dtype=float)
-            elif arr.ndim == 2 and arr.shape[0] == 9:
-                self._data = arr.copy()
-            elif arr.ndim == 2 and arr.shape[1] == 9:
-                self._data = arr.T.copy()
-            else:
-                raise HoraceError(
-                    "HORACE:PixelDataBase:invalid_argument",
-                    f"Pixel data array must have 9 rows, got shape {arr.shape}",
-                )
-            self._raw_data = self._data.copy()
-
-    @property
-    def data(self) -> np.ndarray:
-        return self._data
-
-    @data.setter
-    def data(self, val: Any) -> None:
-        arr = np.asarray(val, dtype=float)
-        if arr.ndim == 2 and arr.shape[0] == 9:
-            self._data = arr.copy()
-            self._raw_data = arr.copy()
-        else:
-            raise HoraceError(
-                "HORACE:PixelDataBase:invalid_argument", "data must be 9xN"
-            )
-
-    @property
-    def num_pixels(self) -> int:
-        return int(self._data.shape[1])
-
-    @property
-    def q_coordinates(self) -> np.ndarray:
-        return self._data[0:3, :]
-
-    @q_coordinates.setter
-    def q_coordinates(self, val: Any) -> None:
-        self._data[0:3, :] = np.asarray(val, dtype=float)
-
-    @property
-    def dE(self) -> np.ndarray:
-        return self._data[3:4, :]
-
-    @dE.setter
-    def dE(self, val: Any) -> None:
-        self._data[3:4, :] = np.asarray(val, dtype=float).reshape(1, -1)
-
-    @property
-    def coordinates(self) -> np.ndarray:
-        return self._data[0:4, :]
-
-    @coordinates.setter
-    def coordinates(self, val: Any) -> None:
-        self._data[0:4, :] = np.asarray(val, dtype=float)
-
-    @property
-    def run_idx(self) -> np.ndarray:
-        return self._data[4:5, :]
-
-    @run_idx.setter
-    def run_idx(self, val: Any) -> None:
-        self._data[4:5, :] = np.asarray(val, dtype=float).reshape(1, -1)
-
-    @property
-    def detector_idx(self) -> np.ndarray:
-        return self._data[5:6, :]
-
-    @detector_idx.setter
-    def detector_idx(self, val: Any) -> None:
-        self._data[5:6, :] = np.asarray(val, dtype=float).reshape(1, -1)
-
-    @property
-    def energy_idx(self) -> np.ndarray:
-        return self._data[6:7, :]
-
-    @energy_idx.setter
-    def energy_idx(self, val: Any) -> None:
-        self._data[6:7, :] = np.asarray(val, dtype=float).reshape(1, -1)
-
-    @property
-    def signal(self) -> np.ndarray:
-        return self._data[7:8, :]
-
-    @signal.setter
-    def signal(self, val: Any) -> None:
-        self._data[7:8, :] = np.asarray(val, dtype=float).reshape(1, -1)
-
-    @property
-    def variance(self) -> np.ndarray:
-        return self._data[8:9, :]
-
-    @variance.setter
-    def variance(self, val: Any) -> None:
-        self._data[8:9, :] = np.asarray(val, dtype=float).reshape(1, -1)
-
-    @property
-    def pix_range(self) -> np.ndarray:
-        if self.num_pixels == 0:
-            return np.full((2, 4), np.nan, dtype=float)
-        return np.vstack(
-            [np.min(self._data[0:4, :], axis=1), np.max(self._data[0:4, :], axis=1)]
-        )
-
-    @property
-    def is_corrected(self) -> bool:
-        return self._is_corrected
-
-    @is_corrected.setter
-    def is_corrected(self, val: bool) -> None:
-        self._is_corrected = bool(val)
-
-    @property
-    def alignment_matr(self) -> np.ndarray:
-        return self._alignment_matr.copy()
-
-    @alignment_matr.setter
-    def alignment_matr(self, val: Any) -> None:
-        rm = np.asarray(val, dtype=float)
-        if rm.shape != (3, 3):
-            raise HoraceError(
-                "HORACE:PixelDataBase:invalid_argument",
-                "alignment_matr must be 3x3",
-            )
-        self._alignment_matr = rm.copy()
-        self._is_corrected = not np.allclose(rm, np.eye(3))
-        if self._is_corrected:
-            self._data[0:3, :] = rm @ self._raw_data[0:3, :]
-        else:
-            self._data[0:3, :] = self._raw_data[0:3, :].copy()
-
-    def get_raw_data(self, field_name: str = "q_coordinates") -> np.ndarray:
-        if field_name == "q_coordinates":
-            return self._raw_data[0:3, :].copy()
-        if field_name == "coordinates":
-            return self._raw_data[0:4, :].copy()
-        return getattr(self, field_name).copy()
-
-
-class PixelDataMemory(PixelDataBase):
-    """In-memory PixelData container."""
-
-    pass
-
-
 def __getattr__(name: str) -> Any:
+    if name in (
+        "PixelDataBase",
+        "PixelDataMemory",
+        "PixelDataFileBacked",
+        "PixelData",
+        "pix_metadata",
+        "pix_data",
+        "MultipixBase",
+        "pixfile_combine_info",
+        "pixobj_combine_info",
+    ):
+        import importlib
+
+        _pix = importlib.import_module("pyhorace.data.pixels")
+        return getattr(_pix, name)
     if name in ("DnDBase", "SQWDnDBase", "d0d", "d1d", "d2d", "d3d", "d4d", "dnd", "dnd_metadata", "dnd_data", "data_sqw_dnd"):
         import importlib
 
