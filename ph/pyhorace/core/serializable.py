@@ -423,7 +423,7 @@ class Serializable(BaseModel, ABC):
     ) -> Union["Serializable", List["Serializable"]]:
         """Load object from dictionary representation."""
         if obj_template is None:
-            obj_template = cls()
+            obj_template = cls() if cls is not Serializable and (not isinstance(S, dict) or "serial_name" not in S) else None
         return cls.from_struct(S, obj_template=obj_template)
 
     # -------------------------------------------------------------------------
