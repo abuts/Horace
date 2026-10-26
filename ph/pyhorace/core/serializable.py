@@ -473,6 +473,7 @@ class Serializable(BaseModel, ABC):
                         for idx, is_pos in enumerate(is_positional)
                         if not pos_remains[idx]
                     ]
+                    is_positional = [True] * n_positional_arg_names
                     n_positional = n_positional_arg_names
                 else:
                     raise ValueError(

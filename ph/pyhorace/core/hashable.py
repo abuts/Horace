@@ -102,10 +102,11 @@ class hashable(Serializable, ABC):
         if not is_private_or_flag:
             try:
                 h_fields = self.hashable_fields()
-                if name in h_fields:
+                s_fields = self.saveable_fields()
+                if name in h_fields or name not in s_fields:
                     self.clear_hash()
                 elif prev_hash is not None:
-                    # Modifying a non-hashable property (e.g. run_id or filepath)
+                    # Modifying a non-hashable saveable property (e.g. run_id or filepath)
                     # should not invalidate an already-calculated hash even if
                     # Pydantic validate_assignment ran _validate_combo_arguments.
                     self._hash_value = prev_hash
@@ -671,8 +672,11 @@ def isequal(*objs: Any) -> bool:
     return True
 
 
+HashableObj = hashable
+
 __all__ = [
     "Hashable",
+    "HashableObj",
     "HashableArray",
     "build_hash",
     "hashable",

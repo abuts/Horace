@@ -124,6 +124,41 @@ def __getattr__(name: str):
         from . import pixels
 
         return getattr(pixels, name)
+    if name in (
+        "fixedNameList",
+        "FixedNameList",
+        "pdf_table",
+        "sampling_statistics",
+        "Goniometer",
+        "goniometer",
+        "IX_experiment",
+        "IX_map",
+        "IX_mask",
+        "IX_source",
+        "IX_aperture",
+        "IX_mosaic",
+        "IX_samp",
+        "IX_null_sample",
+        "IX_sample",
+        "IX_divergence_profile",
+        "IX_fermi_chopper",
+        "IX_doubledisk_chopper",
+        "IX_moderator",
+        "IX_mod_shape_mono",
+        "IX_inst",
+        "IX_null_inst",
+        "IX_inst_DGfermi",
+        "IX_inst_DGdisk",
+        "IX_det_abstractType",
+        "IX_det_TobyfitClassic",
+        "IX_det_He3tube",
+        "IX_det_slab",
+        "IX_detector_bank",
+        "IX_detector_array",
+    ):
+        from . import instr_classes
+
+        return getattr(instr_classes, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 SERIALIZABLE_REGISTRY["IX_data_1d"] = IX_dataset_1d
