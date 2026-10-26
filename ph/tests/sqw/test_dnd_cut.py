@@ -69,12 +69,10 @@ class TestDnDCut:
             [0, 10],
         ]
         w2 = d2d_obj.cut(proj, *bin_range)
-        s = w2.s.copy()
-        s[:, 0] = 0.0
-        s[:, -1] = 0.0
-        s[0, :] = 0.0
-        s[-1, :] = 0.0
-        w2.s = s
+        w2.s[:,0] = 0.0
+        w2.s[:,-1] = 0.0
+        w2.s[0,:] = 0.0
+        w2.s[-1,:] = 0.0        
         assert w2.equal_to_tol(ref, ignore_str=True, tol=[1e-3, 2e-3])
 
     def test_2D_to2D_cut_with_cylinder_proj_24(self, d2d_obj):
