@@ -38,6 +38,7 @@ from pyhorace.sqw import (
     read_dnd,
     read_horace,
     read_sqw,
+    sqw,
 )
 
 __version__ = "0.1.0"
@@ -76,4 +77,5 @@ __all__ = [
     "read_horace",
     "read_sqw",
     "sigvar",
+    "sqw",
 ]

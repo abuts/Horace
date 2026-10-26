@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import copy
 import inspect
+import sys
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
@@ -154,7 +155,14 @@ class SQWDnDBase(
     ) -> Any:
         """Compare two SQWDnDBase objects within tolerance."""
         if nargout is None:
-            nargout = _infer_nargout(default=1)
+            try:
+                caller_name = sys._getframe(1).f_code.co_name
+            except ValueError:
+                caller_name = ""
+            if caller_name == "compare_values":
+                nargout = 2
+            else:
+                nargout = _infer_nargout(default=1)
         if type(self) is not type(other):
             iseq = False
             mess = f"Objects being compared are not of the same type ({type(self).__name__} vs {type(other).__name__})"
