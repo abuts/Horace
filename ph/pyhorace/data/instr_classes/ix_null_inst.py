@@ -28,3 +28,7 @@ class IX_null_inst(IX_inst):
 
     def saveable_fields(self) -> List[str]:
         return ["name"]
+
+    def null_struct(self) -> dict[str, Any]:
+        """Return empty struct representing a null instrument."""
+        return {}

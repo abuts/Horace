@@ -103,6 +103,7 @@ class IX_inst_DGdisk(IX_inst):
         self._mod_shape_mono.moderator = val
         if self._do_check_combo_arg:
             self.check_combo_arg()
+        self.clear_hash()
 
     @property
     def source(self) -> IX_moderator:
@@ -141,6 +142,7 @@ class IX_inst_DGdisk(IX_inst):
         self._mod_shape_mono.energy = float(val)
         if self._do_check_combo_arg:
             self.check_combo_arg()
+        self.clear_hash()
 
     @property
     def horiz_div(self) -> IX_divergence_profile:

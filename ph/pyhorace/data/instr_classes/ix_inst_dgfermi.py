@@ -146,6 +146,7 @@ class IX_inst_DGfermi(IX_inst):
                 self._fermi_chopper.energy = self._energy
             else:
                 self._fermi_chopper._energy = self._energy
+        self.clear_hash()
 
     @property
     def source(self) -> IX_moderator:
@@ -195,6 +196,7 @@ class IX_inst_DGfermi(IX_inst):
             self._fermi_chopper.energy = v
         else:
             self._fermi_chopper._energy = v
+        self.clear_hash()
 
     @property
     def horiz_div(self) -> IX_divergence_profile:

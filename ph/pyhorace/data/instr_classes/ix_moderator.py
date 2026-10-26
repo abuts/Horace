@@ -894,6 +894,20 @@ class IX_moderator(hashable):
         self._ensure_pdf_current()
         return self._pdf.retain(t, rng=rng)
 
+    def set_mod_pulse(self, pulse_model: str, pmp: Any) -> "IX_moderator":
+        """Set moderator pulse model and its parameters (translated from ``set_mod_pulse.m``)."""
+        old_check = self._do_check_combo_arg
+        self._do_check_combo_arg = False
+        try:
+            self.pulse_model = pulse_model
+            self.pp = pmp
+        finally:
+            self._do_check_combo_arg = old_check
+        if self._do_check_combo_arg:
+            self.check_combo_arg(True)
+        self.clear_hash()
+        return self
+
     # ------------------------------------------------------------------
     # Serializable interface
     # ------------------------------------------------------------------
@@ -934,6 +948,7 @@ class IX_moderator(hashable):
     def check_combo_arg(self, recompute_pdf: bool = True) -> None:
         if recompute_pdf:
             self._recompute_pdf()
+        self.clear_hash()
 
     def convert_old_struct(
         self, inputs: Dict[str, Any], ver: Optional[float] = None

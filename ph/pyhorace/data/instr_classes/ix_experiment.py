@@ -638,24 +638,45 @@ class IX_experiment(Goniometer):
         nomangle: bool = False,
     ) -> Dict[str, Any]:
         """Convert IX_experiment into a legacy Horace binary file header dictionary."""
+        from pyhorace.data.instr_classes.ix_null_inst import IX_null_inst
+        from pyhorace.data.instr_classes.ix_null_sample import IX_null_sample
+
         alatt = self._alatt.copy()
         angdeg = self._angdeg.copy()
-        if mode == "-alatt_angdeg":
-            if arg1 is not None:
+        inst: Any = None
+        samp: Any = None
+
+        if mode == "-inst_samp":
+            inst = arg1 if arg1 is not None else IX_null_inst()
+            samp = arg2 if arg2 is not None else IX_null_sample()
+            if hasattr(samp, "alatt") and np.size(samp.alatt) > 0:
+                alatt = np.asarray(samp.alatt, dtype=float).ravel()
+            if hasattr(samp, "angdeg") and np.size(samp.angdeg) > 0:
+                angdeg = np.asarray(samp.angdeg, dtype=float).ravel()
+        elif mode == "-alatt_angdeg":
+            if arg1 is not None and not isinstance(arg1, str):
                 alatt = np.asarray(arg1, dtype=float).ravel()
-            if arg2 is not None:
+            if arg2 is not None and not isinstance(arg2, str):
                 angdeg = np.asarray(arg2, dtype=float).ravel()
             if isinstance(arg1, str) and arg1 == "-nomangle":
                 nomangle = True
             if isinstance(arg2, str) and arg2 == "-nomangle":
                 nomangle = True
+            inst = IX_null_inst()
+            samp = IX_null_sample("", alatt, angdeg)
         elif mode == "-nomangle":
             nomangle = True
+            inst = IX_null_inst()
+            samp = IX_null_sample("", alatt, angdeg)
+        else:
+            raise ValueError(
+                f"HORACE:IX_experiment:invalid_argument: Unknown convert_to_binfile_header mode '{mode}'."
+            )
 
         header: Dict[str, Any] = {}
         if not nomangle and not np.isnan(self._run_id):
             base, ext = os.path.splitext(self._filename)
-            header["filename"] = f"{base}${int(self._run_id)}{ext}"
+            header["filename"] = f"{base}$id${int(self._run_id)}{ext}"
         else:
             header["filename"] = self._filename
 
@@ -687,6 +708,8 @@ class IX_experiment(Goniometer):
 
         header["ulen"] = self._ulen.copy()
         header["ulabel"] = list(self._ulabel)
+        header["instrument"] = inst
+        header["sample"] = samp
         return header
 
     @staticmethod
@@ -695,6 +718,7 @@ class IX_experiment(Goniometer):
         nargout: Optional[int] = None,
     ) -> Union["IX_experiment", Tuple["IX_experiment", np.ndarray, np.ndarray]]:
         """Construct an IX_experiment (and optionally alatt, angdeg) from a legacy binfile header dict."""
+        nout = _infer_nargout(default=1, explicit_nargout=nargout)
         hdr = dict(inputs)
         alatt = np.asarray(hdr.pop("alatt", [2.0 * np.pi] * 3), dtype=float).ravel()
         angdeg = np.asarray(hdr.pop("angdeg", [90.0, 90.0, 90.0]), dtype=float).ravel()
@@ -703,7 +727,14 @@ class IX_experiment(Goniometer):
         run_id = float(hdr.get("run_id", float("nan")))
         if np.isnan(run_id) and "$" in fname:
             base, ext = os.path.splitext(fname)
-            if "$" in base:
+            if "$id$" in base:
+                prefix, suffix = base.rsplit("$id$", 1)
+                try:
+                    run_id = float(int(suffix))
+                    fname = prefix + ext
+                except ValueError:
+                    pass
+            elif "$" in base:
                 prefix, suffix = base.rsplit("$", 1)
                 try:
                     run_id = float(int(suffix))
@@ -720,8 +751,9 @@ class IX_experiment(Goniometer):
             exp.run_id = run_id
             exp.efix = hdr.get("efix", 0.0)
             exp.emode = hdr.get("emode", 0)
-            exp.alatt = alatt
-            exp.angdeg = angdeg
+            if nout != 3:
+                exp.alatt = alatt
+                exp.angdeg = angdeg
             if "cu" in hdr:
                 exp.u = hdr["cu"]
             elif "u" in hdr:
@@ -747,12 +779,12 @@ class IX_experiment(Goniometer):
                 ub_inv = np.linalg.inv(ubmatrix(exp.u, exp.v, b_mat, nargout=1))
                 if np.any(np.abs(u_mat[:3, :3] - ub_inv) > 4.0e-7):
                     exp._u_to_rlu = u_mat[:3, :3].copy()
-            exp.angular_units = "deg"
+            if nout != 3:
+                exp.angular_units = "deg"
         finally:
             exp._do_check_combo_arg = True
 
         exp.check_combo_arg()
-        nout = _infer_nargout(default=1, explicit_nargout=nargout)
         if nout == 3:
             return exp, alatt, angdeg
         if nout == 2:

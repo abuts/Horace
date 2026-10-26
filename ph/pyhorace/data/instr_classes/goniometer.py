@@ -943,6 +943,20 @@ class Goniometer(hashable):
             b = bmatrix(self._alatt, self._angdeg, nargout=1)
         return ubmatrix(self._u, self._v, b, nargout=nargout)
 
+    def get_gon_rot_matrix(self, b: Optional[np.ndarray] = None) -> np.ndarray:
+        """Calculate 3x3 spectrometer-to-Crystal-Cartesian rotation matrix given B-matrix."""
+        if b is None:
+            b = bmatrix(self._alatt, self._angdeg, nargout=1)
+        _, u_mat = ubmatrix(self._u, self._v, b, nargout=2)
+        psi_rad = 0.0 if np.isnan(self._psi) else np.deg2rad(self._psi)
+        omega_rad = np.deg2rad(self._omega)
+        dpsi_rad = np.deg2rad(self._dpsi)
+        gl_rad = np.deg2rad(self._gl)
+        gs_rad = np.deg2rad(self._gs)
+        return calc_proj_matrix(
+            b, u_mat, "", "", psi_rad, omega_rad, dpsi_rad, gl_rad, gs_rad, 1, nargout=1
+        )
+
     def calc_projections(
         self,
         n_matrix: Optional[int] = None,

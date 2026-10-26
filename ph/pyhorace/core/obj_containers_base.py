@@ -118,6 +118,11 @@ class ObjContainersBase(Serializable, ABC):
         self._baseclass = val
 
     @property
+    def stored_baseclass(self) -> str:
+        """Alias for ``baseclass`` matching MATLAB ``ObjContainersBase``."""
+        return self.get_baseclass()
+
+    @property
     def unique_objects(self) -> Any:
         """Container or list of unique objects stored in this container."""
         return self.get_unique_objects()

@@ -108,6 +108,15 @@ from .sigvar import SigVar, sigvar
 
 def __getattr__(name: str):
     if name in (
+        "Experiment",
+        "ExpDataList",
+        "calc_idx_for_eq_to_tol",
+        "crystal_pars_correct",
+    ):
+        from . import experiment
+
+        return getattr(experiment, name)
+    if name in (
         "FileBackedPixInterface",
         "FileBackedPixStub",
         "MultipixBase",
@@ -166,6 +175,10 @@ SERIALIZABLE_REGISTRY["IX_data_2d"] = IX_dataset_2d
 SERIALIZABLE_REGISTRY["IX_data_3d"] = IX_dataset_3d
 
 __all__ = [
+    "Experiment",
+    "ExpDataList",
+    "calc_idx_for_eq_to_tol",
+    "crystal_pars_correct",
     "sigvar",
     "SigVar",
     "IX_axis",

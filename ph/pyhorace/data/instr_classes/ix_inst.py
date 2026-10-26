@@ -68,6 +68,29 @@ class IX_inst(hashable):
         if not isinstance(val, IX_moderator):
             raise ValueError("HEBERT:IX_inst:invalid_argument: Instrument source must be an IX_moderator object.")
         self._source = val
+        self.clear_hash()
+
+    @property
+    def moderator(self) -> IX_moderator:
+        raise ValueError(
+            "HORACE:IX_inst:runtime_error: "
+            "Moderator can not be retrieved from IX_inst abstraction or empty instrument"
+        )
+
+    @moderator.setter
+    def moderator(self, val: IX_moderator) -> None:
+        raise ValueError(
+            "HERBERT:IX_inst:runtime_error: "
+            "You can not set moderator on IX_inst abstraction or empty instrument"
+        )
+
+    def set_mod_pulse(self, pulse_model: str, pm_par: Any) -> "IX_inst":
+        """Set moderator pulse model and parameters on the instrument."""
+        mod = self.moderator
+        mod = mod.set_mod_pulse(pulse_model, pm_par)
+        self.moderator = mod
+        self.clear_hash()
+        return self
 
     def saveable_fields(self) -> List[str]:
         if self._source is not None:

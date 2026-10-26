@@ -202,6 +202,9 @@ class hashable(Serializable, ABC):
             prop = getattr(type(obj), fld, None)
             priv_name = f"_{fld}"
             if isinstance(prop, property) and hasattr(obj, priv_name):
+                prev_priv = getattr(obj, priv_name, None)
+                if isinstance(prev_priv, list) and not isinstance(val, list):
+                    val = [val]
                 if getattr(obj, "__pydantic_extra__", None) is not None and priv_name in obj.__pydantic_extra__:
                     obj.__pydantic_extra__[priv_name] = val
                 else:

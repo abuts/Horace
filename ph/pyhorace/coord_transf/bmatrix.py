@@ -43,17 +43,17 @@ def _infer_nargout(
         if frame is None:
             return default
         lasti = frame.f_lasti
-        found_call = False
         for instr in dis.get_instructions(frame.f_code):
-            if instr.offset == lasti:
-                found_call = True
+            if instr.offset < lasti:
                 continue
-            if found_call:
-                if instr.opname == "CACHE":
-                    continue
-                if instr.opname == "UNPACK_SEQUENCE":
-                    return int(instr.argval)
-                break
+            if (
+                instr.opname in ("CACHE", "PRECALL", "KW_NAMES")
+                or instr.opname.startswith("CALL")
+            ):
+                continue
+            if instr.opname == "UNPACK_SEQUENCE":
+                return int(instr.argval)
+            break
     except Exception:
         pass
     return default

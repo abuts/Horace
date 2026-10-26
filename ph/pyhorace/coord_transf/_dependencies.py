@@ -359,14 +359,20 @@ class fast_map(Serializable):
         return res
 
     def add(self, key: Any, value: Any) -> "fast_map":
-        k = float(key)
-        v = float(value)
-        idx = np.where(self._keys == k)[0]
-        if idx.size > 0:
-            self._values[idx[0]] = v
-        else:
-            self._keys = np.append(self._keys, k)
-            self._values = np.append(self._values, v)
+        k_arr = np.asarray(key, dtype=float).ravel()
+        v_arr = np.asarray(value, dtype=float).ravel()
+        if k_arr.size != v_arr.size:
+            raise ValueError(
+                f"HERBERT:fast_map:invalid_argument: Number of keys ({k_arr.size}) and values ({v_arr.size}) must match."
+            )
+        for k, v in zip(k_arr, v_arr):
+            idx = np.where(self._keys == k)[0]
+            if idx.size > 0:
+                self._values[idx[0]] = v
+            else:
+                self._keys = np.append(self._keys, k)
+                self._values = np.append(self._values, v)
+        if self._keys.size > 1:
             order = np.argsort(self._keys)
             self._keys = self._keys[order]
             self._values = self._values[order]
