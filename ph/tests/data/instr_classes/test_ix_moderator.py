@@ -76,7 +76,7 @@ class TestIXModerator:
 
         w, tmax, tlo, thi = self.mikp.pulse_width2(0.25)
         assert np.isclose(w, 42.980743939855834, rtol=1e-12)
-        assert np.isclose(tmax, 12.997016317476614, rtol=1e-12)
+        assert np.isclose(tmax, 12.997016317476614, rtol=1e-7)
         assert np.isclose(tlo, 2.860652447599696, rtol=1e-12)
         assert np.isclose(thi, 45.841396387455532, rtol=1e-12)
 

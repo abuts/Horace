@@ -153,7 +153,7 @@ def rand_mosaic_gaussian(
             "Check form of mosaic spread definitions"
         )
 
-    sig_arr = (np.pi / 180.0) * np.asarray(sig, dtype=float) / fwhh_to_sig
+    sig_arr = np.asarray(sig, dtype=float) / fwhh_to_sig
 
     if np.all(sig_arr == 0.0):
         return np.zeros(sz_r, dtype=float)
@@ -214,7 +214,7 @@ class IX_mosaic(hashable):
     _yaxis: np.ndarray = PrivateAttr(
         default_factory=lambda: np.array([0.0, 1.0, 0.0], dtype=float)
     )
-    _mosaic_pdf: Callable[..., Any] = PrivateAttr(default=rand_mosaic_gaussian)
+    _mosaic_pdf: Any = PrivateAttr(default=None)
     _parameters: Union[float, np.ndarray] = PrivateAttr(default=0.0)
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

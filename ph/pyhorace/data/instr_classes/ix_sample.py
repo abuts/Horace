@@ -536,7 +536,7 @@ class IX_sample(IX_samp):
         if tmp.ndim == 2:
             Rrlu = UBinv @ tmp @ UB
         else:
-            Rrlu = np.einsum("ij,jkl,lm->ikm", UBinv, tmp, UB)
+            Rrlu = np.einsum("ij,jkn,kl->iln", UBinv, tmp, UB)
         return np.reshape(Rrlu, (3, *X.shape), order="F")
 
     # -------------------------------------------------------------------------

@@ -55,6 +55,16 @@ class IX_aperture(hashable):
         if len(args) == 0 and len(kwargs) == 0:
             return
 
+        if len(args) == 1 and isinstance(args[0], IX_aperture) and not kwargs:
+            other = args[0]
+            self._name = other._name
+            self._distance = other._distance
+            self._width = other._width
+            self._height = other._height
+            self._mandatory_field_set = list(other._mandatory_field_set)
+            self._hash_value = other._hash_value
+            return
+
         if len(args) == 1 and isinstance(args[0], dict) and not kwargs:
             loaded = self.loadobj(args[0])
             if isinstance(loaded, IX_aperture):

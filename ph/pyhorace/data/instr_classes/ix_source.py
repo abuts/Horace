@@ -56,6 +56,14 @@ class IX_source(hashable):
         if len(args) == 0 and len(kwargs) == 0:
             return
 
+        if len(args) == 1 and isinstance(args[0], IX_source) and not kwargs:
+            other = args[0]
+            self._name = other._name
+            self._target_name = other._target_name
+            self._frequency = other._frequency
+            self._hash_value = other._hash_value
+            return
+
         if len(args) == 1 and isinstance(args[0], dict) and not kwargs:
             loaded = self.loadobj(args[0])
             if isinstance(loaded, IX_source):

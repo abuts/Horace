@@ -237,10 +237,10 @@ class IX_fermi_chopper(hashable):
     def curvature(self, val: Any) -> None:
         self.clear_hash()
         val_old = self._curvature
-        if not _is_real_scalar(val):
+        if not _is_real_scalar(val) or _to_float(val) < 0:
             raise ValueError(
                 "HERBERT:IX_fermi_chopper:invalid_argument: "
-                "Radius of curvature of slits must be a numeric scalar"
+                "Radius of curvature of slits must be a non-negative numeric scalar"
             )
         self._curvature = _to_float(val)
         self._mandatory_field_set[3] = True
@@ -401,13 +401,14 @@ class IX_fermi_chopper(hashable):
         return self
 
     def _recompute_pdf(self) -> pdf_table:
-        tlo, thi = self.pulse_range()
-        if tlo == 0.0:
-            return pdf_table(0.0, np.inf)
-        if not math.isnan(float(tlo)):
-            t = np.linspace(float(tlo), float(thi), 100)
-            y = self.pulse_shape(t)
-            return pdf_table(t, y)
+        if self.transmission() > 0:
+            tlo, thi = self.pulse_range()
+            if tlo == 0.0:
+                return pdf_table(0.0, np.inf)
+            if not math.isnan(float(tlo)):
+                t = np.linspace(float(tlo), float(thi), 100)
+                y = self.pulse_shape(t)
+                return pdf_table(t, y)
         return pdf_table()
 
     def convert_old_struct(
@@ -683,12 +684,11 @@ class IX_fermi_chopper(hashable):
         gam = float(gam_arr.item())
 
         if not t_given:
+            if pk_fwhh == 0.0:
+                return np.inf, 0.0
             npnt = 500
             tlo, thi = self.pulse_range(ei, phase)
-            if tlo == 0.0 and thi == 0.0:
-                t_arr: Union[float, np.ndarray] = np.array([0.0], dtype=np.float64)
-            else:
-                t_arr = np.linspace(float(tlo), float(thi), npnt)
+            t_arr: Union[float, np.ndarray] = np.linspace(float(tlo), float(thi), npnt)
             t_is_scalar = False
         else:
             t_arr = np.asarray(t, dtype=np.float64)
@@ -727,7 +727,7 @@ class IX_fermi_chopper(hashable):
         f = np.zeros_like(t_arr, dtype=np.float64)
         pos_t = t_arr > 0.0
         with np.errstate(divide="ignore", invalid="ignore"):
-            tau = np.abs(t_arr) / (1e6 * pk_fwhh) if pk_fwhh > 0.0 else np.where(t_arr == 0.0, 0.0, np.inf)
+            tau = np.abs(t_arr) / (1e6 * pk_fwhh)
 
         if gam < 1.0:
             ilo = tau < gam

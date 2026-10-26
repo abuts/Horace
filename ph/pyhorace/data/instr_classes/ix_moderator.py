@@ -5,6 +5,7 @@ Converted from:
 """
 from __future__ import annotations
 
+import copy
 import math
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -422,8 +423,12 @@ class IX_moderator(hashable):
 
         if len(args) == 1 and not kwargs and isinstance(args[0], IX_moderator):
             other = args[0]
-            for f in self.saveable_fields():
-                setattr(self, f, getattr(other, f))
+            self._do_check_combo_arg = False
+            for f in other.saveable_fields():
+                setattr(self, f, copy.deepcopy(getattr(other, f)))
+            self._t = other._t.copy()
+            self._y = other._y.copy()
+            self._do_check_combo_arg = True
             self._recompute_pdf()
             return
 
@@ -512,7 +517,9 @@ class IX_moderator(hashable):
             self.check_combo_arg(True)
 
     @property
-    def pp(self) -> np.ndarray:
+    def pp(self) -> Any:
+        if self._pulse_model == "table" and self._pp.size == 0 and self._t.size > 0:
+            return [self._t, self._y]
         return self._pp
 
     @pp.setter
@@ -891,7 +898,7 @@ class IX_moderator(hashable):
     # Serializable interface
     # ------------------------------------------------------------------
     def saveable_fields(self) -> List[str]:
-        fields = [
+        return [
             "distance",
             "angle",
             "pulse_model",
@@ -903,21 +910,6 @@ class IX_moderator(hashable):
             "energy",
             "name",
         ]
-        if self._pulse_model == "table":
-            fields = [
-                "distance",
-                "angle",
-                "pulse_model",
-                "t",
-                "y",
-                "temperature",
-                "thickness",
-                "width",
-                "height",
-                "energy",
-                "name",
-            ]
-        return fields
 
     @property
     def t(self) -> np.ndarray:

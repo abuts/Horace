@@ -142,7 +142,10 @@ class IX_inst_DGfermi(IX_inst):
             self._moderator.energy = self._energy
         elif self._moderator.energy > 0:
             self._energy = self._moderator.energy
-            self._fermi_chopper.energy = self._energy
+            if all(self._fermi_chopper._mandatory_field_set):
+                self._fermi_chopper.energy = self._energy
+            else:
+                self._fermi_chopper._energy = self._energy
 
     @property
     def source(self) -> IX_moderator:
@@ -188,7 +191,10 @@ class IX_inst_DGfermi(IX_inst):
             raise ValueError("HEBERT:IX_inst_DGfermi:invalid_argument: Incident energy must be >= 0.")
         self._energy = v
         self._moderator.energy = v
-        self._fermi_chopper.energy = v
+        if all(self._fermi_chopper._mandatory_field_set):
+            self._fermi_chopper.energy = v
+        else:
+            self._fermi_chopper._energy = v
 
     @property
     def horiz_div(self) -> IX_divergence_profile:
