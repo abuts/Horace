@@ -19,6 +19,8 @@ class pix_data(Serializable):
         Serializable.__init__(self)
         self._data: Any = np.empty((self.DEFAULT_NUM_PIX_FIELDS, 0), dtype=np.float64)
         self._npix: int = 0
+        self._num_pix_fields: int = self.DEFAULT_NUM_PIX_FIELDS
+        self._offset: int = 0
 
         if len(args) == 0 and not kwargs:
             return
@@ -28,6 +30,8 @@ class pix_data(Serializable):
             if isinstance(in_obj, pix_data):
                 self._data = in_obj.data.copy() if isinstance(in_obj.data, np.ndarray) else in_obj.data
                 self._npix = in_obj.npix
+                self._num_pix_fields = in_obj.n_rows
+                self._offset = in_obj.offset
                 return
             if hasattr(in_obj, "is_filebacked") and hasattr(in_obj, "num_pixels"):
                 if getattr(in_obj, "is_filebacked", False):
@@ -35,6 +39,7 @@ class pix_data(Serializable):
                     self._data = getattr(in_obj, "full_filename", "") or np.empty(
                         (self.DEFAULT_NUM_PIX_FIELDS, 0), dtype=np.float64
                     )
+                    self._offset = int(getattr(in_obj, "offset", getattr(in_obj, "pix_position", 0)) or 0)
                 else:
                     self.data = np.asarray(in_obj.data, dtype=np.float64)
                 return
@@ -52,6 +57,46 @@ class pix_data(Serializable):
         self.set_positional_and_key_val_arguments(
             self.saveable_fields(), False, *args, **kwargs
         )
+
+    @property
+    def n_rows(self) -> int:
+        return self._num_pix_fields
+
+    @n_rows.setter
+    def n_rows(self, val: Any) -> None:
+        try:
+            ival = int(np.asarray(val).item())
+        except Exception as exc:
+            raise HoraceError(
+                f"HORACE:pix_metadata:invalid_argument - "
+                f"n_rows must be a non-negative integer scalar, got {val!r}"
+            ) from exc
+        if ival < 0 or float(np.asarray(val).item()) != ival:
+            raise HoraceError(
+                f"HORACE:pix_metadata:invalid_argument - "
+                f"n_rows must be a non-negative integer scalar, got {val!r}"
+            )
+        self._num_pix_fields = ival
+
+    @property
+    def offset(self) -> int:
+        return self._offset
+
+    @offset.setter
+    def offset(self, val: Any) -> None:
+        try:
+            ival = int(np.asarray(val).item())
+        except Exception as exc:
+            raise HoraceError(
+                f"HORACE:pix_metadata:invalid_argument - "
+                f"offset must be a non-negative scalar number, got {val!r}"
+            ) from exc
+        if ival < 0:
+            raise HoraceError(
+                f"HORACE:pix_metadata:invalid_argument - "
+                f"offset must be a non-negative scalar number, got {val!r}"
+            )
+        self._offset = ival
 
     @property
     def npix(self) -> int:
@@ -115,7 +160,7 @@ class pix_data(Serializable):
         return 1
 
     def saveable_fields(self) -> List[str]:
-        return ["data", "npix"]
+        return ["data", "npix", "n_rows", "offset"]
 
 
 register_serializable(pix_data)

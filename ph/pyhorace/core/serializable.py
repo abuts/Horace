@@ -272,6 +272,13 @@ class Serializable(BaseModel, ABC):
                 return cls.from_struct(val)
             else:
                 return {k: cls._restore_value_from_struct(v) for k, v in val.items()}
+        elif isinstance(val, np.ndarray) and val.dtype == object:
+            flat = [cls._restore_value_from_struct(item) for item in val.ravel(order="F")]
+            if val.ndim == 2 and (val.shape[0] == 1 or val.shape[1] == 1):
+                return flat
+            out = np.empty(val.shape, dtype=object, order="F")
+            out.ravel(order="F")[:] = flat
+            return out
         elif isinstance(val, list):
             return [cls._restore_value_from_struct(item) for item in val]
         elif isinstance(val, tuple):
@@ -380,34 +387,50 @@ class Serializable(BaseModel, ABC):
     # Byte Serialization (serialize / deserialize / serial_size)
     # -------------------------------------------------------------------------
 
-    def serialize(self) -> bytes:
-        """Serialize object to bytes via to_struct."""
+    def serialize(self) -> np.ndarray:
+        """Serialize object to uint8 numpy array via to_struct and hlp_serialize."""
+        from pyhorace.io.hlp_serial import hlp_serialize
+
         S = self.to_struct()
-        return pickle.dumps(S, protocol=5)
+        return hlp_serialize(S)
 
     @classmethod
-    def serialize_array(cls, objs: Sequence["Serializable"]) -> bytes:
-        """Serialize sequence of objects to bytes."""
+    def serialize_array(cls, objs: Sequence["Serializable"]) -> np.ndarray:
+        """Serialize sequence of objects to uint8 numpy array."""
+        from pyhorace.io.hlp_serial import hlp_serialize
+
         S = cls.to_struct_array(objs)
-        return pickle.dumps(S, protocol=5)
+        return hlp_serialize(S)
 
     def serial_size(self) -> int:
         """Return byte length of serialized object."""
-        return len(self.serialize())
+        from pyhorace.io.hlp_serial import hlp_serial_size
+
+        S = self.to_struct()
+        return hlp_serial_size(S)
 
     @classmethod
     def deserialize(
-        cls, byte_array: bytes, pos: int = 0
+        cls, byte_array: Union[bytes, bytearray, np.ndarray], pos: int = 1
     ) -> Tuple[Union["Serializable", List["Serializable"]], int]:
         """
         Recover object or list of objects from serialized byte array.
+        Matches MATLAB's 1-based `pos` (also accepts 0-based `pos=0`).
         Returns (obj_or_objs, nbytes).
         """
-        sub_bytes = byte_array[pos:]
-        S = pickle.loads(sub_bytes)
-        nbytes = len(sub_bytes)
+        if isinstance(byte_array, (bytes, bytearray)) and len(byte_array) >= 2 and byte_array[0] == 0x80:
+            idx0 = 0 if pos <= 1 else pos
+            sub_bytes = byte_array[idx0:]
+            S = pickle.loads(sub_bytes)
+            nbytes = len(sub_bytes)
+            obj = cls.from_struct(S)
+            return obj, nbytes
+
+        from pyhorace.io.hlp_serial import hlp_deserialize
+
+        S, nbytes = hlp_deserialize(byte_array, pos)
         obj = cls.from_struct(S)
-        return obj, nbytes
+        return obj, int(nbytes)
 
     # -------------------------------------------------------------------------
     # Saveobj / Loadobj

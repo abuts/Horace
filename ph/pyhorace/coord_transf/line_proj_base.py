@@ -619,9 +619,13 @@ class LineProjBase(aProjectionBase):
 
         alatt = data_struct.get("alatt", [2.0 * np.pi, 2.0 * np.pi, 2.0 * np.pi])
         angdeg = data_struct.get("angdeg", [90.0, 90.0, 90.0])
-        uoffset = data_struct.get("uoffset", [0.0, 0.0, 0.0, 0.0])
-        ulabel = data_struct.get("ulabel", ["\\zeta", "\\xi", "\\eta", "E"])
-        u_to_rlu = np.asarray(data_struct.get("u_to_rlu", np.eye(4)), dtype=float)
+        uoffset = data_struct.get("uoffset", data_struct.get("offset", [0.0, 0.0, 0.0, 0.0]))
+        raw_label = data_struct.get("ulabel", data_struct.get("label", ["\\zeta", "\\xi", "\\eta", "E"]))
+        ulabel = [str(x).strip() for x in np.asarray(raw_label).ravel()] if raw_label is not None else ["\\zeta", "\\xi", "\\eta", "E"]
+        u_to_rlu = np.asarray(
+            data_struct.get("u_to_rlu", data_struct.get("u_to_rlu_legacy", np.eye(4))),
+            dtype=float,
+        )
         ulen = np.asarray(data_struct.get("ulen", np.ones(4)), dtype=float).ravel()
 
         try:

@@ -439,6 +439,17 @@ class unique_objects_container(ObjContainersBase):
     def saveable_fields(self) -> Sequence[str]:
         return ["baseclass", "unique_objects", "idx"]
 
+    def _populate_single_bare(self, S: Dict[str, Any]) -> "unique_objects_container":
+        if "idx" in S and S["idx"] is not None:
+            idx_arr = np.asarray(S["idx"], dtype=int).ravel()
+            uobjs = S.get("unique_objects", self._unique_objects)
+            n_uniq = len(uobjs) if uobjs is not None else 0
+            if idx_arr.size > 0 and n_uniq > 0:
+                if int(np.min(idx_arr)) >= 1 and int(np.max(idx_arr)) == n_uniq and 0 not in idx_arr:
+                    S = dict(S)
+                    S["idx"] = [int(x) - 1 for x in idx_arr]
+        return super()._populate_single_bare(S)
+
     def check_combo_arg(
         self, with_checks: bool = False
     ) -> "unique_objects_container":
