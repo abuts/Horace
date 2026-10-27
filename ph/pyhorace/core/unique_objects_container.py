@@ -292,22 +292,28 @@ class unique_objects_container(ObjContainersBase):
         return self, nuix_int
 
     def replicate_runs(
-        self, n_objects: int, *args: Any
+        self, n_objects: Optional[Union[int, Sequence[Any]]] = None, *args: Any
     ) -> "unique_objects_container":
         """
-        Expand a container holding a single object into `n_objects` identical runs.
+        Expand a container holding a single unique object into `n_objects` identical runs.
         """
+        if n_objects is None or (isinstance(n_objects, (list, tuple, np.ndarray)) and len(n_objects) == 0):
+            n_objects = 1
+        if isinstance(n_objects, bool) or not isinstance(n_objects, (int, float, np.number)) or int(n_objects) <= 0:
+            raise ValueError(
+                "HERBERT:unique_objects_container:invalid_argument (HERBERT:ObjContainerBase:invalid_argument): "
+                f"n_objects has to be a numeric positive scalar. It is: {n_objects!r}"
+            )
         n_obj = int(n_objects)
-        if n_obj == 0 or self.n_objects == n_obj:
-            return self
-        if self.n_unique == 1 and self.n_objects == 1 and n_obj > 1:
-            self._idx = [0] * n_obj
-            self._n_duplicates = [n_obj]
-            return self
-        raise ValueError(
-            "HERBERT:ObjContainerBase:invalid_argument: "
-            "replicate_runs requires a container with 1 unique object and n_objects > 1"
-        )
+        if self.n_unique != 1:
+            raise ValueError(
+                "HERBERT:unique_objects_container:invalid_argument (HERBERT:ObjContainerBase:invalid_argument): "
+                f"The method works only on containers containing a single unique run. "
+                f"This container contains {self.n_unique} unique runs."
+            )
+        self._idx = [0] * n_obj
+        self._n_duplicates[0] = n_obj
+        return self
 
     def get_subset(
         self, indices: Union[int, slice, Sequence[int], np.ndarray]

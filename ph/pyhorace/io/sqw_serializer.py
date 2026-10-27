@@ -46,7 +46,10 @@ def _resolve_fixed_fmt(fmt: Any) -> Optional[Tuple[str, Any, int, int, Tuple[int
             return None
         m_type, np_dtype, elem_sz = _NUMPY_TO_MATLAB_TYPE[dt_name]
         arr = np.asarray(fmt)
-        dims = tuple(int(x) for x in arr.ravel(order="F"))
+        if arr.size > 0 and np.all(arr == 0):
+            dims = tuple(int(x) for x in arr.shape) if arr.ndim > 0 else (1,)
+        else:
+            dims = tuple(int(x) for x in arr.ravel(order="F"))
         nel = int(np.prod(dims)) if dims else 1
         return m_type, np_dtype, elem_sz, nel, dims
     if isinstance(fmt, float):
@@ -58,9 +61,33 @@ def _resolve_fixed_fmt(fmt: Any) -> Optional[Tuple[str, Any, int, int, Tuple[int
     return None
 
 
+_FIELD_ALIASES = {
+    "u_to_rlu_legacy": ("u_to_rlu",),
+    "u_to_rlu": ("u_to_rlu_legacy",),
+    "label": ("ulabel",),
+    "ulabel": ("label",),
+    "uoffset": ("offset",),
+    "offset": ("uoffset",),
+    "img_db_range": ("img_range",),
+    "img_range": ("img_db_range",),
+    "filename_with_cdate": ("filename",),
+    "filename": ("filename_with_cdate",),
+}
+
+
 def _get_field_val(struc: Any, field_n: str) -> Any:
     if isinstance(struc, dict):
-        return struc[field_n]
+        if field_n in struc:
+            return struc[field_n]
+        for alt in _FIELD_ALIASES.get(field_n, ()):
+            if alt in struc:
+                return struc[alt]
+        raise KeyError(field_n)
+    if hasattr(struc, field_n):
+        return getattr(struc, field_n)
+    for alt in _FIELD_ALIASES.get(field_n, ()):
+        if hasattr(struc, alt):
+            return getattr(struc, alt)
     return getattr(struc, field_n)
 
 

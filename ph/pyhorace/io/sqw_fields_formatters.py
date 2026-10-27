@@ -17,6 +17,8 @@ from pyhorace.io.sqw_fopen import do_ferror, do_fread, do_fseek
 
 def _matlab_shape(val: Any) -> Tuple[int, ...]:
     """Return MATLAB-style shape (at least 2D) of `val`."""
+    if val is None:
+        return (0, 0)
     if isinstance(val, str):
         return (1, len(val)) if len(val) > 0 else (0, 0)
     if isinstance(val, (dict, Serializable)):
@@ -35,6 +37,8 @@ def _matlab_shape(val: Any) -> Tuple[int, ...]:
 
 def _matlab_class_name(val: Any) -> str:
     """Return MATLAB class name string for a Python value."""
+    if val is None:
+        return "double"
     if isinstance(val, Serializable):
         return type(val).__name__
     if isinstance(val, dict):
@@ -468,6 +472,20 @@ class field_img(field_const_array_dependent):
     def __init__(self, precision: str = "single") -> None:
         super().__init__("p_size", 1, precision)
 
+    @property
+    def dimension(self) -> np.ndarray:
+        if self._host_struct is None:
+            return np.array([], dtype=np.float64)
+        fmt = self._host_struct[self._host_struct_field]
+        dim = getattr(fmt, "field_value", None)
+        if dim is None:
+            return np.array([], dtype=np.float64)
+        return np.asarray(dim, dtype=np.float64).ravel()
+
+    @property
+    def num_dims(self) -> int:
+        return int(self.dimension.size)
+
     def process_host_value(self) -> np.ndarray:
         if self._host_struct is None:
             return np.array([1, 1], dtype=np.int64)
@@ -503,6 +521,26 @@ class field_img(field_const_array_dependent):
     def size_from_file(self, fid: int, pos: int) -> Tuple[int, "field_img", bool]:
         sz, _ = self.size_from_bytes(b"", pos)
         return sz, self, False
+
+
+class field_iax(field_const_array_dependent):
+    """Formatter for `iax` (1 x niax) integration axis index array."""
+
+    def __init__(self) -> None:
+        super().__init__("npax", 1, "int32")
+
+    def process_host_value(self) -> int:
+        if self._host_struct is None:
+            return 0
+        fmt = self._host_struct[self._host_struct_field]
+        npax = int(getattr(fmt, "field_value", 0))
+        return 4 - npax
+
+    def field_from_bytes(
+        self, bytes_arr: Union[bytes, bytearray, np.ndarray], pos: int
+    ) -> Tuple[np.ndarray, int]:
+        val, sz = super().field_from_bytes(bytes_arr, pos)
+        return val.astype(np.float64), sz
 
 
 class field_iint(field_const_array_dependent):
@@ -767,6 +805,8 @@ class field_simple_class_hv3(sqw_field_format_interface):
         if type_str == "logical":
             b_arr = np.asarray(val, dtype=np.uint8).ravel(order="F")
             return np.frombuffer(head + b_arr.tobytes(), dtype=np.uint8).copy()
+        if val is None:
+            return np.frombuffer(head, dtype=np.uint8).copy()
         dtype = np.dtype(_PREC_TO_DTYPE[type_str]).newbyteorder("<")
         arr = np.asarray(val, dtype=dtype).ravel(order="F")
         return np.frombuffer(head + arr.tobytes(), dtype=np.uint8).copy()
@@ -806,7 +846,7 @@ class field_simple_class_hv3(sqw_field_format_interface):
         dtype = np.dtype(_PREC_TO_DTYPE[type_str]).newbyteorder("<")
         arr = np.frombuffer(raw, dtype=dtype).copy()
         if len(shape) == 2 and shape == (1, 1) and nel == 1:
-            return arr.reshape((1, 1), order="F"), sz + nel * cl_size
+            return arr.flat[0], sz + nel * cl_size
         if nel > 0:
             arr = arr.reshape(shape, order="F")
         return arr, sz + nel * cl_size
@@ -985,11 +1025,6 @@ class field_generic_class_hv3(field_simple_class_hv3):
         names, sz, cur_pos = self._restore_fieldnames(bytes_arr, cur_pos, sz)
         raw_structs, sz = self._restore_structure(bytes_arr, names, shape, cur_pos, sz)
         if type_str == "struct":
-            if isinstance(raw_structs, dict) and "serial_name" in raw_structs:
-                try:
-                    return Serializable.from_struct(raw_structs), sz
-                except Exception:
-                    return raw_structs, sz
             return raw_structs, sz
         if isinstance(raw_structs, dict):
             return self._instantiate_class(type_str, raw_structs), sz
@@ -1133,6 +1168,10 @@ class sqw_fields_formatters:
         return field_img(*args)
 
     @staticmethod
+    def field_iax() -> field_iax:
+        return field_iax()
+
+    @staticmethod
     def field_iint() -> field_iint:
         return field_iint()
 
@@ -1151,4 +1190,73 @@ class sqw_fields_formatters:
     @staticmethod
     def field_generic_class_hv3() -> field_generic_class_hv3:
         return field_generic_class_hv3()
+
+    @staticmethod
+    def field_pix() -> "field_pix":
+        return field_pix()
+
+
+class field_pix(field_var_array):
+    """Formatter for v2/v3 SQW pixel arrays (`uint64` npix count followed by `9 * npix` float32 values)."""
+
+    DEFAULT_NUM_PIX_FIELDS: int = 9
+
+    def __init__(self) -> None:
+        super().__init__(1, "single")
+
+    def bytes_from_field(self, val: Any) -> np.ndarray:
+        if hasattr(val, "data") and hasattr(val, "num_pixels"):
+            arr = np.asarray(val.data, dtype="<f4")
+            num_pix = int(val.num_pixels)
+        else:
+            arr = np.asarray(val, dtype="<f4")
+            sh = _matlab_shape(arr)
+            num_pix = int(sh[1]) if arr.size > 0 else 0
+        head = np.array([num_pix], dtype="<u8").tobytes()
+        raw = head + arr.ravel(order="F").tobytes()
+        return np.frombuffer(raw, dtype=np.uint8).copy()
+
+    def size_of_field(self, val: Any) -> int:
+        if hasattr(val, "num_pixels"):
+            nel = int(val.num_pixels) * int(getattr(val, "DEFAULT_NUM_PIX_FIELDS", self.DEFAULT_NUM_PIX_FIELDS))
+        else:
+            nel = int(np.asarray(val).size)
+        return int(8 + nel * self.elem_byte_size)
+
+    def field_from_bytes(
+        self, bytes_arr: Union[bytes, bytearray, np.ndarray], pos: int
+    ) -> Tuple[np.ndarray, int]:
+        npix = int(np.frombuffer(_slice_bytes(bytes_arr, pos, 8), dtype="<u8")[0])
+        numel = npix * self.DEFAULT_NUM_PIX_FIELDS
+        length = numel * self.elem_byte_size
+        start = 8
+        if numel == 0:
+            return np.empty((0, 0), dtype=np.float32), start
+        raw = _slice_bytes(bytes_arr, pos + start, length)
+        dtype = np.dtype(_PREC_TO_DTYPE[self.precision]).newbyteorder("<")
+        val = np.frombuffer(raw, dtype=dtype).copy().reshape((self.DEFAULT_NUM_PIX_FIELDS, npix), order="F")
+        return val, start + length
+
+    def size_from_bytes(
+        self, bytes_arr: Union[bytes, bytearray, np.ndarray], pos: int
+    ) -> Tuple[int, "field_pix"]:
+        raw = _slice_bytes(bytes_arr, pos, 8)
+        if len(raw) < 8:
+            return 8, self
+        npix = int(np.frombuffer(raw, dtype="<u8")[0])
+        numel = npix * self.DEFAULT_NUM_PIX_FIELDS
+        return int(8 + numel * self.elem_byte_size), self
+
+    def size_from_file(self, fid: int, pos: int) -> Tuple[int, "field_pix", bool]:
+        try:
+            do_fseek(fid, pos, "bof")
+        except Exception:
+            return 0, self, True
+        npix_arr, cnt = do_fread(fid, 1, "uint64")
+        _, res = do_ferror(fid)
+        if res != 0 or cnt < 1:
+            return 0, self, True
+        nelem = int(npix_arr.flat[0]) * self.DEFAULT_NUM_PIX_FIELDS
+        return int(nelem * self.elem_byte_size + 8), self, False
+
 
