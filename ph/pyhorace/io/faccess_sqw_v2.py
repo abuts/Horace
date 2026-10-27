@@ -22,8 +22,8 @@ class faccess_sqw_v2(sqw_binfile_common):
         return self
 
     def should_load_stream(
-        self, head_struc: Dict[str, Any], fid: int
-    ) -> Tuple[bool, Optional[obj_init], str]:
+        self, head_struc: Dict[str, Any], fid: int, *args: Any, nargout: Optional[int] = None
+    ) -> Any:
         hs = dict(head_struc)
         if hs.get("version") == 1:
             hs["version"] = 2
@@ -34,5 +34,5 @@ class faccess_sqw_v2(sqw_binfile_common):
                 stacklevel=2,
             )
             hs["version"] = 2
-        return super().should_load_stream(hs, fid)
+        return super().should_load_stream(hs, fid, *args, nargout=nargout)
 

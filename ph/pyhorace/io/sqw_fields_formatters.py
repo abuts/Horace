@@ -648,7 +648,7 @@ class field_cellarray_of_axis(field_const_array_dependent):
 class field_cellarray_of_strings(sqw_field_format_interface):
     """Formatter for cell array of strings stored as a 2D padded character matrix."""
 
-    defstaticmethod_char_matrix(self, val: Sequence[str]) -> np.ndarray:
+    def _to_char_matrix(self, val: Sequence[str]) -> np.ndarray:
         strs = [str(s) for s in val]
         if not strs:
             return np.zeros((0, 0), dtype=np.uint8, order="F")
@@ -664,7 +664,7 @@ class field_cellarray_of_strings(sqw_field_format_interface):
     def bytes_from_field(self, val: Any) -> np.ndarray:
         if isinstance(val, str):
             val = [val]
-        mat = self.defstaticmethod_char_matrix(val)
+        mat = self._to_char_matrix(val)
         a_size = np.array(mat.shape, dtype="<i4")
         raw = a_size.tobytes() + mat.ravel(order="F").tobytes()
         return np.frombuffer(raw, dtype=np.uint8).copy()
@@ -672,7 +672,7 @@ class field_cellarray_of_strings(sqw_field_format_interface):
     def size_of_field(self, val: Any) -> int:
         if isinstance(val, str):
             val = [val]
-        mat = self.defstaticmethod_char_matrix(val)
+        mat = self._to_char_matrix(val)
         return int(2 * 4 + mat.size)
 
     def field_from_bytes(
@@ -984,6 +984,7 @@ class field_generic_class_hv3(field_simple_class_hv3):
         return structs, sz
 
     def _instantiate_class(self, type_str: str, struct_data: Dict[str, Any]) -> Any:
+        import pyhorace.data.instr_classes  # noqa: F401
         if "serial_name" in struct_data:
             try:
                 return Serializable.from_struct(struct_data)

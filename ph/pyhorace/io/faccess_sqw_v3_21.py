@@ -6,7 +6,7 @@ Ported from:
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, ClassVar, Dict
 
 from pyhorace.io.faccess_sqw_v3 import faccess_sqw_v3
 from pyhorace.io.sqw_binfile_common import sqw_binfile_common
@@ -16,11 +16,14 @@ from pyhorace.io.sqw_fields_formatters import field_var_array
 class faccess_sqw_v3_21(faccess_sqw_v3):
     """Accessor for Horace SQW binary format version 3.21 (indirect geometry)."""
 
-    file_version_: float = 3.21
+    file_version_: ClassVar[float] = 3.21
 
-    def __init__(self, *args: Any) -> None:
+    def _init_default_attributes(self) -> None:
+        super()._init_default_attributes()
         self.version_ = self.file_version_
-        super().__init__(*args)
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
     def get_faccess_version(self) -> float:
         return 3.21

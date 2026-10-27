@@ -38,7 +38,7 @@ from pyhorace.io.sqw_fields_formatters import (
     sqw_fields_formatters,
 )
 from pyhorace.io.sqw_file_interface import sqw_file_interface
-from pyhorace.io.sqw_fopen import sqw_fopen
+from pyhorace.io.sqw_fopen import do_fclose, do_fread, do_fwrite, sqw_fclose, sqw_fopen
 from pyhorace.io.sqw_formats_factory import sqw_formats_factory
 from pyhorace.io.sqw_serializer import sqw_serializer
 
@@ -48,6 +48,10 @@ __all__ = [
     "hlp_serialize",
     "hlp_deserialize",
     "sqw_fopen",
+    "sqw_fclose",
+    "do_fclose",
+    "do_fread",
+    "do_fwrite",
     "sqw_field_format_interface",
     "iVirt_field",
     "field_var_array",

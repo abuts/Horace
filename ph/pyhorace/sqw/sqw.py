@@ -346,6 +346,29 @@ class sqw(SQWDnDBase):
                 f"File does not exist: {path}",
             )
 
+        try:
+            from pyhorace.io.sqw_formats_factory import sqw_formats_factory
+
+            ldr = sqw_formats_factory.instance().get_loader(path)
+            try:
+                if not bool(ldr.sqw_type):
+                    raise HoraceError(
+                        "HORACE:sqw:invalid_argument",
+                        f"Data file '{path}' does not contain an sqw-type object (contains dnd-type only)",
+                    )
+                return self._init_from_loader(
+                    ldr,
+                    pixel_page_size=pixel_page_size,
+                    file_backed=file_backed,
+                )
+            finally:
+                ldr.fclose()
+        except HoraceError as exc:
+            if "does not contain" in str(exc):
+                raise
+        except Exception:
+            pass
+
         from pyhorace.sqw.read_dnd import _read_binary_sqw_full
 
         with open(path, "rb") as f:
@@ -406,10 +429,12 @@ class sqw(SQWDnDBase):
                 "Data file does not contain full sqw-type object",
             )
 
-        if hasattr(loader, "get_sqw"):
+        if hasattr(loader, "get_sqw") and file_backed is None and pixel_page_size is None:
             res = loader.get_sqw("-verbatim")
             if isinstance(res, sqw):
                 self._copy_from(res)
+                self._trim_old_file_exper_info()
+                self._main_header.nfiles = self._exper_info.n_runs
                 return self
             if isinstance(res, dict):
                 return self._init_from_dict(res, pixel_page_size=pixel_page_size, file_backed=file_backed)
@@ -417,21 +442,34 @@ class sqw(SQWDnDBase):
         mh = loader.get_main_header("-keep_original") if hasattr(loader, "get_main_header") else main_header_cl()
         exp_info = loader.get_exp_info("-all") if hasattr(loader, "get_exp_info") else Experiment()
         detpar = loader.get_detpar() if hasattr(loader, "get_detpar") else None
-        if isinstance(detpar, dict) and exp_info.n_runs > 0:
-            det_arr = IX_detector_array(detpar)
-            urc = unique_references_container("IX_detector_array")
-            urc.add(det_arr)
-            if exp_info.n_runs > 1:
-                urc = urc.replicate_runs(exp_info.n_runs)
-            exp_info.detector_arrays = urc
+        if detpar is not None and exp_info.n_runs > 0 and exp_info.detector_arrays.n_runs == 0:
+            if isinstance(detpar, dict):
+                det_arr = IX_detector_array(detpar)
+                urc = unique_references_container("IX_detector_array")
+                urc.add(det_arr)
+                if exp_info.n_runs > 1:
+                    urc = urc.replicate_runs(exp_info.n_runs)
+                exp_info.detector_arrays = urc
+            elif isinstance(detpar, IX_detector_array):
+                urc = unique_references_container("IX_detector_array")
+                urc.add(detpar)
+                if exp_info.n_runs > 1:
+                    urc = urc.replicate_runs(exp_info.n_runs)
+                exp_info.detector_arrays = urc
+            elif isinstance(detpar, unique_references_container):
+                exp_info.detector_arrays = detpar
 
-        dnd_data_obj = loader.get_dnd() if hasattr(loader, "get_dnd") else (
-            loader.get_data() if hasattr(loader, "get_data") else d0d()
+        dnd_data_obj = loader.get_dnd("-verbatim") if hasattr(loader, "get_dnd") else (
+            loader.get_data("-verbatim") if hasattr(loader, "get_data") else d0d()
         )
         if not isinstance(dnd_data_obj, DnDBase):
             dnd_data_obj = DnDBase.dnd(dnd_data_obj)
 
         pix_obj = PixelDataBase.create(loader, filebacked=file_backed)
+        if not mh.creation_date_defined:
+            pix_obj.old_file_format = True
+            if isinstance(pix_obj, PixelDataMemory) and pix_obj.num_pixels > 0:
+                pix_obj._unique_run_id = np.unique(pix_obj.run_idx).astype(float)
         if (
             pixel_page_size is not None
             and pixel_page_size < PixelDataBase.DEFAULT_PAGE_SIZE
@@ -444,6 +482,21 @@ class sqw(SQWDnDBase):
         self._data = dnd_data_obj
         self._pix = pix_obj
         self._trim_old_file_exper_info()
+        if (
+            not self._main_header.creation_date_defined
+            and self._pix.num_pixels > 0
+            and self._exper_info.n_runs > 0
+        ):
+            from pyhorace.coord_transf._dependencies import fast_map
+
+            u_ids = np.unique(self._pix.run_idx).astype(float)
+            if u_ids.size == self._exper_info.n_runs:
+                cur_keys = np.asarray(self._exper_info.runid_map.keys, dtype=float)
+                if not np.array_equal(cur_keys, u_ids):
+                    self._exper_info.runid_map = fast_map(
+                        u_ids, np.arange(1, self._exper_info.n_runs + 1, dtype=int)
+                    )
+                    self._exper_info.runid_recalculated = False
         self._main_header.nfiles = self._exper_info.n_runs
         return self
 
@@ -480,8 +533,14 @@ class sqw(SQWDnDBase):
             else:
                 d["exper_info"] = Experiment()
 
-        if "experiment_info" in d and "exper_info" not in d:
-            d["exper_info"] = d.pop("experiment_info")
+        if "experiment_info" in d:
+            exp_info_val = d.pop("experiment_info")
+            if (
+                "exper_info" not in d
+                or d["exper_info"] is None
+                or (isinstance(d["exper_info"], Experiment) and d["exper_info"].n_runs == 0)
+            ):
+                d["exper_info"] = exp_info_val
 
         detpar = d.pop("detpar", None)
 
@@ -530,8 +589,61 @@ class sqw(SQWDnDBase):
         finally:
             self._do_check_combo_arg = True
 
+        self._trim_old_file_exper_info()
         self.check_combo_arg()
         return self
+
+    @staticmethod
+    def head_form(full: bool = False) -> List[str]:
+        """Return list of field names for ``head`` summary (port of ``@sqw/private/head_form_.m``)."""
+        if full:
+            return [
+                "filename",
+                "filepath",
+                "title",
+                "alatt",
+                "angdeg",
+                "offset",
+                "u_to_rlu",
+                "ulen",
+                "label",
+                "iax",
+                "iint",
+                "pax",
+                "p",
+                "dax",
+                "s",
+                "e",
+                "npix",
+                "img_range",
+                "npixels",
+                "pix_range",
+                "num_contrib_files",
+                "data_range",
+                "creation_date",
+                "experiment_info",
+                "detpar",
+            ]
+        return [
+            "filename",
+            "filepath",
+            "title",
+            "alatt",
+            "angdeg",
+            "offset",
+            "u_to_rlu",
+            "ulen",
+            "label",
+            "iax",
+            "iint",
+            "pax",
+            "p",
+            "dax",
+            "img_range",
+            "npixels",
+            "num_contrib_files",
+            "creation_date",
+        ]
 
     @staticmethod
     def make_sqw(dnd_type: bool = False, *args: Any) -> Dict[str, Any]:
@@ -1048,6 +1160,9 @@ class sqw(SQWDnDBase):
 
     def check_combo_arg(self) -> "sqw":
         """Validate interdependent properties of ``sqw``."""
+        if self._data is not None and hasattr(self._data, "check_combo_arg"):
+            self._data.do_check_combo_arg = True
+            self._data = self._data.check_combo_arg()
         if (
             self._exper_info is not None
             and self._exper_info.n_runs > 0
@@ -1573,3 +1688,7 @@ class sqw(SQWDnDBase):
         """Stub for ``@sqw/xydata.m``."""
         # TODO(port-dependency): Port @sqw/xydata.m
         raise NotImplementedError("sqw.xydata is not yet implemented.")
+
+
+SQW = sqw
+

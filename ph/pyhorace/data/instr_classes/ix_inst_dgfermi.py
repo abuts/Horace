@@ -5,6 +5,7 @@ Converted from:
 """
 from __future__ import annotations
 
+import math
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from pyhorace.core.serializable import register_serializable
@@ -261,9 +262,14 @@ class IX_inst_DGfermi(IX_inst):
         self, inputs: Dict[str, Any], ver: Optional[float] = None
     ) -> Tuple[Dict[str, Any], IX_inst_DGfermi]:
         out = dict(inputs)
-        if ver is None or ver == 1:
+        if out.get("class_version_") in (0, 1) or "moderator_" in out or "name_" in out:
+            out.pop("class_version_", None)
+            out = {(k[:-1] if k.endswith("_") else k): v for k, v in out.items()}
+        if ver is None or ver == 1 or (isinstance(ver, float) and math.isnan(ver)):
             out.setdefault("horiz_div", IX_divergence_profile())
             out.setdefault("vert_div", IX_divergence_profile())
-            if "source" in out and "moderator" not in out:
+            if "source" in out and "moderator" not in out and isinstance(out["source"], IX_moderator):
                 out["moderator"] = out.pop("source")
+            elif "source" in out and "moderator" in out:
+                out.pop("source", None)
         return out, self

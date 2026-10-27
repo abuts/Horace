@@ -2537,6 +2537,40 @@ class AxesBlockBase(Serializable, ABC):
     # Legacy Deserialization Helpers
     # ------------------------------------------------------------------
     @staticmethod
+    def calc_img_db_range(ax_data: Any) -> np.ndarray:
+        """Retrieve 4D image range from legacy Horace data struct or axes block."""
+        if isinstance(ax_data, dict):
+            if "img_range" in ax_data and ax_data["img_range"] is not None:
+                imr = np.asarray(ax_data["img_range"], dtype=float)
+                if imr.shape == (2, 4) and not np.any(imr == AxesBlockBase.EMPTY_RANGE_):
+                    return imr.copy()
+        elif hasattr(ax_data, "img_range"):
+            imr = np.asarray(ax_data.img_range, dtype=float)
+            if imr.shape == (2, 4) and not np.any(imr == AxesBlockBase.EMPTY_RANGE_):
+                return imr.copy()
+
+        img_db_range = np.zeros((2, 4), dtype=float)
+        iax_raw = ax_data.get("iax", []) if isinstance(ax_data, dict) else getattr(ax_data, "iax", [])
+        iint_raw = ax_data.get("iint", np.zeros((2, 0))) if isinstance(ax_data, dict) else getattr(ax_data, "iint", np.zeros((2, 0)))
+        iax = np.asarray(iax_raw, dtype=int).ravel()
+        iint = np.asarray(iint_raw, dtype=float)
+        if iax.size > 0 and iint.size > 0:
+            if iint.ndim == 1 and iint.size == 2 and iax.size == 1:
+                iint = iint.reshape((2, 1))
+            img_db_range[:, iax - 1] = iint
+
+        pax_raw = ax_data.get("pax", []) if isinstance(ax_data, dict) else getattr(ax_data, "pax", [])
+        p_cell = ax_data.get("p", []) if isinstance(ax_data, dict) else getattr(ax_data, "p", [])
+        pax = np.asarray(pax_raw, dtype=int).ravel()
+        if pax.size == 1 and isinstance(p_cell, np.ndarray) and p_cell.dtype != object:
+            p_cell = [p_cell]
+        for i, ax_num in enumerate(pax):
+            edges = np.asarray(p_cell[i], dtype=float).ravel()
+            img_db_range[0, int(ax_num) - 1] = float(edges[0])
+            img_db_range[1, int(ax_num) - 1] = float(edges[-1])
+        return img_db_range
+
+    @staticmethod
     def get_from_old_data(inputs: dict) -> "AxesBlockBase":
         from pyhorace.coord_transf.line_axes import line_axes
 

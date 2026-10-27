@@ -6,7 +6,7 @@ Ported from:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, ClassVar, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -21,16 +21,19 @@ from pyhorace.io.sqw_serializer import sqw_serializer
 class faccess_sqw_v3_3(faccess_sqw_v3):
     """Accessor for Horace SQW binary format version 3.3 (stores pixel data range)."""
 
-    file_version_: float = 3.3
+    file_version_: ClassVar[float] = 3.3
 
-    _v3_3_fields_to_save: List[str] = ["pix_range_pos_"]
-    fields_to_save_: List[str] = faccess_sqw_v3.fields_to_save_ + _v3_3_fields_to_save
+    _v3_3_fields_to_save: ClassVar[List[str]] = ["pix_range_pos_"]
+    fields_to_save_: ClassVar[List[str]] = faccess_sqw_v3.fields_to_save_ + _v3_3_fields_to_save
 
-    def __init__(self, *args: Any) -> None:
+    def _init_default_attributes(self) -> None:
+        super()._init_default_attributes()
         self.version_ = self.file_version_
         self.pix_range_pos_: int = 0
         self.pix_range_: np.ndarray = PixelDataBase.EMPTY_RANGE.copy()
-        super().__init__(*args)
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
     def get_faccess_version(self) -> float:
         return 3.3
@@ -94,7 +97,7 @@ class faccess_sqw_v3_3(faccess_sqw_v3):
         if from_obj:
             inobj = args[0]
             pix_obj, _ = self.extract_correct_subobj("pix", inobj)
-            from pyhorace.data.pixels.pix_data import PixelDataMemory
+            from pyhorace.data.pixels.pixel_data_memory import PixelDataMemory
 
             if pix_obj is None:
                 pix_obj = PixelDataMemory()
@@ -144,6 +147,7 @@ class faccess_sqw_v3_3(faccess_sqw_v3):
         subobj, _ = self.extract_correct_subobj("pix", *non_str)
         pr = getattr(subobj, "pix_range", PixelDataBase.EMPTY_RANGE[:, :4])
         self.pix_range_ = np.asarray(pr, dtype=np.float64)[:, :4].copy()
+        self.pix_range_pos_ = int(self.eof_pix_pos_)
         do_fseek(self.file_id_, int(self.pix_range_pos_), "bof")
         self.check_error_report_fail_("Unable to move to the start of the pixel range record")
         do_fwrite(self.file_id_, np.asarray(self.pix_range_, dtype=np.float32), "float32")

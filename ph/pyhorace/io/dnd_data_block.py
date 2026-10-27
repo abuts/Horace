@@ -29,9 +29,9 @@ class dnd_data_block(data_block):
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__()
         self._dimensions: Optional[int] = None
         self._data_size: Optional[Tuple[int, ...]] = None
-        super().__init__()
         self._sqw_prop_name = "data"
         self._level2_prop_name = "nd_data"
 
@@ -79,6 +79,14 @@ class dnd_data_block(data_block):
         return self._dimensions is not None and self._data_size is not None
 
     @property
+    def dimensions(self) -> Optional[int]:
+        return self._dimensions
+
+    @dimensions.setter
+    def dimensions(self, val: Optional[int]) -> None:
+        self._dimensions = int(val) if val is not None else None
+
+    @property
     def sig_position(self) -> int:
         if not self.dnd_info_defined:
             return 0
@@ -114,10 +122,18 @@ class dnd_data_block(data_block):
     ) -> "dnd_data_block":
         subobj = self.get_subobj(sqw_obj)
         if not isinstance(subobj, dnd_data):
-            raise HoraceError(
-                "HORACE:dnd_data_block:invalid_argument",
-                f"Expected dnd_data instance, got {type(subobj).__name__}.",
-            )
+            if hasattr(subobj, "nd_data"):
+                subobj = subobj.nd_data
+            elif isinstance(subobj, dict) and ("s" in subobj or "sig" in subobj):
+                s = subobj.get("sig", subobj.get("s"))
+                e = subobj.get("err", subobj.get("e"))
+                npix = subobj.get("npix")
+                subobj = dnd_data(s, e, npix)
+            else:
+                raise HoraceError(
+                    "HORACE:dnd_data_block:invalid_argument",
+                    f"Expected dnd_data instance, got {type(subobj).__name__}.",
+                )
         dsize = tuple(int(x) for x in subobj.data_size)
         if len(dsize) < 2:
             dsize = dsize + (1,) * (2 - len(dsize))

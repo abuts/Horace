@@ -27,9 +27,9 @@ class pix_data_block(data_block):
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__()
         self._npixels: Union[int, str] = "undefined"
         self._n_rows: int = 9
-        super().__init__()
         self._sqw_prop_name = "pix"
         self._level2_prop_name = "data_wrap"
         self._locked = True

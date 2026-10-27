@@ -7,7 +7,7 @@ import numpy as np
 
 from pyhorace.core.exceptions import HoraceError
 from pyhorace.io.sqw_binfile_common import sqw_binfile_common
-from pyhorace.io.sqw_fopen import do_fseek, obj_init, pack_io_outputs
+from pyhorace.io.sqw_fopen import _ShouldLoadResult, do_fseek, obj_init, pack_io_outputs
 
 
 def _convert_signal_error(data: Dict[str, Any]) -> Dict[str, Any]:
@@ -54,13 +54,13 @@ class faccess_sqw_prototype(sqw_binfile_common):
         return self
 
     def should_load_stream(
-        self, header: Dict[str, Any], fid: int
-    ) -> Tuple[bool, Optional[obj_init], str]:
+        self, header: Dict[str, Any], fid: int, *args: Any, nargout: Optional[int] = None
+    ) -> Any:
         if header.get("version") == 0 and header.get("name") == "horace":
             if header.get("uncertain", False):
                 header, fid = self.get_file_header(fid, 4098 + 22)
-            return super().should_load_stream(header, fid)
-        return False, obj_init(), "not Horace prototype file"
+            return super().should_load_stream(header, fid, *args, nargout=nargout)
+        return pack_io_outputs((False, obj_init(), "not Horace prototype file"), nargout, default=3)
 
     def get_dnd_form(self, *args: Any) -> Dict[str, Any]:
         form = super().get_dnd_form(*args)

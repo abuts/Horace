@@ -59,8 +59,10 @@ def _register_stream(stream: BinaryIO, filename: str, permission: str) -> int:
     return fid
 
 
-def sqw_fopen(file: Union[str, os.PathLike], permissions: str = "rb") -> int:
-    """Open a Horace binary SQW/DND file and return an integer file identifier (fid >= 3)."""
+def sqw_fopen(file: Union[str, os.PathLike, int], permissions: str = "rb") -> Any:
+    """Open a Horace binary SQW/DND file and return an integer file identifier (fid >= 3), or query filename if fid is passed."""
+    if isinstance(file, (int, np.integer)) and not isinstance(file, bool):
+        return sqw_fopen_info(int(file))[0]
     file_str = str(file)
     fp = os.path.dirname(file_str)
     fn = os.path.basename(file_str)
@@ -135,6 +137,9 @@ def sqw_fclose(fid: Union[int, str, Any]) -> int:
         return 0
     except Exception:
         return -1
+
+
+do_fclose = sqw_fclose
 
 
 def sqw_fopen_info(fid: Union[int, Any]) -> Tuple[str, str, str, str]:
@@ -268,11 +273,12 @@ def do_fread(
     fid: Union[int, BinaryIO],
     count: Union[int, Tuple[int, ...], List[int]],
     precision: str = "uint8",
-) -> Tuple[np.ndarray, int]:
+    nargout: Optional[int] = None,
+) -> Any:
     """Emulate MATLAB `[dat, cnt] = fread(fid, count, precision)`."""
     stream = get_stream(fid)
     if stream is None:
-        return np.array([], dtype=np.float64), 0
+        return pack_io_outputs((np.array([], dtype=np.float64), 0), nargout, default=1)
 
     prec_clean = precision.strip()
     out_as_double = not prec_clean.startswith("*") and "=>" not in prec_clean
@@ -300,11 +306,11 @@ def do_fread(
     except Exception as exc:
         if isinstance(fid, (int, np.integer)) and int(fid) in _OPENED_FILES:
             _OPENED_FILES[int(fid)]["last_error"] = (str(exc), -1)
-        return np.array([], dtype=out_dtype), 0
+        return pack_io_outputs((np.array([], dtype=out_dtype), 0), nargout, default=1)
 
     actual_elems = len(raw) // dtype.itemsize
     if actual_elems == 0:
-        return np.array([], dtype=out_dtype), 0
+        return pack_io_outputs((np.array([], dtype=out_dtype), 0), nargout, default=1)
     arr = np.frombuffer(raw[: actual_elems * dtype.itemsize], dtype=dtype).copy()
     if out_as_double and prec_clean not in ("*char",):
         arr = arr.astype(np.float64)
@@ -313,7 +319,7 @@ def do_fread(
 
     if shape is not None and actual_elems == n_elem:
         arr = arr.reshape(shape, order="F")
-    return arr, actual_elems
+    return pack_io_outputs((arr, actual_elems), nargout, default=1)
 
 
 def do_fwrite(
@@ -329,7 +335,10 @@ def do_fwrite(
             f"Cannot write to closed or invalid file (fid={fid})",
         )
     prec_clean = precision.strip().lstrip("*")
-    if prec_clean == "char" and isinstance(data, str):
+    if isinstance(data, (bytes, bytearray, memoryview)):
+        raw = bytes(data)
+        n_elem = len(raw)
+    elif prec_clean == "char" and isinstance(data, str):
         raw = data.encode("windows-1252", errors="replace")
         n_elem = len(raw)
     else:
@@ -419,9 +428,50 @@ def is_holder(obj: Any) -> bool:
     return any(hasattr(obj, k) for k in ("main_header", "exper_info", "experiment_info", "detpar", "data", "pix"))
 
 
-def pack_io_outputs(outputs: Sequence[Any], nargout: int = 1) -> Any:
+class _ShouldLoadResult:
+    """Result from `should_load` / `should_load_stream` supporting 2- or 3-tuple unpacking."""
+
+    def __init__(self, ok: bool, objinit: "obj_init", mess: str = "") -> None:
+        self.ok = bool(ok)
+        self.objinit = objinit
+        self.mess = str(mess)
+
+    def __iter__(self):
+        from pyhorace.coord_transf.bmatrix import _infer_nargout
+
+        n = _infer_nargout(default=3, explicit_nargout=None, depth=2)
+        if n == 2:
+            return iter((self.ok, self.objinit))
+        return iter((self.ok, self.objinit, self.mess))
+
+    def __len__(self) -> int:
+        return 3
+
+    def __getitem__(self, idx: int) -> Any:
+        return (self.ok, self.objinit, self.mess)[idx]
+
+    def __bool__(self) -> bool:
+        return self.ok
+
+    def __repr__(self) -> str:
+        return repr((self.ok, self.objinit, self.mess))
+
+
+def pack_io_outputs(
+    outputs: Sequence[Any],
+    nargout: Optional[int] = None,
+    default: int = 1,
+) -> Any:
     """Pack file accessor outputs according to requested `nargout`."""
-    if nargout <= 1:
+    from pyhorace.coord_transf.bmatrix import _infer_nargout
+
+    n = (
+        _infer_nargout(default=default, explicit_nargout=nargout, depth=3)
+        if nargout is None
+        else int(nargout)
+    )
+    if n <= 1:
         return outputs[0] if outputs else None
-    return tuple(outputs[:nargout])
+    return tuple(outputs[:n])
+
 

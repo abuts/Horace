@@ -15,6 +15,7 @@ import numpy as np
 from pydantic import PrivateAttr
 
 from pyhorace.core.hashable import hashable
+from pyhorace.core.serializable import register_serializable
 from pyhorace.data.instr_classes.pdf_table import _parse_rand_shape
 
 
@@ -29,6 +30,7 @@ def _is_numeric_scalar(val: Any) -> bool:
     return False
 
 
+@register_serializable
 class IX_aperture(hashable):
     """
     Aperture class definition (distance, width, height, name).

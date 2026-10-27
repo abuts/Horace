@@ -11,9 +11,11 @@ from typing import Any, Dict, Tuple
 
 import numpy as np
 
+from pyhorace.core.serializable import register_serializable
 from pyhorace.data.instr_classes.ix_samp import IX_samp
 
 
+@register_serializable
 class IX_null_sample(IX_samp):
     """
     Null sample object representing the absence of sample data.

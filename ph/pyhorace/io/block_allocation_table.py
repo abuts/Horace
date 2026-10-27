@@ -8,8 +8,9 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
-from pyhorace.core.serializable import Serializable, _infer_nargout, register_serializable
-from pyhorace.exceptions import HerbertError, HoraceError
+from pyhorace.coord_transf.bmatrix import _infer_nargout
+from pyhorace.core.exceptions import HerbertError, HoraceError
+from pyhorace.core.serializable import Serializable, register_serializable
 from pyhorace.io.data_block import data_block
 
 
@@ -259,10 +260,13 @@ class blockAllocationTable(Serializable):
         return self
 
     def get_data_block(
-        self, block_name_or_instance: Union[str, data_block, type]
+        self,
+        block_name_or_instance: Union[str, data_block, type],
+        nargout: Optional[int] = None,
     ) -> Union[data_block, Tuple[data_block, int]]:
         """Get a data_block in the BAT by name or instance."""
-        nargout = _infer_nargout()
+        if nargout is None:
+            nargout = _infer_nargout()
         the_block, bl_ind = self._get_data_block(block_name_or_instance)
         if nargout <= 1:
             return the_block
@@ -380,8 +384,21 @@ class blockAllocationTable(Serializable):
     def classVersion(self) -> int:
         return 1
 
+    def class_version(self) -> int:
+        return 1
+
     def saveableFields(self) -> List[str]:
         return ["position", "ba_table"]
+
+    def saveable_fields(self) -> List[str]:
+        return ["position", "ba_table"]
+
+    def from_bare_struct(self, s: dict) -> "blockAllocationTable":
+        if "position" in s:
+            self.position = s["position"]
+        if "ba_table" in s:
+            self.ba_table = s["ba_table"]
+        return self
 
     # ------------------------------------------------------------------
     # Private helpers
@@ -519,7 +536,7 @@ class blockAllocationTable(Serializable):
                 f"The block with name {block_name} is not registered in block allocation table",
             )
         bl_ind = self.block_names_.index(block_name)
-        return self.blocks_list_[bl_ind], bl_ind
+        return copy.copy(self.blocks_list_[bl_ind]), bl_ind
 
     def _get_block_pos(
         self, block: Union[str, data_block, type]

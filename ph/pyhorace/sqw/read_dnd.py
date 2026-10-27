@@ -181,6 +181,17 @@ def read_dnd(file: str) -> Any:
     if not os.path.isfile(path):
         raise HoraceError("HORACE:read_dnd:invalid_argument", f"File does not exist: {path}")
 
+    try:
+        from pyhorace.io.sqw_formats_factory import sqw_formats_factory
+
+        ldr = sqw_formats_factory.instance().get_loader(path)
+        try:
+            return ldr.get_dnd()
+        finally:
+            ldr.fclose()
+    except Exception:
+        pass
+
     with open(path, "rb") as f:
         header = f.read(16)
 
@@ -477,29 +488,64 @@ def _read_binary_sqw_full(
         return mh, exp_info, dnd_obj, pix_obj, sqw_type
 
 
-def read_sqw(file: str, file_backed: Optional[bool] = None) -> Any:
-    """Read an SQW or DnD object from a Horace binary file."""
+def read_horace(file: Any, *args: Any, file_backed: Optional[bool] = None) -> Any:
+    """Read an SQW or DnD object (or list/DataOpArray of objects) from Horace binary file(s)."""
+    get_dnd = False
+    force_sqw = False
+    rem_args: List[Any] = []
+    for a in args:
+        if isinstance(a, str):
+            al = a.strip().lower()
+            if al == "-get_dnd":
+                get_dnd = True
+            elif al == "-force_sqw":
+                force_sqw = True
+            elif al in ("-file_backed", "-filebacked"):
+                file_backed = True
+            else:
+                rem_args.append(a)
+        else:
+            rem_args.append(a)
+
+    if get_dnd and force_sqw:
+        raise HoraceError(
+            "HORACE:read_horace:invalid_argument",
+            "only one option allowed i.e. -get_dnd and -force_sqw cannot be provided simultaneously",
+        )
+
     if isinstance(file, (list, tuple)):
         from pyhorace.core.data_op_interface import DataOpArray
 
-        return DataOpArray([read_sqw(f, file_backed=file_backed) for f in file])
+        items = [read_horace(f, *args, file_backed=file_backed) for f in file]
+        if len(items) > 0 and all(type(x) is type(items[0]) for x in items):
+            return DataOpArray(items)
+        return items
+
     path = str(file)
     if not os.path.isfile(path):
-        raise HoraceError("HORACE:read_sqw:invalid_argument", f"File does not exist: {path}")
-    with open(path, "rb") as f:
-        header = f.read(30)
-    if len(header) >= 26 and header[:4] == b"\x06\x00\x00\x00" and header[4:10] == b"horace":
-        _, sqw_type, _ = struct.unpack("<dii", header[10:26])
-        if sqw_type == 1:
-            if file_backed is not None:
-                return sqw(path, file_backed=file_backed)
-            return sqw(path)
-        dnd_obj, _, _ = _read_binary_sqw_dnd(path, read_pixels=False)
-        return dnd_obj
-    return sqw(path, file_backed=file_backed) if file_backed is not None else sqw(path)
+        raise HoraceError("HORACE:read_horace:invalid_argument", f"File does not exist: {path}")
+
+    from pyhorace.io.sqw_formats_factory import sqw_formats_factory
+
+    ldr = sqw_formats_factory.instance().get_loader(path)
+    try:
+        is_sqw = bool(ldr.sqw_type)
+        if force_sqw and not is_sqw:
+            raise HoraceError(
+                "HORACE:read_horace:invalid_argument",
+                f"Files {path} only contain dnd information but sqw file required.",
+            )
+        if get_dnd or not is_sqw:
+            return ldr.get_dnd(*rem_args)
+        fb_args = list(rem_args)
+        if file_backed is not None:
+            fb_args.extend(["-file_backed"] if file_backed else [])
+        return ldr.get_sqw(*fb_args)
+    finally:
+        ldr.fclose()
 
 
-def read_horace(file: str, file_backed: Optional[bool] = None) -> Any:
-    """Read an SQW or DnD object from a Horace file."""
-    return read_sqw(file, file_backed=file_backed)
+def read_sqw(file: Any, *args: Any, file_backed: Optional[bool] = None) -> Any:
+    """Read an SQW object from a Horace binary file (raises if file contains only DnD)."""
+    return read_horace(file, *args, "-force_sqw", file_backed=file_backed)
 

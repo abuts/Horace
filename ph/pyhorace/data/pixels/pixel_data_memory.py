@@ -97,6 +97,12 @@ class PixelDataMemory(PixelDataBase):
             return
 
         if hasattr(arg, "get_pix") or hasattr(arg, "npix"):
+            if hasattr(arg, "faccess_version"):
+                try:
+                    if float(arg.faccess_version) < 4.0:
+                        self._old_file_format = True
+                except Exception:
+                    pass
             stub = FileBackedPixStub.from_faccess(arg)
             self._full_filename = stub.full_filename
             self._data = stub.get_pix_slice(slice(None), 1, stub.num_pixels)
@@ -286,7 +292,6 @@ class PixelDataMemory(PixelDataBase):
                 f"pix_data_wrap property can only be set with a pix_data instance, got {type(val).__name__}"
             )
         self.set_raw_data(val.data)
-        self.recalc_data_range("all")
         return self
 
     def append(self, pix: PixelDataBase) -> "PixelDataMemory":

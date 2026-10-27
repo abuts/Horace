@@ -13,7 +13,7 @@ import copy
 import datetime
 import os
 import warnings
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, ClassVar, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -62,14 +62,16 @@ def _extract_ignored_blocks_arg(*args: Any) -> Tuple[List[str], List[Any]]:
 class binfile_v4_common(horace_binfile_interface):
     """Common implementation for Horace v4 binary DND and SQW file accessors."""
 
-    _v4_fields_to_save: List[str] = ["full_filename", "num_dims_to_save", "bat"]
+    _v4_fields_to_save: ClassVar[List[str]] = ["full_filename", "num_dims_to_save", "bat"]
 
-    def __init__(self, *args: Any) -> None:
-        self.bat_: blockAllocationTable = blockAllocationTable()
-        super().__init__()
-        self.bat_ = blockAllocationTable(self.max_header_size_, self.data_blocks_list)
-        if len(args) > 0:
-            self.init(*args)
+    def _init_default_attributes(self) -> None:
+        super()._init_default_attributes()
+        self.bat_: blockAllocationTable = blockAllocationTable(
+            self.max_header_size_, self.data_blocks_list
+        )
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
     # ------------------------------------------------------------------
     # Properties
@@ -95,6 +97,18 @@ class binfile_v4_common(horace_binfile_interface):
     @property
     def data_type(self) -> str:
         return self.get_data_type()
+
+    @property
+    def dnd_dimensions(self) -> Any:
+        if self.bat_ is None or not self.bat_.initialized or "bl_data_nd_data" not in self.bat_.block_names:
+            return "undefined"
+        bl, bl_idx = self.bat_.get_data_block("bl_data_nd_data", nargout=2)
+        if not bl.dnd_info_defined and self.file_id_ > 0:
+            bl.read_dnd_info(self.file_id_)
+            self.bat_.set_changed_block(bl, bl_idx)
+        if bl.dnd_info_defined and bl._data_size is not None:
+            return list(bl._data_size)
+        return "undefined"
 
     # ------------------------------------------------------------------
     # Abstract & Overloadable Protected Methods
@@ -149,7 +163,7 @@ class binfile_v4_common(horace_binfile_interface):
                 f"Input object must be sqw or dnd type object. It is: {type(in_obj).__name__}",
             )
         if hasattr(in_obj, "dimensions"):
-            dims_res = in_obj.dimensions()
+            dims_res = in_obj.dimensions() if callable(in_obj.dimensions) else in_obj.dimensions
             if isinstance(dims_res, tuple) and len(dims_res) == 2 and isinstance(dims_res[0], (int, np.integer)):
                 self.num_dim_ = int(dims_res[0])
             elif isinstance(dims_res, (int, np.integer)):
@@ -183,11 +197,12 @@ class binfile_v4_common(horace_binfile_interface):
             self.check_obj_initated_properly()
 
         self.bat_.get_bat(self.file_id_)
-        bl, bl_idx = self.bat_.get_data_block("bl_data_nd_data", nargout=2)
-        if not bl.dnd_info_defined:
-            bl.read_dnd_info(self.file_id_)
-            self.bat_.set_changed_block(bl, bl_idx)
-        self.num_dim_ = int(bl.dimensions) if hasattr(bl, "dimensions") and bl.dnd_info_defined else self.num_dim_
+        if "bl_data_nd_data" in self.bat_.block_names:
+            bl, bl_idx = self.bat_.get_data_block("bl_data_nd_data", nargout=2)
+            if not bl.dnd_info_defined:
+                bl.read_dnd_info(self.file_id_)
+                self.bat_.set_changed_block(bl, bl_idx)
+            self.num_dim_ = int(bl.dimensions) if hasattr(bl, "dimensions") and bl.dnd_info_defined else self.num_dim_
         self.data_in_file_ = True
         return self
 
@@ -282,7 +297,9 @@ class binfile_v4_common(horace_binfile_interface):
                 )
             obj_to_set = argi[1]
         elif obj_to_set is None:
-            if "dnd" in type(self).__name__.lower():
+            if isinstance(self.sqw_holder_, dict):
+                obj_to_set = {}
+            elif "dnd" in type(self).__name__.lower():
                 obj_to_set = d0d()
             else:
                 obj_to_set = SQW()
@@ -345,7 +362,7 @@ class binfile_v4_common(horace_binfile_interface):
             else:
                 argi.append(a)
 
-        if not no_init and len(argi) > 0 and (self._is_sqw_or_dnd_obj(argi[0]) or is_sqw_struct(argi[0])):
+        if not no_init and not self.bat_.initialized and len(argi) > 0 and (self._is_sqw_or_dnd_obj(argi[0]) or is_sqw_struct(argi[0])):
             self.init(*argi)
             return self._put_sqw_block_impl(block_name_or_class, nargout=nargout)
 
@@ -388,7 +405,18 @@ class binfile_v4_common(horace_binfile_interface):
         if len(args) > 0:
             self._check_file_defined_and_exist("read", block_name_or_instance, *args)
             self.init(*args)
-        _, blk = self.get_sqw_block(block_name_or_instance, nargout=2)
+        if not self.bat_.initialized:
+            raise HoraceError(
+                "HORACE:binfile_v4_common:runtime_error",
+                "Attempt to get sqw block using non-initialized file-accessor",
+            )
+        if self.file_id_ <= 0:
+            raise HoraceError(
+                "HORACE:binfile_v4_common:runtime_error",
+                f'Attempt to get sqw block using file-accessor with sqw file "{self.full_filename} " closed',
+            )
+        the_data_block = self.bat_.get_data_block(block_name_or_instance, nargout=1)
+        _, blk = the_data_block.get_sqw_block(self.file_id_, nargout=2)
         return pack_io_outputs((blk, self), nargout, default=1)
 
     def put_block_data(
@@ -797,9 +825,12 @@ class binfile_v4_common(horace_binfile_interface):
             flds.append("sqw_holder")
         return flds
 
-    def to_bare_struct(self, *args: Any) -> Dict[str, Any]:
-        return Serializable.to_bare_struct(self, *args)
+    def to_bare_struct(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+        return Serializable.to_bare_struct(self, *args, **kwargs)
 
     def from_bare_struct(self, indata: Dict[str, Any]) -> "binfile_v4_common":
-        return Serializable.from_bare_struct(self, indata)  # type: ignore[return-value]
+        res = Serializable.from_bare_struct(self, indata)
+        if isinstance(indata, dict) and "sqw_holder" in indata and indata["sqw_holder"] is not None:
+            res.sqw_holder = self._restore_value_from_struct(indata["sqw_holder"])
+        return res  # type: ignore[return-value]
 

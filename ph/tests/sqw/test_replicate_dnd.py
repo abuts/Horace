@@ -50,7 +50,10 @@ class TestReplicateDnD:
 
         w_rep_sqw = w1.replicate(sqw_2d_obj)
         assert isinstance(w_rep_sqw, d2d)
-        assert w_rep.equal_to_tol(w_rep_sqw, ignore_str=True)
+        np.testing.assert_allclose(w_rep.s, w_rep_sqw.s)
+        np.testing.assert_allclose(w_rep.e, w_rep_sqw.e)
+        np.testing.assert_allclose(w_rep.npix, w_rep_sqw.npix)
+        assert w1.replicate(d2d(sqw_2d_obj)).equal_to_tol(w_rep_sqw, ignore_str=True)
 
     def test_replicate_higher_to_lower_dim_raises_error(self, d2d_obj, d3d_obj):
         with pytest.raises(HoraceError):

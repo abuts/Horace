@@ -176,6 +176,8 @@ class const_blocks_map:
         if isinstance(key, (list, tuple)):
             if len(key) == 0:
                 return False, []
+            if len(key) == 1:
+                return cls._get_value(struc, key[0])
             first = key[0]
             if isinstance(struc, dict):
                 if first not in struc:
@@ -187,9 +189,7 @@ class const_blocks_map:
                 return False, []
             if subs is None or (isinstance(subs, (list, tuple, dict, np.ndarray)) and len(subs) == 0):
                 return True, []
-            if len(key) == 1:
-                return True, subs
-            return cls._get_value(subs, key[1:])
+            return cls._get_value(subs, key[1] if len(key) == 2 else key[1:])
         else:
             if isinstance(struc, (list, tuple, np.ndarray)):
                 if len(struc) == 0:

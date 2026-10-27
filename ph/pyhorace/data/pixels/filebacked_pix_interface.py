@@ -213,7 +213,25 @@ class FileBackedPixStub(FileBackedPixInterface):
                 f"HORACE:PixelDataFileBacked:invalid_argument - "
                 f"Cannot find file containing pixel data: {filepath}"
             )
-        # Check if it is an SQW binary file that _read_binary_sqw_dnd can parse
+        # Check if it is an SQW binary file that sqw_formats_factory or _read_binary_sqw_dnd can parse
+        try:
+            from pyhorace.io.sqw_formats_factory import sqw_formats_factory
+
+            ldr = sqw_formats_factory.instance().get_loader(filepath)
+            try:
+                if bool(ldr.sqw_type) and hasattr(ldr, "get_raw_pix"):
+                    npix_ldr = int(ldr.npixels) if isinstance(ldr.npixels, int) else 0
+                    raw_arr = ldr.get_raw_pix(1, npix_ldr) if npix_ldr > 0 else np.empty((9, 0), dtype=np.float32)
+                    self._buffer = np.asarray(raw_arr, dtype=np.float32, order="F").copy(order="F")
+                    self._num_pixels = int(self._buffer.shape[1])
+                    if isinstance(ldr.pix_position, int) and ldr.pix_position > 0:
+                        self._offset = int(ldr.pix_position)
+                    return
+            finally:
+                ldr.fclose()
+        except Exception:
+            pass
+
         try:
             from pyhorace.sqw.read_dnd import _read_binary_sqw_dnd
 
@@ -258,17 +276,28 @@ class FileBackedPixStub(FileBackedPixInterface):
             fn = str(getattr(faccess, "filename", "") or "")
             full_filename = os.path.join(fp, fn) if fp else fn
 
-        npix = int(getattr(faccess, "npix", getattr(faccess, "num_pixels", 0)) or 0)
-        pix_pos = int(getattr(faccess, "pix_position", getattr(faccess, "offset", 1)) or 1)
-        eof_pos = int(getattr(faccess, "eof_pix_position", 0) or 0)
+        raw_npix = getattr(
+            faccess,
+            "npixels",
+            getattr(faccess, "npix", getattr(faccess, "num_pixels", 0)),
+        )
+        npix = int(raw_npix) if isinstance(raw_npix, (int, np.integer)) else 0
+        raw_pos = getattr(faccess, "pix_position", getattr(faccess, "offset", 1))
+        pix_pos = int(raw_pos) if isinstance(raw_pos, (int, np.integer)) else 1
+        raw_eof = getattr(faccess, "eof_pix_position", 0)
+        eof_pos = int(raw_eof) if isinstance(raw_eof, (int, np.integer)) else 0
         tail = 0
 
         data = None
-        if hasattr(faccess, "get_pix"):
+        if hasattr(faccess, "get_raw_pix"):
+            data = faccess.get_raw_pix(1, npix) if npix > 0 else np.empty((9, 0), dtype=np.float32)
+        elif hasattr(faccess, "get_pix"):
             try:
                 data = faccess.get_pix(1, npix) if npix > 0 else np.empty((9, 0), dtype=np.float32)
             except TypeError:
                 data = faccess.get_pix()
+            if hasattr(data, "data"):
+                data = data.data
         elif hasattr(faccess, "fake_data"):
             data = getattr(faccess, "fake_data")
         elif hasattr(faccess, "_buffer"):

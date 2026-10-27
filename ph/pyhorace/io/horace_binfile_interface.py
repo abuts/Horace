@@ -13,7 +13,7 @@ import datetime
 import os
 import re
 from abc import abstractmethod
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, ClassVar, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -21,8 +21,9 @@ from pyhorace.core.exceptions import HoraceError
 from pyhorace.core.serializable import Serializable
 from pyhorace.core.unique_objects_container import unique_objects_container
 from pyhorace.core.unique_references_container import unique_references_container
-from pyhorace.data.instr_classes.detectors import IX_detector_array
+from pyhorace.data.instr_classes.ix_detector_array import IX_detector_array
 from pyhorace.io.sqw_fopen import (
+    _ShouldLoadResult,
     do_ferror,
     do_fread,
     do_fseek,
@@ -56,12 +57,11 @@ class horace_binfile_interface(Serializable):
         "sqw_type": np.uint32(1),
         "num_dim": np.uint32(1),
     }
-    max_header_size_: int = 4 + 6 + 8 + 4 + 4  # 26 bytes
+    max_header_size_: ClassVar[int] = 4 + 6 + 8 + 4 + 4  # 26 bytes
 
-    fields_to_save_: List[str] = ["filename_", "filepath_", "num_dim_"]
+    fields_to_save_: ClassVar[List[str]] = ["filename_", "filepath_", "num_dim_"]
 
-    def __init__(self, *args: Any) -> None:
-        super().__init__()
+    def _init_default_attributes(self) -> None:
         self.version_: Union[int, float, str] = "undefined"
         self.sqw_serializer_: Optional[sqw_serializer] = sqw_serializer()
         self.filename_: str = ""
@@ -75,8 +75,12 @@ class horace_binfile_interface(Serializable):
         self.read_only_: bool = True
         self.data_in_file_: bool = False
         self._do_init_on_load: bool = False
-        if len(args) > 0:
-            self.init(*args)
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__()
+        self._init_default_attributes()
+        if len(args) > 0 or len(kwargs) > 0:
+            self.init(*args, **kwargs)
 
     def __del__(self) -> None:
         try:
@@ -92,9 +96,12 @@ class horace_binfile_interface(Serializable):
 
     def __copy__(self) -> "horace_binfile_interface":
         cls = self.__class__
-        result = cls.__new__(cls)
-        result.__dict__.update(self.__dict__)
-        result.file_id_ = -1
+        result = cls()
+        for k, v in self.__dict__.items():
+            if k == "file_id_":
+                setattr(result, k, -1)
+            else:
+                setattr(result, k, v)
         if self.file_id_ > 0 and self.full_filename and os.path.isfile(self.full_filename):
             try:
                 result.activate(self.read_only_)
@@ -104,7 +111,7 @@ class horace_binfile_interface(Serializable):
 
     def __deepcopy__(self, memo: Dict[int, Any]) -> "horace_binfile_interface":
         cls = self.__class__
-        result = cls.__new__(cls)
+        result = cls()
         memo[id(self)] = result
         for k, v in self.__dict__.items():
             if k == "file_id_":
@@ -202,8 +209,12 @@ class horace_binfile_interface(Serializable):
         return self.file_id_
 
     @property
-    def file_closer(self) -> int:
-        return self.file_id_
+    def file_closer(self) -> Optional[int]:
+        return int(self.file_id_) if self.file_id_ > 0 else None
+
+    @property
+    def file_closer_(self) -> Optional[int]:
+        return int(self.file_id_) if self.file_id_ > 0 else None
 
     @property
     def num_dim(self) -> Union[int, str]:
@@ -383,9 +394,9 @@ class horace_binfile_interface(Serializable):
             return True
         rw = str(read_or_write).lower().lstrip("-")
         if rw.startswith("read"):
-            return mode in ("rb", "r")
+            return mode in ("rb", "r", "rb+", "r+b", "wb+", "w+b", "ab+", "a+b", "ab")
         if rw.startswith("write"):
-            return mode in ("wb+", "rb+", "r+b", "w+b", "wb", "w")
+            return mode in ("wb+", "rb+", "r+b", "w+b", "wb", "w", "ab+", "a+b", "ab")
         raise HoraceError(
             "HORACE:horace_binfile_interface:invalid_argument",
             f"Unrecognised is_activated option: {read_or_write!r}",
@@ -402,8 +413,17 @@ class horace_binfile_interface(Serializable):
 
         argi = list(args)
         if isinstance(argi[0], horace_binfile_interface):
-            self.copy_contents(argi[0])
-            argi = argi[1:]
+            other = argi[0]
+            self.copy_contents(other)
+            if len(argi) > 1:
+                if self.sqw_holder_ is None and other.file_id > 0:
+                    try:
+                        self.sqw_holder_ = other.get_sqw("-verbatim", nargout=1)
+                        self.init_from_sqw_obj(self.sqw_holder_)
+                    except Exception:
+                        pass
+                self.set_file_to_update(argi[1])
+            return self
 
         if len(argi) == 0:
             return self
@@ -497,6 +517,8 @@ class horace_binfile_interface(Serializable):
             return True
         if isinstance(val, dict):
             if ("main_header" in val and "data" in val) or ("s" in val and "e" in val and "p" in val):
+                return True
+            if "level2_a" in val and "level1" in val:
                 return True
         if hasattr(val, "s") and hasattr(val, "e") and hasattr(val, "npix"):
             return True
@@ -747,8 +769,8 @@ class horace_binfile_interface(Serializable):
     # ------------------------------------------------------------------
 
     def should_load(
-        self, filename: Union[str, os.PathLike, int]
-    ) -> Tuple[bool, Optional[obj_init], str]:
+        self, filename: Union[str, os.PathLike, int], *args: Any, nargout: Optional[int] = None
+    ) -> Any:
         """Check if this loader should load `filename`."""
         if not isinstance(filename, (int, np.integer)) or isinstance(filename, bool):
             if not isinstance(filename, (str, os.PathLike)) or not str(filename).strip():
@@ -766,11 +788,11 @@ class horace_binfile_interface(Serializable):
             full_data_name = int(filename)
 
         header, fh = horace_binfile_interface.get_file_header(full_data_name)
-        return self.should_load_stream(header, fh)
+        return self.should_load_stream(header, fh, *args, nargout=nargout)
 
     def should_load_stream(
-        self, head_struc: Dict[str, Any], fid: int
-    ) -> Tuple[bool, Optional[obj_init], str]:
+        self, head_struc: Dict[str, Any], fid: int, *args: Any, nargout: Optional[int] = None
+    ) -> Any:
         """Check if this loader should load the open stream described by `head_struc`."""
         if not isinstance(head_struc, dict) or "sqw_type" not in head_struc or "version" not in head_struc:
             raise HoraceError(
@@ -779,11 +801,16 @@ class horace_binfile_interface(Serializable):
             )
         my_sqw = bool(self.sqw_type is True) if not isinstance(self.sqw_type, bool) else self.sqw_type
         if bool(head_struc["sqw_type"]) == my_sqw and head_struc["version"] == self.faccess_version:
-            return True, obj_init(fid, head_struc["num_dim"]), ""
+            return _ShouldLoadResult(True, obj_init(fid, head_struc["num_dim"]), "")
         else:
             t_str = "sqw" if my_sqw else "dnd"
-            mess = f"not Horace type: {t_str} version: {self.faccess_version:g} file"
-            return False, obj_init(), mess
+            ver_str = (
+                f"{self.faccess_version:g}"
+                if isinstance(self.faccess_version, (int, float, np.number))
+                else str(self.faccess_version)
+            )
+            mess = f"not Horace type: {t_str} version: {ver_str} file"
+            return _ShouldLoadResult(False, obj_init(), mess)
 
     # ------------------------------------------------------------------
     # File Opening for Writing / Updating
@@ -1009,20 +1036,27 @@ class horace_binfile_interface(Serializable):
             "file_backed",
             "force_pix_location",
         ]
-        opts: Dict[str, bool] = {f: False for f in flags}
+        opts: Dict[str, Any] = {f: False for f in flags}
+        opts["file"] = None
         if len(args) == 1 and isinstance(args[0], dict):
             for k, v in args[0].items():
-                opts[k] = bool(v)
+                opts[k] = v if k == "file" else bool(v)
             opts["verbatim"] = opts["verbatim"] or opts["hverbatim"]
             return opts
 
         for arg in args:
+            if isinstance(arg, os.PathLike):
+                opts["file"] = str(arg)
+                continue
             if not isinstance(arg, str):
                 raise HoraceError(
                     "HORACE:horace_binfile_interface:invalid_argument",
                     f"Unrecognized non-string option {arg!r} in get_sqw",
                 )
             s = arg.strip()
+            if not s.startswith("-"):
+                opts["file"] = s
+                continue
             if s == "-h":
                 s = "-his"
             key = s.lstrip("-").lower()
@@ -1040,6 +1074,8 @@ class horace_binfile_interface(Serializable):
                 )
         opts["verbatim"] = opts["verbatim"] or opts["hverbatim"]
         return opts
+
+    _parse_get_sqw_args = parse_get_sqw_args
 
     # ------------------------------------------------------------------
     # Detector Conversion Utility
@@ -1206,7 +1242,7 @@ class horace_binfile_interface(Serializable):
     def saveable_fields(self) -> List[str]:
         return list(self.fields_to_save_)
 
-    def to_bare_struct(self, *args: Any) -> Dict[str, Any]:
+    def to_bare_struct(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
         return {fld: getattr(self, fld) for fld in self.fields_to_save_}
 
     def from_bare_struct(self, indata: Dict[str, Any]) -> "horace_binfile_interface":

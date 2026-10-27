@@ -7,7 +7,7 @@ from typing import Any
 
 import numpy as np
 
-from pyhorace.exceptions import HoraceError
+from pyhorace.core.exceptions import HoraceError
 from pyhorace.io.faccess_dnd_v2 import faccess_dnd_v2
 from pyhorace.io.faccess_dnd_v4 import faccess_dnd_v4
 from pyhorace.io.faccess_sqw_prototype import faccess_sqw_prototype
@@ -18,6 +18,7 @@ from pyhorace.io.faccess_sqw_v3_21 import faccess_sqw_v3_21
 from pyhorace.io.faccess_sqw_v3_3 import faccess_sqw_v3_3
 from pyhorace.io.faccess_sqw_v4 import faccess_sqw_v4
 from pyhorace.io.horace_binfile_interface import horace_binfile_interface
+from pyhorace.io.sqw_fopen import sqw_fclose
 
 
 class _SqwFormatsFactoryMeta(type):
@@ -100,14 +101,14 @@ class sqw_formats_factory(metaclass=_SqwFormatsFactoryMeta):
         head_struc, fh = horace_binfile_interface.get_file_header(full_data_name, *args)
 
         for acc in self.supported_accessors_:
-            ok, objinit = acc.should_load_stream(head_struc, fh)
+            ok, objinit, _ = acc.should_load_stream(head_struc, fh)
             if ok:
                 loader = type(acc)()
                 try:
                     loader = loader.init(objinit, *args)
                 except Exception as err:
                     try:
-                        fh.close()
+                        sqw_fclose(fh)
                     except Exception:
                         pass
                     raise HoraceError(
@@ -117,7 +118,7 @@ class sqw_formats_factory(metaclass=_SqwFormatsFactoryMeta):
                 return loader
 
         try:
-            fh.close()
+            sqw_fclose(fh)
         except Exception:
             pass
 
@@ -206,22 +207,33 @@ class sqw_formats_factory(metaclass=_SqwFormatsFactoryMeta):
 
     @staticmethod
     def get_sqw_type(obj: Any) -> tuple[str, str]:
-        """Classify *obj* as ``'sqw'``, ``'dnd'``, or ``'none'`` alongside its class name."""
+        """Determine the type of sqw/dnd object based on data in the header."""
         orig_type = type(obj).__name__
 
-        from pyhorace.dnd.dnd_base import DnDBase
-        from pyhorace.sqw.sqw_dnd_base import SQWDnDBase
+        if orig_type == "sqw":
+            in_type = "sqw"
+            header = getattr(obj, "exper_info", getattr(obj, "experiment_info", None))
+            if header is None:
+                return ("none", orig_type)
+            if type(header).__name__ == "Experiment" or hasattr(header, "expdata"):
+                expdata = getattr(header, "expdata", None)
+                if expdata is None or len(expdata) == 0:
+                    return ("none", orig_type)
+                header = expdata[0]
+            elif isinstance(header, (list, tuple)):
+                if len(header) == 0:
+                    return ("none", orig_type)
+                header = header[0]
+            elif isinstance(header, dict) and len(header) == 0:
+                return ("none", orig_type)
 
-        if isinstance(obj, SQWDnDBase):
-            if isinstance(obj, DnDBase):
-                return ("dnd", orig_type)
-            else:
-                return ("sqw", orig_type)
-
-        if orig_type in ("DnDBase", "d0d", "d1d", "d2d", "d3d", "d4d"):
-            return ("dnd", orig_type)
-        if orig_type in ("sqw", "sqw2"):
-            return ("sqw", orig_type)
+            emode = header.get("emode", 0) if isinstance(header, dict) else getattr(header, "emode", 0)
+            if emode == 2:
+                efix = header.get("efix", []) if isinstance(header, dict) else getattr(header, "efix", [])
+                nefix = np.asarray(efix).size if efix is not None else 0
+                if nefix > 1:
+                    in_type = "sqw2"
+            return (in_type, orig_type)
 
         if isinstance(obj, dict):
             fields = list(obj.keys())
@@ -251,5 +263,5 @@ class sqw_formats_factory(metaclass=_SqwFormatsFactoryMeta):
                 return ("dnd", "struct")
             return ("none", "struct")
 
-        return ("none", orig_type)
+        return (orig_type, orig_type)
 

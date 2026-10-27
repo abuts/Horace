@@ -1437,10 +1437,10 @@ class Experiment(Serializable):
         for a in args:
             if isinstance(a, str) and a == "-nomangle":
                 nomangle = True
-            elif isinstance(a, (int, np.integer)):
+            elif isinstance(a, (int, np.integer)) and not isinstance(a, (bool, np.bool_)) and int(a) > 0:
                 header_num = int(a)
 
-        if header_num is not None:
+        if header_num is not None and not isinstance(header_num, (bool, np.bool_)) and int(header_num) > 0:
             indices_0 = [int(header_num) - 1]
         else:
             indices_0 = list(range(self.n_runs))

@@ -175,6 +175,10 @@ class data_block(Serializable):
     def locked(self) -> bool:
         return bool(self._locked)
 
+    @locked.setter
+    def locked(self, val: Any) -> None:
+        self._locked = bool(val)
+
     @property
     def allocated(self) -> bool:
         return self.position > 0 and self.size > 0
@@ -207,7 +211,7 @@ class data_block(Serializable):
             "size": np.uint64(self.size),
         }
         ser = sqw_serializer()
-        _, pos = ser.calculate_positions(self.bat_format, rec, 1)
+        _, pos, *_ = ser.calculate_positions(self.bat_format, rec, 1)
         return int(pos - 1)
 
     @property
@@ -470,13 +474,19 @@ class data_block(Serializable):
 
     def get_bindata_from_file(self, fid: int) -> Any:
         """Read ``self.size`` bytes from ``self.position`` and deserialize."""
+        # Ensure common serializable classes are registered
+        import pyhorace.sqw.dnd_metadata  # noqa: F401
+        import pyhorace.data.pixels.pix_metadata  # noqa: F401
+        import pyhorace.io.main_header_cl  # noqa: F401
+        import pyhorace.data.experiment  # noqa: F401
+
         self.move_to_position(fid)
         raw_arr = do_fread(fid, self.size, "*uint8")
         self.check_read_error(fid)
-        try:
-            return Serializable.deserialize(raw_arr)
-        except Exception:
-            return hlp_deserialize(raw_arr)
+        val, _ = hlp_deserialize(raw_arr)
+        if isinstance(val, dict) and "serial_name" in val:
+            return Serializable.from_struct(val)
+        return val
 
     def move_to_position(self, fid: int, pos: Optional[int] = None) -> None:
         target = self.position if pos is None else int(pos)

@@ -7,7 +7,7 @@ Ported from:
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Any, Optional, Sequence, Tuple, Union
+from typing import Any, ClassVar, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -18,12 +18,15 @@ from pyhorace.io.horace_binfile_interface import horace_binfile_interface
 class sqw_file_interface(horace_binfile_interface):
     """Abstract base class for Horace SQW binary file accessors (v2, v3, v4)."""
 
-    format_for_object: str = "sqw"
+    format_for_object: ClassVar[str] = "sqw"
 
-    def __init__(self, *args: Any) -> None:
-        super().__init__(*args)
+    def _init_default_attributes(self) -> None:
+        super()._init_default_attributes()
         self.npixels_: Union[int, str] = "undefined"
         self.num_contrib_files_: Union[int, str] = "undefined"
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
     # ------------------------------------------------------------------
     # Properties
@@ -42,8 +45,16 @@ class sqw_file_interface(horace_binfile_interface):
         return self.get_num_contrib_files()
 
     @property
-    def pix_pos(self) -> Union[int, str]:
-        return self.get_pix_pos()
+    def pix_position(self) -> Any:
+        return self.get_pix_position()
+
+    @pix_position.setter
+    def pix_position(self, val: Union[int, str]) -> None:
+        self.set_pix_pos(val)
+
+    @property
+    def pix_pos(self) -> Any:
+        return self.get_pix_position()
 
     @pix_pos.setter
     def pix_pos(self, val: Union[int, str]) -> None:
@@ -84,8 +95,11 @@ class sqw_file_interface(horace_binfile_interface):
     def get_num_contrib_files(self) -> Union[int, str]:
         return self.num_contrib_files_
 
-    def get_pix_pos(self) -> Union[int, str]:
+    def get_pix_position(self) -> Any:
         return "undefined"
+
+    def get_pix_pos(self) -> Any:
+        return self.get_pix_position()
 
     def set_pix_pos(self, val: Union[int, str]) -> None:
         pass

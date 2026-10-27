@@ -230,8 +230,8 @@ class Serializable(BaseModel, ABC):
             # Sequence of structs -> sequence of objects
             result = []
             for item in S:
-                obj_item = copy.copy(self)
-                obj_item = obj_item._populate_single_bare(item)
+                obj_item = self.__class__()
+                obj_item = obj_item.from_bare_struct(item)
                 result.append(obj_item)
             return result
 
@@ -312,6 +312,17 @@ class Serializable(BaseModel, ABC):
             class_name = S["serial_name"]
             target_cls = SERIALIZABLE_REGISTRY.get(class_name)
             if target_cls is None:
+                if class_name in ("axes_block", "ortho_axes"):
+                    from pyhorace.coord_transf.line_axes import line_axes
+
+                    target_cls = line_axes
+                    SERIALIZABLE_REGISTRY[class_name] = line_axes
+                elif class_name in ("a_projection", "ortho_proj"):
+                    from pyhorace.coord_transf.line_proj import line_proj
+
+                    target_cls = line_proj
+                    SERIALIZABLE_REGISTRY[class_name] = line_proj
+            if target_cls is None:
                 for sub in cls._all_subclasses():
                     if sub.__name__ == class_name:
                         target_cls = sub
@@ -365,13 +376,15 @@ class Serializable(BaseModel, ABC):
         if isinstance(dat, (list, tuple, np.ndarray)):
             result = []
             for item in dat:
-                s_updated, _ = self.convert_old_struct(item, ver)
-                item_obj = copy.copy(self)
+                item_obj = self.__class__()
+                conv_res = item_obj.convert_old_struct(item, ver)
+                s_updated = conv_res[0] if isinstance(conv_res, tuple) else conv_res
                 item_obj = item_obj.from_bare_struct(s_updated)
                 result.append(item_obj)
             return result
         else:
-            s_updated, _ = self.convert_old_struct(dat, ver)
+            conv_res = self.convert_old_struct(dat, ver)
+            s_updated = conv_res[0] if isinstance(conv_res, tuple) else conv_res
             return self.from_bare_struct(s_updated)
 
     def convert_old_struct(
@@ -428,8 +441,9 @@ class Serializable(BaseModel, ABC):
 
         from pyhorace.io.hlp_serial import hlp_deserialize
 
-        S, nbytes = hlp_deserialize(byte_array, pos)
-        obj = cls.from_struct(S)
+        idx0 = 0 if pos <= 1 else pos
+        S, nbytes = hlp_deserialize(byte_array, idx0)
+        obj = cls.from_struct(S) if not isinstance(S, Serializable) else S
         return obj, int(nbytes)
 
     # -------------------------------------------------------------------------
@@ -789,9 +803,12 @@ def compare_values(
         atol = float(tol[0]) if len(tol) > 0 else 0.0
         rtol = float(tol[1]) if len(tol) > 1 else 0.0
 
-    # None comparison
+    # None comparison (treat None as equivalent to empty numpy array [] from MATLAB serialization)
     if val1 is None or val2 is None:
         if val1 is None and val2 is None:
+            return True, ""
+        other_val = val2 if val1 is None else val1
+        if isinstance(other_val, np.ndarray) and other_val.size == 0:
             return True, ""
         return False, f"{name_a} and {name_b} differ: one is None and the other is not"
 

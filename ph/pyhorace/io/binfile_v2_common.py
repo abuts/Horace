@@ -11,7 +11,7 @@ from __future__ import annotations
 import copy
 import datetime
 import os
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, ClassVar, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -42,6 +42,43 @@ from pyhorace.io.sqw_fopen import (
     sqw_fopen_info,
 )
 from pyhorace.io.sqw_serializer import sqw_serializer
+
+
+def _parse_get_data_args(*args: Any) -> Tuple[Dict[str, bool], List[str]]:
+    """Parse option flags passed to `get_data`."""
+    header_only = False
+    verbatim = False
+    noclass = False
+    argi: List[str] = []
+
+    for arg in args:
+        if not isinstance(arg, str):
+            raise HoraceError(
+                "HORACE:binfile_v2_common:invalid_argument",
+                f"get_data: Invalid argument: {arg!r}",
+            )
+        s = arg.strip().lower().lstrip("-")
+        if s in ("h", "he", "hea", "head", "heade", "header", "his", "history"):
+            header_only = True
+            argi.append(arg)
+        elif s in ("v", "ve", "ver", "verb", "verba", "verbat", "verbati", "verbatim"):
+            verbatim = True
+            argi.append(arg)
+        elif s in ("hv", "hve", "hver", "hverb", "hverba", "hverbat", "hverbati", "hverbatim"):
+            header_only = True
+            verbatim = True
+            argi.append(arg)
+        elif s.startswith("noc") or s in ("legacy", "sqw_struc"):
+            noclass = True
+            argi.append(arg)
+        elif s.startswith("nou") or s.startswith("nop") or s.startswith("slo"):
+            argi.append(arg)
+        else:
+            raise HoraceError(
+                "HORACE:binfile_v2_common:invalid_argument",
+                f"get_data: Unrecognized option: {arg!r}",
+            )
+    return {"header": header_only, "verbatim": verbatim, "noclass": noclass}, argi
 
 
 def _process_format_fields(*args: Any) -> Dict[str, Any]:
@@ -141,7 +178,7 @@ def _do_convert_to_double(val: Any) -> Any:
 class binfile_v2_common(horace_binfile_interface):
     """Common implementation for Horace v2/v3 DND and SQW binary file accessors."""
 
-    _v2_fields_to_save: List[str] = [
+    _v2_fields_to_save: ClassVar[List[str]] = [
         "data_type_",
         "dnd_dimensions_",
         "data_pos_",
@@ -151,9 +188,10 @@ class binfile_v2_common(horace_binfile_interface):
         "dnd_eof_pos_",
         "data_fields_locations_",
     ]
-    fields_to_save_: List[str] = horace_binfile_interface.fields_to_save_ + _v2_fields_to_save
+    fields_to_save_: ClassVar[List[str]] = horace_binfile_interface.fields_to_save_ + _v2_fields_to_save
 
-    def __init__(self, *args: Any) -> None:
+    def _init_default_attributes(self) -> None:
+        super()._init_default_attributes()
         self.data_pos_: int = 26
         self.s_pos_: int = 0
         self.e_pos_: int = 0
@@ -166,7 +204,9 @@ class binfile_v2_common(horace_binfile_interface):
         self.convert_to_double_: bool = True
         self.data_type_: str = "undefined"
         self.dnd_dimensions_: Union[Tuple[int, ...], np.ndarray, str] = "undefined"
-        super().__init__(*args)
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
     # ------------------------------------------------------------------
     # Properties
@@ -342,11 +382,11 @@ class binfile_v2_common(horace_binfile_interface):
                 "Error moving to the beginning of the data record",
             ) from exc
 
-        data_form = _process_format_fields()
+        data_form = self.get_dnd_form()
         if self.sqw_serializer_ is None:
             self.sqw_serializer_ = sqw_serializer()
-        data_pos, pos = self.sqw_serializer_.calculate_positions(
-            data_form, self.file_id_, self.data_pos_
+        data_pos, pos, _, data_form = self.sqw_serializer_.calculate_positions(
+            data_form, self.file_id_, self.data_pos_, return_error=True
         )
         self._process_dnd_Positions(data_pos, pos, data_form)
         return self
@@ -559,33 +599,10 @@ class binfile_v2_common(horace_binfile_interface):
         from pyhorace.coord_transf.line_proj import line_proj
         from pyhorace.sqw.dnd_base import DnDBase
 
-        header_only = False
-        verbatim = False
-        noclass = False
-
-        for arg in args:
-            if not isinstance(arg, str):
-                raise HoraceError(
-                    "HORACE:binfile_v2_common:invalid_argument",
-                    f"get_data: Invalid argument: {arg!r}",
-                )
-            s = arg.strip().lower().lstrip("-")
-            if s in ("h", "he", "hea", "head", "heade", "header", "his", "history"):
-                header_only = True
-            elif s in ("v", "ve", "ver", "verb", "verba", "verbat", "verbati", "verbatim"):
-                verbatim = True
-            elif s in ("hv", "hve", "hver", "hverb", "hverba", "hverbat", "hverbati", "hverbatim"):
-                header_only = True
-                verbatim = True
-            elif s.startswith("noc") or s in ("legacy", "sqw_struc"):
-                noclass = True
-            elif s.startswith("nou") or s.startswith("nop") or s.startswith("slo"):
-                pass
-            else:
-                raise HoraceError(
-                    "HORACE:binfile_v2_common:invalid_argument",
-                    f"get_data: Unrecognized option: {arg!r}",
-                )
+        opts, _ = _parse_get_data_args(*args)
+        header_only = opts["header"]
+        verbatim = opts["verbatim"]
+        noclass = opts["noclass"]
 
         if isinstance(self.num_dim, str):
             raise HoraceError(
@@ -652,9 +669,7 @@ class binfile_v2_common(horace_binfile_interface):
         if "dnd" in type(self).__name__.lower():
             img_r = np.asarray(ax.img_range, dtype=np.float64).copy()
             if np.any(np.isinf(img_r)):
-                calc_r = line_axes.calc_img_db_range(ax)
-                inf_mask = np.isinf(img_r)
-                img_r[inf_mask] = calc_r[inf_mask]
+                img_r[np.isinf(img_r)] = 0.0
                 ax.img_range = img_r
 
         if not proj.alatt_defined:
@@ -907,6 +922,16 @@ class binfile_v2_common(horace_binfile_interface):
                 input_obj = a
         return update, nopix, input_obj
 
+    def parse_updt_directions(self, *args: Any) -> Tuple[bool, List[Any]]:
+        update = False
+        argi: List[Any] = []
+        for a in args:
+            if isinstance(a, str) and a.strip().lower().lstrip("-").startswith("up"):
+                update = True
+            else:
+                argi.append(a)
+        return update, argi
+
     def put_dnd_metadata(self, *args: Any) -> "binfile_v2_common":
         """Write DND metadata (header fields before `s`) to the binary file."""
         self.check_obj_initiated_properly()
@@ -983,13 +1008,16 @@ class binfile_v2_common(horace_binfile_interface):
         update, nopix, input_obj = self._parse_update_args(*args)
         if input_obj is not None:
             sub_obj, _ = self.extract_correct_subobj("data", input_obj)
-            if not update or self.upgrade_headers_:
+            if (not update or self.upgrade_headers_) and (self.data_type_ != "b+" or isinstance(self.s_pos_, str)):
                 self._init_from_sqw(sub_obj)
         else:
             sub_obj, _ = self.extract_correct_subobj("data")
 
         if not update or self.upgrade_headers_:
-            self.put_app_header()
+            if sub_obj is not None:
+                self.put_app_header(sub_obj)
+            else:
+                self.put_app_header()
 
         meta_args: List[Any] = []
         if update:

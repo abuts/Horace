@@ -129,7 +129,7 @@ class PixelDataFileBacked(PixelDataBase):
             self.recalc_data_range("all")
             return self
 
-        if hasattr(arg, "get_pix") or hasattr(arg, "npix") or hasattr(arg, "fake_data"):
+        if hasattr(arg, "get_pix") or hasattr(arg, "npixels") or hasattr(arg, "npix") or hasattr(arg, "fake_data"):
             stub = FileBackedPixStub.from_faccess(arg, writable=writable)
             self._f_accessor = stub
             self._num_pixels = stub.num_pixels
@@ -137,6 +137,19 @@ class PixelDataFileBacked(PixelDataBase):
             self._tail = stub.tail
             self._full_filename = stub.full_filename
             self._page_num = 1
+            if hasattr(arg, "get_pix_metadata") and getattr(arg, "faccess_version", 0) >= 4:
+                try:
+                    meta = arg.get_pix_metadata(nargout=1)
+                    self.set_metadata(meta)
+                except Exception:
+                    pass
+            elif hasattr(arg, "get_pix_range"):
+                try:
+                    pr = np.asarray(arg.get_pix_range(), dtype=np.float64)
+                    if pr.shape == (2, 4) and not np.any(np.isinf(pr)):
+                        self._data_range[:, :4] = pr
+                except Exception:
+                    pass
             if hasattr(arg, "pix_range"):
                 pr = np.asarray(getattr(arg, "pix_range"), dtype=np.float64)
                 if pr.shape == (2, 4):
@@ -579,6 +592,12 @@ class PixelDataFileBacked(PixelDataBase):
                 f"HORACE:PixelDataFileBacked:invalid_argument - "
                 f"pix_data_wrap can only be set with a pix_data instance, got {type(val).__name__}"
             )
+        if isinstance(val.data, str):
+            self._num_pixels = val.npix
+            if os.path.isfile(val.data):
+                self._f_accessor = FileBackedPixStub(val.data)
+                self._full_filename = val.data
+            return self
         if val.data.size == 0:
             self._num_pixels = val.npix
             return self

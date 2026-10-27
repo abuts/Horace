@@ -954,6 +954,10 @@ class IX_moderator(hashable):
         self, inputs: Dict[str, Any], ver: Optional[float] = None
     ) -> Tuple[Dict[str, Any], IX_moderator]:
         out = dict(inputs)
-        if (ver is None or ver == 1) and "c_to_m" in out:
+        if out.get("class_version_") == 1 or "distance_" in out or "pulse_model_" in out:
+            out.pop("class_version_", None)
+            out.pop("pdf_", None)
+            out = {(k[:-1] if k.endswith("_") else k): v for k, v in out.items()}
+        if (ver is None or ver == 1 or not math.isnan(ver if ver is not None else 1.0)) and "c_to_m" in out:
             out["distance"] = out.pop("c_to_m")
         return out, self

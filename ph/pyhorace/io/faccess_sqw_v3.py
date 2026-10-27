@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import copy
 import os
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, ClassVar, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -18,12 +18,11 @@ from pyhorace.core.exceptions import HoraceError
 from pyhorace.core.serializable import Serializable
 from pyhorace.core.unique_objects_container import unique_objects_container
 from pyhorace.data.experiment import Experiment
-from pyhorace.data.instr_classes.instruments import IX_inst, IX_null_inst
-from pyhorace.data.instr_classes.samples import IX_null_samp, IX_samp
+from pyhorace.data.instr_classes import IX_inst, IX_null_inst, IX_null_sample as IX_null_samp, IX_samp
 from pyhorace.io.horace_binfile_interface import horace_binfile_interface
 from pyhorace.io.sqw_binfile_common import sqw_binfile_common
 from pyhorace.io.sqw_fields_formatters import field_generic_class_hv3
-from pyhorace.io.sqw_fopen import do_ferror, do_fread, do_fseek, do_ftell, do_fwrite, obj_init, sqw_fclose
+from pyhorace.io.sqw_fopen import do_ferror, do_fread, do_fseek, do_ftell, do_fwrite, obj_init, pack_io_outputs, sqw_fclose
 
 
 def _values_equal(a: Any, b: Any) -> bool:
@@ -53,9 +52,9 @@ class faccess_sqw_v3(sqw_binfile_common):
     (`__del__`), `delete()`, and `fclose()`.
     """
 
-    file_version_: float = 3.1
+    file_version_: ClassVar[float] = 3.1
 
-    _v3_fields_to_save: List[str] = [
+    _v3_fields_to_save: ClassVar[List[str]] = [
         "instrument_head_pos_",
         "instrument_pos_",
         "sample_head_pos_",
@@ -64,9 +63,10 @@ class faccess_sqw_v3(sqw_binfile_common):
         "position_info_pos_",
         "eof_pos_",
     ]
-    fields_to_save_: List[str] = sqw_binfile_common.fields_to_save_ + _v3_fields_to_save
+    fields_to_save_: ClassVar[List[str]] = sqw_binfile_common.fields_to_save_ + _v3_fields_to_save
 
-    def __init__(self, *args: Any) -> None:
+    def _init_default_attributes(self) -> None:
+        super()._init_default_attributes()
         self.version_ = self.file_version_
         self.instrument_head_pos_: int = 0
         self.instrument_pos_: int = 0
@@ -77,7 +77,9 @@ class faccess_sqw_v3(sqw_binfile_common):
         self.eof_pos_: int = 0
         self.file_ver_: Optional[float] = None
         self.use_faccess_ver_for_header_: bool = True
-        super().__init__(*args)
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
     # ------------------------------------------------------------------
     # Properties
@@ -168,18 +170,18 @@ class faccess_sqw_v3(sqw_binfile_common):
         self, exp_info: Any
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         if isinstance(exp_info, Experiment):
-            instr_objs = list(exp_info.instruments.unique_objects)
-            sampl_objs = list(exp_info.samples.unique_objects)
+            instr_objs = [exp_info.instruments[i] for i in range(exp_info.instruments.n_runs)] or [IX_null_inst()]
+            sampl_objs = [exp_info.samples[i] for i in range(exp_info.samples.n_runs)] or [IX_null_samp()]
             instr = [x.to_struct() if hasattr(x, "to_struct") else (x if isinstance(x, dict) else {}) for x in instr_objs]
             sampl = [x.to_struct() if hasattr(x, "to_struct") else (x if isinstance(x, dict) else {}) for x in sampl_objs]
             return instr, sampl
         if isinstance(exp_info, dict):
             instr_raw = exp_info.get("instruments", [])
             sampl_raw = exp_info.get("samples", [])
-            if isinstance(instr_raw, unique_objects_container):
-                instr_raw = list(instr_raw.unique_objects)
-            if isinstance(sampl_raw, unique_objects_container):
-                sampl_raw = list(sampl_raw.unique_objects)
+            if isinstance(instr_raw, unique_objects_container) or hasattr(instr_raw, "n_runs"):
+                instr_raw = [instr_raw[i] for i in range(instr_raw.n_runs)]
+            if isinstance(sampl_raw, unique_objects_container) or hasattr(sampl_raw, "n_runs"):
+                sampl_raw = [sampl_raw[i] for i in range(sampl_raw.n_runs)]
             instr = [x.to_struct() if hasattr(x, "to_struct") else (x if isinstance(x, dict) else {}) for x in (instr_raw if isinstance(instr_raw, (list, tuple)) else [instr_raw])]
             sampl = [x.to_struct() if hasattr(x, "to_struct") else (x if isinstance(x, dict) else {}) for x in (sampl_raw if isinstance(sampl_raw, (list, tuple)) else [sampl_raw])]
             return instr, sampl
@@ -187,9 +189,9 @@ class faccess_sqw_v3(sqw_binfile_common):
             return [exp_info.to_struct()], [{}]
         if isinstance(exp_info, IX_samp):
             return [{}], [exp_info.to_struct()]
-        if isinstance(exp_info, unique_objects_container):
-            objs = [x.to_struct() if hasattr(x, "to_struct") else (x if isinstance(x, dict) else {}) for x in exp_info.unique_objects]
-            if exp_info.baseclass == "IX_inst":
+        if isinstance(exp_info, unique_objects_container) or hasattr(exp_info, "n_runs"):
+            objs = [exp_info[i].to_struct() if hasattr(exp_info[i], "to_struct") else (exp_info[i] if isinstance(exp_info[i], dict) else {}) for i in range(exp_info.n_runs)]
+            if getattr(exp_info, "baseclass", "") == "IX_inst":
                 return objs, [{}]
             return [{}], objs
         if isinstance(exp_info, (list, tuple)):
@@ -390,13 +392,16 @@ class faccess_sqw_v3(sqw_binfile_common):
             self.eof_pos_ = int(pos)
 
     def should_load_stream(
-        self, head_struc: Dict[str, Any], fid: int
-    ) -> Tuple[bool, Optional[obj_init], str]:
-        should, objinit, mess = super().should_load_stream(head_struc, fid)
+        self, head_struc: Dict[str, Any], fid: int, *args: Any, nargout: Optional[int] = None
+    ) -> Any:
+        from pyhorace.io.horace_binfile_interface import _ShouldLoadResult
+
+        res_base = super().should_load_stream(head_struc, fid, *args, nargout=nargout)
+        should, objinit, mess = res_base[0], res_base[1], res_base[2]
         if should:
-            return should, objinit, mess
+            return res_base
         if not bool(head_struc.get("sqw_type", False)) or head_struc.get("version") != 3:
-            return should, objinit, mess
+            return res_base
 
         # Check legacy version 3.0 vs 3.1
         try:
@@ -412,12 +417,12 @@ class faccess_sqw_v3(sqw_binfile_common):
                         try:
                             res, _ = data_form.field_from_bytes(bytes_arr, 1)
                             if isinstance(res, dict) and "eof_pos_" in res:
-                                return True, obj_init(fid, head_struc["num_dim"]), ""
+                                return _ShouldLoadResult(True, obj_init(fid, head_struc["num_dim"]), "")
                         except Exception:
                             pass
         except Exception:
             pass
-        return False, obj_init(fid, head_struc["num_dim"]), "not Horace v3.1 file"
+        return _ShouldLoadResult(False, obj_init(fid, head_struc["num_dim"]), "not Horace v3.1 file")
 
     # ------------------------------------------------------------------
     # Reading Instrument / Sample / SQW
@@ -429,19 +434,19 @@ class faccess_sqw_v3(sqw_binfile_common):
         items = res_struc if isinstance(res_struc, list) else [res_struc]
         for item in items:
             if not item or (isinstance(item, dict) and len(item) == 0):
-                res = res.add(IX_null_inst())
+                res.add(IX_null_inst())
             elif isinstance(item, IX_inst):
-                res = res.add(item)
+                res.add(item)
             elif isinstance(item, dict) and "serial_name" in item:
-                res = res.add(Serializable.from_struct(item))
+                res.add(Serializable.from_struct(item))
             else:
-                res = res.add(IX_null_inst())
+                res.add(IX_null_inst())
         return res
 
     def _get_instr_or_sample(
         self, field_name: str, *args: Any
     ) -> Tuple[Any, "faccess_sqw_v3"]:
-        self.check_obj_initiated_properly()
+        self.check_obj_initated_properly()
         get_all = False
         rem_args = []
         for a in args:
@@ -483,9 +488,9 @@ class faccess_sqw_v3(sqw_binfile_common):
             empty_obj = IX_null_inst() if is_instrument else IX_null_samp()
             if get_all:
                 res = unique_objects_container(baseclass=base_cls)
-                res = res.add(empty_obj)
+                res.add(empty_obj)
                 if isinstance(self.num_contrib_files, int) and self.num_contrib_files > 1:
-                    res = res.replicate_runs(self.num_contrib_files)
+                    res.replicate_runs(self.num_contrib_files)
                 return res, self
             return empty_obj, self
 
@@ -520,7 +525,7 @@ class faccess_sqw_v3(sqw_binfile_common):
                     obj_val = Serializable.from_struct(item)
                 else:
                     obj_val = IX_null_inst() if is_instrument else IX_null_samp()
-                res = res.add(obj_val)
+                res.add(obj_val)
         else:
             res = unique_objects_container(baseclass=base_cls)
             items = res_struc if isinstance(res_struc, list) else [res_struc]
@@ -533,42 +538,43 @@ class faccess_sqw_v3(sqw_binfile_common):
                     obj_val = Serializable.from_struct(item)
                 else:
                     obj_val = IX_null_inst() if is_instrument else IX_null_samp()
-                res = res.add(obj_val)
+                res.add(obj_val)
 
         if all_same and nfiles_descr > 1 and res.n_runs == 1:
-            res = res.replicate_runs(nfiles_descr)
+            res.replicate_runs(nfiles_descr)
 
         if get_all:
             return res, self
         idx = 0 if all_same else (n_inst - 1)
         return res[idx], self
 
-    def get_instrument(self, *args: Any) -> Any:
-        inst, _ = self._get_instr_or_sample("instrument", *args)
-        return inst
+    def get_instrument(self, *args: Any, nargout: Optional[int] = None) -> Any:
+        inst, obj = self._get_instr_or_sample("instrument", *args)
+        return pack_io_outputs((inst, obj), nargout, default=1)
 
-    def get_sample(self, *args: Any) -> Any:
-        samp, _ = self._get_instr_or_sample("sample", *args)
-        return samp
+    def get_sample(self, *args: Any, nargout: Optional[int] = None) -> Any:
+        samp, obj = self._get_instr_or_sample("sample", *args)
+        return pack_io_outputs((samp, obj), nargout, default=1)
 
-    def get_exp_info(self, *args: Any) -> Experiment:
-        exp_info, _ = self._get_exp_info_impl(*args)
+    def get_exp_info(self, *args: Any, nargout: Optional[int] = None) -> Any:
+        base_args = [a for a in args if not (isinstance(a, str) and a.lower() == "-no_is")]
+        exp_info, last_pos = super().get_exp_info(*base_args, nargout=2)
         get_all = any(isinstance(a, str) and a.lower() in ("-all", "-no_is") for a in args)
         no_is = any(isinstance(a, str) and a.lower() == "-no_is" for a in args)
         if not no_is:
             try:
                 if get_all or not any(isinstance(a, (int, np.integer)) and not isinstance(a, bool) for a in args):
-                    inst = self.get_instrument("-all")
-                    samp = self.get_sample("-all")
+                    inst = self.get_instrument("-all", nargout=1)
+                    samp = self.get_sample("-all", nargout=1)
                 else:
                     num = next(int(a) for a in args if isinstance(a, (int, np.integer)) and not isinstance(a, bool))
-                    inst = self.get_instrument(num)
-                    samp = self.get_sample(num)
+                    inst = self.get_instrument(num, nargout=1)
+                    samp = self.get_sample(num, nargout=1)
                 exp_info.instruments = inst
                 exp_info.samples = samp
             except Exception:
                 pass
-        return exp_info
+        return pack_io_outputs((exp_info, last_pos), nargout, default=1)
 
     # ------------------------------------------------------------------
     # Writing Instrument / Sample / Footer / SQW
@@ -591,7 +597,13 @@ class faccess_sqw_v3(sqw_binfile_common):
             else:
                 input_obj.append(a)
 
-        exp_info, new_obj = self.extract_correct_subobj("experiment_info", *input_obj)
+        if len(input_obj) == 1 and isinstance(
+            input_obj[0], (IX_inst, IX_samp, unique_objects_container, list, tuple)
+        ):
+            exp_info = input_obj[0]
+            new_obj = True
+        else:
+            exp_info, new_obj = self.extract_correct_subobj("experiment_info", *input_obj)
         instr, sampl = self._get_instr_sample_to_save(exp_info)
         if not save_instr:
             instr = []
@@ -656,13 +668,13 @@ class faccess_sqw_v3(sqw_binfile_common):
         return self
 
     def put_instruments(self, *args: Any) -> "faccess_sqw_v3":
-        self.check_obj_initiated_properly()
+        self.check_obj_initated_properly()
         self._put_sample_instr_records("-instrument", "-update", *args)
         self._put_sqw_footer()
         return self
 
     def put_samples(self, *args: Any) -> "faccess_sqw_v3":
-        self.check_obj_initiated_properly()
+        self.check_obj_initated_properly()
         self._put_sample_instr_records("-sample", "-update", *args)
         self._put_sqw_footer()
         return self

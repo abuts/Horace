@@ -450,7 +450,9 @@ class Goniometer(hashable):
             S["angular_is_degree"] = self._angular_is_degree
         return S
 
-    def from_bare_struct(self, S: Dict[str, Any]) -> "Goniometer":
+    def from_bare_struct(self, S: Union[Dict[str, Any], Sequence[Dict[str, Any]]]) -> Any:
+        if isinstance(S, (list, tuple, np.ndarray)):
+            return super().from_bare_struct(S)
         s_copy = dict(S)
         self._do_check_combo_arg = False
         try:

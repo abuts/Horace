@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any, ClassVar, List, Optional
 import numpy as np
 
 from pyhorace.core.exceptions import HoraceError
@@ -14,7 +14,7 @@ from pyhorace.io.dnd_data_block import dnd_data_block
 class faccess_dnd_v4(binfile_v4_common):
     """Class to access Horace dnd files written by Horace v4."""
 
-    dnd_blocks_list_: List[data_block] = [
+    dnd_blocks_list_: ClassVar[List[data_block]] = [
         data_block("data", "metadata"),
         dnd_data_block(),
     ]
@@ -64,12 +64,12 @@ class faccess_dnd_v4(binfile_v4_common):
         return obj
 
     def get_instrument(self, *args, **kwargs) -> Any:
-        from pyhorace.data.instr_classes.instrument.ix_null_inst import IX_null_inst
+        from pyhorace.data.instr_classes import IX_null_inst
 
         return IX_null_inst()
 
     def get_sample(self, *args, **kwargs) -> Any:
-        from pyhorace.data.instr_classes.sample.ix_samp import IX_samp
+        from pyhorace.data.instr_classes import IX_samp
 
         mtd = self.get_dnd_metadata(nargout=1)
         return IX_samp(mtd.proj.alatt, mtd.proj.angdeg)

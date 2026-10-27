@@ -18,7 +18,7 @@ from pyhorace.io.sqw_fields_formatters import (
     iVirt_field,
     sqw_field_format_interface,
 )
-from pyhorace.io.sqw_fopen import do_ferror, do_fread, do_fseek, do_ftell, get_stream
+from pyhorace.io.sqw_fopen import do_ferror, do_fread, do_fseek, do_ftell, get_stream, pack_io_outputs
 
 _NUMPY_TO_MATLAB_TYPE = {
     "float64": ("double", np.float64, 8),
@@ -231,11 +231,14 @@ class sqw_serializer:
         format_struc: Any,
         input_data: Any,
         start_pos: Optional[int] = None,
-    ) -> Tuple[Dict[str, Any], int, bool, Any]:
+        return_error: Optional[bool] = None,
+        nargout: Optional[int] = None,
+    ) -> Any:
         """Calculate byte positions of fields in `format_struc` for `input_data`."""
         pos = self._calc_pos_check_input_set_defaults(input_data, start_pos)
-        fmt_copy = copy.deepcopy(format_struc)
-        return self._calculate_positions(fmt_copy, input_data, pos)
+        res = self._calculate_positions(format_struc, input_data, pos)
+        effective_nargout = 4 if return_error else nargout
+        return pack_io_outputs(res, nargout=effective_nargout, default=2)
 
     def _get_str_size(self, input_data: Any, pos: int) -> Tuple[int, bool]:
         if self._input_is_file:
@@ -337,7 +340,8 @@ class sqw_serializer:
         pos: int = 1,
     ) -> Tuple[Any, int]:
         """Convert sequence of bytes into structure using `template_str` starting at 1-based `pos`."""
-        return self._deserialize_bytes(input_bytes, copy.deepcopy(template_str), int(pos))
+        start_pos = max(1, int(pos))
+        return self._deserialize_bytes(input_bytes, copy.deepcopy(template_str), start_pos)
 
     def _deserialize_bytes(
         self,

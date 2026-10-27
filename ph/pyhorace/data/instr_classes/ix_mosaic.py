@@ -16,6 +16,7 @@ import numpy as np
 from pydantic import PrivateAttr
 
 from pyhorace.core.hashable import hashable
+from pyhorace.core.serializable import register_serializable
 
 
 def _is_numeric_array_or_scalar(val: Any) -> bool:
@@ -202,6 +203,7 @@ def _resolve_mosaic_pdf(func_or_name: Any) -> Callable[..., Any]:
     )
 
 
+@register_serializable
 class IX_mosaic(hashable):
     """
     Mosaic crystal spread description.

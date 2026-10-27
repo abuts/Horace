@@ -25,6 +25,7 @@ from pyhorace.data.instr_classes.ix_mosaic import (
     IX_mosaic,
     _is_numeric_array_or_scalar,
 )
+from pyhorace.core.serializable import register_serializable
 from pyhorace.data.instr_classes.ix_samp import IX_samp
 from pyhorace.data.instr_classes.pdf_table import _parse_rand_shape
 
@@ -53,6 +54,7 @@ def _is_lognumscalar(val: Any) -> bool:
     return False
 
 
+@register_serializable
 class IX_sample(IX_samp):
     """
     Sample class definition (crystal orientation, geometry, shape, mosaic, temperature).
