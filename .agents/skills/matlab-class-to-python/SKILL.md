@@ -139,6 +139,14 @@ Create `<class_name>.py` adhering to idiomatic Python and NumPy best practices:
 
 #### 4. Method & Function Translation, `nargout`, & Operators
 - Include explicit `self` as the first argument in instance methods; mark static methods with `@staticmethod` or `@classmethod`.
+- **Paired Class Methods and Standalone File-Backed Functions (Same Name)**:
+  - In Horace/Herbert MATLAB, a class method (e.g. `@sqw/cut.m`, `@SQWDnDBase/symmetrise_sqw.m`, `@sqw/head.m`) often shares its name with a standalone function (e.g. `horace_core/cut.m`, `symmetrise_sqw.m`, `head.m`) that operates on a filename or cell array of filenames.
+  - When converting such a pair, always write **two** Python implementations:
+    1. **Class method (`ClassName.func(self, *args, **kwargs)`)**: Implements the operation on the in-memory or file-backed class instance (`self`).
+    2. **Standalone function (`def func(source, *args, **kwargs)`)**:
+       - If `source` is already an instance (or sequence of instances) of the target class, delegates directly to `source.func(*args, **kwargs)` (supporting MATLAB's `func(obj, ...)` functional call syntax).
+       - If `source` is a file path (`str`, `pathlib.Path`, or sequence of paths), loads/opens the object from the file (via `sqw_formats_factory.instance().get_loader(source)` or the class constructor `ClassName(source)`) and applies the class method `.func(*args, **kwargs)` to the loaded object.
+    3. **Put standalone functions described in previous chapter into pyhorace\algorithms folder.
 - **Standalone Functions, Local Subfunctions, & `private/` Helpers**:
   - Map local subfunctions at the bottom of a `.m` file and helper functions inside a sibling `private/` directory to module-private functions prefixed with a single underscore (`def _helper_name(...):`) in the same Python module (or a private submodule if shared across multiple files).
   - **Function-level `persistent` variables**: In standalone functions, map `persistent` state to `@functools.lru_cache`, function attributes, or a module-level `_state` variable (with a reset helper invoked by an `autouse=True` `pytest.fixture`).
