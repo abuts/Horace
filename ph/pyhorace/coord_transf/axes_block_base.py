@@ -22,6 +22,24 @@ from pyhorace.core.serializable import Serializable
 EPS_SINGLE = float(np.finfo(np.float32).eps)
 
 
+def normalize_signal(
+    s: np.ndarray, e: Optional[np.ndarray], npix: np.ndarray
+) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+    """Convert accumulated signal and error into bin-averaged signal and error.
+
+    Ported from ``horace_core/utilities/normalize_signal.m``.
+    """
+    with np.errstate(divide="ignore", invalid="ignore"):
+        no_pix = npix == 0
+        s_out = np.where(no_pix, 0.0, s / npix)
+        if e is not None and np.asarray(e).size > 0:
+            e_out = np.where(no_pix, 0.0, e / (npix**2))
+        else:
+            e_out = e
+    return s_out, e_out
+
+
+
 def _is_range_2x4(val: Any) -> bool:
     if isinstance(val, np.ndarray) and val.shape == (2, 4):
         return True
@@ -1095,50 +1113,83 @@ class AxesBlockBase(Serializable, ABC):
             r_max = float(def_b[-1])
 
         if req.size == 0:
-            if cur.size == 3 and cur_step > 0:
-                return cur.copy()
-            elif cur.size == 2 and not np.any(np.isinf(cur)):
-                return cur.copy()
+            if cur.size > 0:
+                bin_range = cur.copy()
             else:
-                return np.array([r_min, r_max], dtype=float)
-
-        if req.size == 1:
+                bin_range = np.array([r_min, r_max], dtype=float)
+        elif req.size == 1:
             step = float(req[0])
             if step == 0.0:
-                if cur_step > 0:
+                if cur.size == 2:
+                    raise HoraceError(
+                        "HORACE:build_from_input_binning:invalid_argument",
+                        f"User has requested auto-rebin (pbin = [0]) across integration axis ({ind + 1}).",
+                    )
+                elif cur_step > 0:
                     step = cur_step
                 else:
                     raise HoraceError(
                         "HORACE:AxesBlockBase:invalid_argument",
                         f"Cannot use zero step for axis {ind + 1} when original data is integrated",
                     )
-            if cur.size == 3 and abs(step - cur_step) < EPS_SINGLE:
-                return cur.copy()
-            return np.array([r_min + 0.5 * step, step, r_max - 0.5 * step], dtype=float)
-
-        if req.size == 2:
+            lo_c = float(cur[0]) if cur.size >= 2 else r_min + 0.5 * step
+            hi_c = float(cur[-1]) if cur.size >= 2 else r_max - 0.5 * step
+            bin_range = np.array([lo_c, step, hi_c], dtype=float)
+        elif req.size == 2:
             lo = r_min if np.isinf(req[0]) else float(req[0])
             hi = r_max if np.isinf(req[1]) else float(req[1])
-            return np.array([lo, hi], dtype=float)
-
-        if req.size == 3:
+            border = 1.0e-7
+            if abs(hi - lo) < 2.0 * border:
+                if abs(0.5 * (lo + hi)) < border:
+                    lo = -border
+                    hi = border
+                else:
+                    av = 0.5 * (lo + hi)
+                    lo = av * (1.0 - border)
+                    hi = av * (1.0 + border)
+            bin_range = np.array([lo, hi], dtype=float)
+        elif req.size == 3:
             step = float(req[1])
             if step == 0.0:
-                if cur_step > 0:
+                if cur.size == 2:
+                    lo = r_min if np.isinf(req[0]) else float(req[0])
+                    hi = r_max if np.isinf(req[2]) else float(req[2])
+                    bin_range = np.array([lo, hi], dtype=float)
+                elif cur_step > 0:
                     step = cur_step
+                    lo = r_min + 0.5 * step if np.isinf(req[0]) else float(req[0])
+                    hi = r_max - 0.5 * step if np.isinf(req[2]) else float(req[2])
+                    bin_range = np.array([lo, step, hi], dtype=float)
                 else:
                     raise HoraceError(
                         "HORACE:AxesBlockBase:invalid_argument",
                         f"Cannot use zero step for axis {ind + 1} when original data is integrated",
                     )
-            lo = r_min + 0.5 * step if np.isinf(req[0]) else float(req[0])
-            hi = r_max - 0.5 * step if np.isinf(req[2]) else float(req[2])
-            return np.array([lo, step, hi], dtype=float)
+            else:
+                lo = r_min + 0.5 * step if np.isinf(req[0]) else float(req[0])
+                hi = r_max - 0.5 * step if np.isinf(req[2]) else float(req[2])
+                bin_range = np.array([lo, step, hi], dtype=float)
+        else:
+            raise HoraceError(
+                "HORACE:AxesBlockBase:invalid_argument",
+                f"Invalid binning request for axis {ind + 1}: {bin_req}",
+            )
 
-        raise HoraceError(
-            "HORACE:AxesBlockBase:invalid_argument",
-            f"Invalid binning request for axis {ind + 1}: {bin_req}",
-        )
+        if (
+            bin_range.size == 3
+            and bin_range[2] >= bin_range[0]
+            and bin_range[1] > 0
+            and (bin_range[2] - bin_range[0] < bin_range[1])
+        ):
+            bin_range = np.array([bin_range[0], bin_range[2]], dtype=float)
+
+        if bin_range[-1] < bin_range[0] and not (bin_range.size == 3 and bin_range[1] < 0):
+            raise HoraceError(
+                "HORACE:AxesBlockBase:invalid_argument",
+                f"Upper limit smaller than lower limit for axis {ind + 1}: {bin_range}",
+            )
+
+        return bin_range
 
     @staticmethod
     def bins_in_1Drange(
@@ -1614,6 +1665,12 @@ class AxesBlockBase(Serializable, ABC):
         r1 = self._img_range[1, :n_dims_in]
         nb = self._nbins_all_dims[:n_dims_in]
 
+        pix_cand_obj = None
+        if len(extra_inputs) == 1 and isinstance(extra_inputs[0], PixelDataBase):
+            pix_cand_obj = extra_inputs[0]
+        elif len(extra_inputs) >= 4 and isinstance(extra_inputs[3], PixelDataBase):
+            pix_cand_obj = extra_inputs[3]
+
         if n_pix == 0:
             ok = np.zeros(0, dtype=bool)
             ix = np.zeros((0, max(self.dimensions, 1)), dtype=int)
@@ -1622,6 +1679,8 @@ class AxesBlockBase(Serializable, ABC):
             for d in range(n_dims_in):
                 c = coords[d, :]
                 ok &= (c >= r0[d]) & (c <= r1[d])
+            if pix_cand_obj is not None:
+                ok &= np.asarray(pix_cand_obj.detector_idx).ravel() >= 0
 
             valid_coords = coords[:, ok]
             n_valid = valid_coords.shape[1]
@@ -1656,7 +1715,7 @@ class AxesBlockBase(Serializable, ABC):
 
         npix_grid = npix_flat.reshape(grid_shape, order="F")
 
-        # Handle extra inputs: either (npix_accum, s_accum, e_accum, pix_cand) or (pix_input,)
+        # Handle extra inputs: either (npix_accum, s_accum, e_accum, pix_cand[, unique_runid]) or (pix_input,)
         if len(extra_inputs) == 0:
             if nargout == 1:
                 return npix_grid
@@ -1695,6 +1754,7 @@ class AxesBlockBase(Serializable, ABC):
                 else np.asarray(extra_inputs[2], dtype=float).copy()
             )
             pix_in = extra_inputs[3] if len(extra_inputs) >= 4 else None
+            unique_runid_in = extra_inputs[4] if len(extra_inputs) >= 5 else None
             return self._bin_pixels_accumulate(
                 npix_acc,
                 s_acc,
@@ -1707,6 +1767,9 @@ class AxesBlockBase(Serializable, ABC):
                 grid_shape,
                 n_bins_total,
                 force_double,
+                selected_only,
+                nosort,
+                unique_runid_in,
                 nargout,
             )
 
@@ -1793,6 +1856,9 @@ class AxesBlockBase(Serializable, ABC):
         grid_shape: Tuple[int, ...],
         n_bins_total: int,
         force_double: bool,
+        selected_only: bool,
+        nosort: bool,
+        unique_runid_in: Any,
         nargout: int,
     ) -> Any:
         npix_out = npix_acc.reshape(grid_shape, order="F") + npix_grid
@@ -1855,16 +1921,45 @@ class AxesBlockBase(Serializable, ABC):
             grid_shape, order="F"
         )
 
+        if selected_only and nargout == 4:
+            return (npix_out, s_out, e_out, ok)
+
+        if is_pix_obj:
+            if not np.any(ok):
+                pix_ok: Any = PixelDataBase.create()
+                unique_runid_out = (
+                    np.array([], dtype=int)
+                    if unique_runid_in is None
+                    else np.asarray(unique_runid_in, dtype=int).ravel()
+                )
+                pix_indx = np.empty((0, 1), dtype=int)
+                selected = np.array([], dtype=bool)
+            else:
+                pix_ok = pix_in.get_pixels(ok, "-align")
+                if force_double:
+                    pix_ok.data = pix_ok.data.astype(np.float64, copy=False)
+                loc_unique = np.unique(pix_ok.run_idx.astype(int).ravel())
+                if unique_runid_in is not None and np.asarray(unique_runid_in).size > 0:
+                    unique_runid_out = np.unique(
+                        np.concatenate(
+                            [np.asarray(unique_runid_in, dtype=int).ravel(), loc_unique]
+                        )
+                    )
+                else:
+                    unique_runid_out = loc_unique
+                pix_indx = (lin_idx + 1).reshape(-1, 1)
+                selected = ok
+                if nargout < 6 and not nosort:
+                    pix_ok._data = pix_ok._data[:, sort_order]
+            outs = (npix_out, s_out, e_out, pix_ok, unique_runid_out, pix_indx, selected)
+            return outs[:nargout]
+
         dtype_out = (
             np.float64
             if (force_double or raw_data.dtype == np.float64)
             else raw_data.dtype
         )
-        if is_pix_obj:
-            pix_ok: Any = PixelDataMemory(
-                valid_data[:, sort_order].astype(dtype_out, copy=False)
-            )
-        elif valid_data.ndim == 2:
+        if valid_data.ndim == 2:
             pix_ok = valid_data[:, sort_order].astype(dtype_out, copy=False)
         else:
             pix_ok = valid_data[sort_order].astype(dtype_out, copy=False)

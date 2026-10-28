@@ -46,6 +46,7 @@ class aProjectionBase(Serializable, ABC):
         self._do_generic: bool = False
         self._targ_proj: Optional["aProjectionBase"] = None
         self._disable_srce_to_targ_optimization: bool = False
+        self._disable_pix_preselection: bool = False
         self._cur_axes_block_class_name: str = "line_axes"
 
         if args or kwargs:
@@ -325,6 +326,12 @@ class aProjectionBase(Serializable, ABC):
                 "HORACE:aProjectionBase:invalid_argument",
                 "targ_proj must be an instance of aProjectionBase or None",
             )
+        if val is not None:
+            if not val.alatt_defined and self.alatt_defined:
+                val.alatt = self.alatt
+            if not val.angdeg_defined and self.angdeg_defined:
+                val.angdeg = self.angdeg
+            self._do_3D_transformation = val.do_3D_transformation
         self._targ_proj = val
         self._check_and_set_targ_proj_optimization(val)
 
@@ -342,11 +349,19 @@ class aProjectionBase(Serializable, ABC):
             self._check_and_set_targ_proj_optimization(self._targ_proj)
 
     @property
+    def disable_pix_preselection(self) -> bool:
+        return self._disable_pix_preselection
+
+    @disable_pix_preselection.setter
+    def disable_pix_preselection(self, val: Any) -> None:
+        self._disable_pix_preselection = bool(val)
+
+    @property
     def can_mex_cut(self) -> bool:
         return False
 
     def copy_proj_param_from_source(self, cut_source: Any) -> "aProjectionBase":
-        """Copy lattice parameters (alatt, angdeg) from cut_source projection."""
+        """Copy lattice parameters (alatt, angdeg) from cut_source projection if not already defined."""
         source_proj = (
             cut_source.data.proj
             if hasattr(cut_source, "data") and hasattr(cut_source.data, "proj")
@@ -354,8 +369,10 @@ class aProjectionBase(Serializable, ABC):
         )
         self._do_check_combo_arg = False
         try:
-            self.alatt = source_proj.alatt
-            self.angdeg = source_proj.angdeg
+            if not self.alatt_defined and source_proj.alatt_defined:
+                self.alatt = source_proj.alatt
+            if not self.angdeg_defined and source_proj.angdeg_defined:
+                self.angdeg = source_proj.angdeg
         finally:
             self._do_check_combo_arg = True
         self.check_combo_arg()
@@ -487,29 +504,76 @@ class aProjectionBase(Serializable, ABC):
     # ------------------------------------------------------------------
     @staticmethod
     def convert_3Dplus1Ind_to_4Dind_ranges(
-        contrib_3D_ind: np.ndarray,
-        contrib_1D_range: np.ndarray,
+        bin_inside3D: np.ndarray,
+        en_inside: np.ndarray,
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """Convert 3D contributing cell indices + 1D energy range into 4D start/end block ranges."""
-        ind3 = np.asarray(contrib_3D_ind, dtype=int).ravel()
-        rng1 = np.asarray(contrib_1D_range, dtype=int).ravel()
+        """Convert 3D contributing cell mask + 1D energy mask into 4D start/end block ranges."""
+        arr3 = np.asarray(bin_inside3D)
+        arr1 = np.asarray(en_inside)
+        if arr3.dtype == bool and arr1.dtype == bool:
+            b3_flat = arr3.ravel(order="F")
+            if not np.any(b3_flat) or not np.any(arr1):
+                return np.array([], dtype=int), np.array([], dtype=int)
+            padded = np.concatenate([[False], b3_flat, [False]])
+            edges = np.diff(padded.astype(int))
+            istart_3d = np.where(edges == 1)[0] + 1
+            iend_3d = np.where(edges == -1)[0]
+            q_stride = np.where(arr1.ravel(order="F"))[0] * b3_flat.size
+            istart = (istart_3d[:, np.newaxis] + q_stride[np.newaxis, :]).ravel(order="F")
+            iend = (iend_3d[:, np.newaxis] + q_stride[np.newaxis, :]).ravel(order="F")
+            if istart.size > 1:
+                adj = iend[:-1] + 1 == istart[1:]
+                if np.any(adj):
+                    keep_start = np.concatenate([[True], ~adj])
+                    keep_end = np.concatenate([~adj, [True]])
+                    istart = istart[keep_start]
+                    iend = iend[keep_end]
+            return istart.astype(int), iend.astype(int)
+
+        ind3 = np.asarray(bin_inside3D, dtype=int).ravel()
+        rng1 = np.asarray(en_inside, dtype=int).ravel()
         if ind3.size == 0 or rng1.size < 2:
             return np.array([], dtype=int), np.array([], dtype=int)
 
         ind3 = np.sort(ind3)
-        # Find contiguous runs in 3D indices
         diffs = np.diff(ind3)
         split_pts = np.where(diffs > 1)[0] + 1
         runs = np.split(ind3, split_pts)
         starts_3d = np.array([r[0] for r in runs], dtype=int)
         ends_3d = np.array([r[-1] for r in runs], dtype=int)
         lengths_3d = ends_3d - starts_3d + 1
-
-        n_3d_total = int(ind3[-1])  # note: caller usually uses actual nbins_3d if needed
-        # Wait: in convert_3Dplus1Ind_to_4Dind_ranges, how does MATLAB combine 3D indices with 1D range?
-        # Wait: in MATLAB aProjectionBase.convert_3Dplus1Ind_to_4Dind_ranges(n_3D_bins_or_ind, ...):
-        # Let's support both (contrib_3D_ind, contrib_1D_range) and (nbins_3d, contrib_3D_ind, contrib_1D_range)!
         return starts_3d, lengths_3d
+
+    @staticmethod
+    def convert_contrib_cell_into_pix_indexes(
+        cell_ind: Any,
+        npix: np.ndarray,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Convert contributing cell indices or (istart, iend) tuple into pixel block (start, length)."""
+        if cell_ind is None:
+            return np.array([], dtype=int), np.array([], dtype=int)
+        if isinstance(cell_ind, tuple) and len(cell_ind) == 2:
+            c_start = np.asarray(cell_ind[0], dtype=int).ravel(order="F")
+            c_end = np.asarray(cell_ind[1], dtype=int).ravel(order="F")
+            if c_start.size == 0:
+                return np.array([], dtype=int), np.array([], dtype=int)
+        else:
+            ind_arr = np.asarray(cell_ind, dtype=int).ravel(order="F")
+            if ind_arr.size == 0:
+                return np.array([], dtype=int), np.array([], dtype=int)
+            adj = (ind_arr[:-1] + 1 == ind_arr[1:]) if ind_arr.size > 1 else np.array([], dtype=bool)
+            c_start = ind_arr[np.concatenate([[True], ~adj])]
+            c_end = ind_arr[np.concatenate([~adj, [True]])]
+
+        npix_flat = np.asarray(npix, dtype=int).ravel(order="F")
+        pix_start = np.concatenate([[0], np.cumsum(npix_flat)])
+        bl_start = pix_start[c_start - 1]
+        bl_end = pix_start[c_end]
+        bl_size = bl_end - bl_start
+        non_empty = bl_size != 0
+        if not np.any(non_empty):
+            return np.array([], dtype=int), np.array([], dtype=int)
+        return (bl_start[non_empty] + 1).astype(int), bl_size[non_empty].astype(int)
 
     def may_contribute(
         self,
@@ -616,31 +680,20 @@ class aProjectionBase(Serializable, ABC):
         npix: np.ndarray,
         cur_axes_block: AxesBlockBase,
         targ_axes_block: AxesBlockBase,
-        targ_proj: "aProjectionBase",
+        targ_proj: Optional["aProjectionBase"] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Calculate start positions and lengths of pixel blocks in npix contributing to the cut."""
+        if targ_proj is not None:
+            if isinstance(targ_proj, type(self)):
+                self.do_generic = targ_proj.do_generic
+                self.disable_srce_to_targ_optimization = targ_proj.disable_srce_to_targ_optimization
+            targ_proj.targ_proj = self
+            self.targ_proj = targ_proj
+            if targ_proj.disable_pix_preselection:
+                return np.array([1], dtype=int), np.array([int(np.sum(npix))], dtype=int)
+
         cell_ind = self.get_contrib_cell_ind(cur_axes_block, targ_proj, targ_axes_block)
-        if cell_ind.size == 0:
-            return np.array([], dtype=int), np.array([], dtype=int)
-
-        npix_flat = np.asarray(npix, dtype=int).ravel(order="F")
-        # Keep only cells that actually contain pixels
-        non_empty = npix_flat[cell_ind - 1] > 0
-        cell_ind = cell_ind[non_empty]
-        if cell_ind.size == 0:
-            return np.array([], dtype=int), np.array([], dtype=int)
-
-        # Cumulative pixel offsets (1-based start of each cell)
-        cum_pix = np.concatenate([[0], np.cumsum(npix_flat)])
-        # Merge contiguous cell indices into contiguous pixel ranges
-        diffs = np.diff(cell_ind)
-        split_pts = np.where(diffs > 1)[0] + 1
-        runs = np.split(cell_ind, split_pts)
-
-        nstart = np.array([cum_pix[r[0] - 1] + 1 for r in runs], dtype=int)
-        nend = np.array([cum_pix[r[-1]] for r in runs], dtype=int)
-        nlength = nend - nstart + 1
-        return nstart, nlength
+        return self.convert_contrib_cell_into_pix_indexes(cell_ind, npix)
 
     # ------------------------------------------------------------------
     # Axes Block Construction & Binning Methods
@@ -661,13 +714,23 @@ class aProjectionBase(Serializable, ABC):
             elif len(t_str) >= 3 and "d" in t_str[1:3]:
                 ax.angular_unit_is_rad = False
 
-        arr_bounds = np.asarray(default_bounds_cell_ind)
-        if arr_bounds.dtype == bool and arr_bounds.size == 4:
+        try:
+            arr_bounds = np.asarray(default_bounds_cell_ind)
+            is_bool_4 = arr_bounds.dtype == bool and arr_bounds.size == 4
+        except ValueError:
+            arr_bounds = None
+            is_bool_4 = False
+
+        if is_bool_4:
             # MATLAB signature: get_proj_axes_block(cell_is_iax, pbin_or_ranges)
             sbd_in = arr_bounds.ravel()
             pbin_in = list(req_bin_range)
             ax.init(*pbin_in)
             ax.single_bin_defines_iax = sbd_in
+            return self.copy_proj_defined_properties_to_axes(ax)
+
+        if isinstance(default_bounds_cell_ind, (list, tuple)) and len(default_bounds_cell_ind) == 4:
+            ax = AxesBlockBase.build_from_input_binning(ax, default_bounds_cell_ind, req_bin_range)
             return self.copy_proj_defined_properties_to_axes(ax)
 
         img_db_range = np.asarray(default_bounds_cell_ind, dtype=float)
@@ -768,6 +831,17 @@ class aProjectionBase(Serializable, ABC):
         if nargout is None:
             nargout = _infer_nargout(default=1)
 
+        if isinstance(npix, str):
+            extra = [npix]
+            if s is not None:
+                extra.append(s)
+            if e is not None:
+                extra.append(e)
+            args = tuple(extra) + args
+            npix = None
+            s = None
+            e = None
+
         test_input = False
         for a in args:
             if isinstance(a, str) and a.lower() == "-test_input":
@@ -776,13 +850,20 @@ class aProjectionBase(Serializable, ABC):
         ndim = 3 if (s is None and e is None and self._do_3D_transformation and not test_input) else 4
         if isinstance(in_pix, PixelDataBase):
             if in_pix.num_pixels == 0:
-                coord_img = np.zeros((4, 0), dtype=float)
+                coord_img = np.zeros((ndim, 0), dtype=float)
             else:
                 coord_img = self.transform_pix_to_img(in_pix)
                 if coord_img.shape[0] == 3 and ndim == 4:
                     coord_img = np.vstack([coord_img, in_pix.dE - self._offset[3]])
+                elif coord_img.shape[0] == 4 and ndim == 3:
+                    coord_img = coord_img[:3, :]
         else:
             coord_img = self.transform_pix_to_img(in_pix)
+
+        if nargout == 1 and s is None and e is None:
+            if npix is None:
+                return axes_bl.bin_pixels(coord_img, *args, nargout=1)
+            return axes_bl.bin_pixels(coord_img, npix, *args, nargout=1)
 
         return axes_bl.bin_pixels(coord_img, npix, s, e, in_pix, *args, nargout=nargout)
 

@@ -1376,29 +1376,508 @@ class sqw(SQWDnDBase):
         raise NotImplementedError("sqw.compact is not yet implemented.")
 
     def cut(self, *args: Any, **kwargs: Any) -> Any:
-        """Stub for ``@sqw/cut.m``."""
-        # TODO(port-dependency): Port @sqw/cut.m
-        raise NotImplementedError("sqw.cut is not yet implemented.")
+        """Take a cut from an ``sqw`` object along existing or new projection axes.
+
+        Ported from ``@sqw/cut.m``, ``@sqw/private/cut_single_.m``, and
+        ``@sqw/private/cut_accumulate_data_.m``.
+        """
+        from pyhorace.coord_transf.bmatrix import _infer_nargout
+        from pyhorace.core.configurations.hor_config import hor_config
+
+        nargout = kwargs.pop("nargout", None)
+        if nargout is None:
+            nargout = _infer_nargout(default=1)
+        return_cut = bool(nargout > 0)
+
+        if bool(self.dnd_type):
+            return self._data.cut(*args, nargout=nargout, **kwargs)
+
+        log_level = int(hor_config().log_level)
+        targ_proj, pbin_list, sym, opt = self.process_and_validate_cut_inputs(
+            return_cut, *args, nargout=4
+        )
+
+        n_cuts = len(pbin_list)
+        if n_cuts > 1 and opt.get("outfile"):
+            raise HoraceError(
+                "HORACE:cut:invalid_argument",
+                "Guard against single file output with multiple cuts",
+            )
+
+        results: List[Any] = []
+        for pbin in pbin_list:
+            targ_ax_block, cur_proj, cur_sym = self.define_target_axes_block(
+                targ_proj, pbin, sym, nargout=3
+            )
+            wout = self._cut_single(
+                cur_proj,
+                targ_ax_block,
+                opt,
+                log_level,
+                cur_sym,
+                return_cut=return_cut,
+            )
+            if return_cut:
+                results.append(wout)
+
+        if not return_cut:
+            return None
+        return results[0] if len(results) == 1 else DataOpArray(results)
 
     def cut_dnd(self, *args: Any, **kwargs: Any) -> Any:
-        """Stub for ``@sqw/cut_dnd.m``."""
-        # TODO(port-dependency): Port @sqw/cut_dnd.m
-        raise NotImplementedError("sqw.cut_dnd is not yet implemented.")
+        """Take a DND cut (no pixels retained) from an ``sqw`` object (port of ``@sqw/cut_dnd.m``)."""
+        from pyhorace.coord_transf.bmatrix import _infer_nargout
+
+        nargout = kwargs.pop("nargout", None)
+        if nargout is None:
+            nargout = _infer_nargout(default=1)
+        return self.cut(*args, "-nopix", nargout=nargout, **kwargs)
 
     def cut_sqw(self, *args: Any, **kwargs: Any) -> Any:
-        """Stub for ``@sqw/cut_sqw.m``."""
-        # TODO(port-dependency): Port @sqw/cut_sqw.m
-        raise NotImplementedError("sqw.cut_sqw is not yet implemented.")
+        """Take an SQW cut from an ``sqw`` object (port of ``@sqw/cut_sqw.m``)."""
+        from pyhorace.coord_transf.bmatrix import _infer_nargout
+
+        nargout = kwargs.pop("nargout", None)
+        if nargout is None:
+            nargout = _infer_nargout(default=1)
+        if bool(self.dnd_type):
+            raise HoraceError(
+                "HORACE:cut:invalid_argument",
+                "Cannot call cut_sqw on an sqw object of dnd_type (without pixels)",
+            )
+        return self.cut(*args, nargout=nargout, **kwargs)
 
     def cut_sym(self, *args: Any, **kwargs: Any) -> Any:
-        """Stub for ``@sqw/cut_sym.m``."""
-        # TODO(port-dependency): Port @sqw/cut_sym.m
-        raise NotImplementedError("sqw.cut_sym is not yet implemented.")
+        """Take a symmetry-enabled cut from an ``sqw`` object (port of ``@sqw/cut_sym.m``)."""
+        from pyhorace.coord_transf.bmatrix import _infer_nargout
 
-    def dimensions_match(self, *args: Any, **kwargs: Any) -> Any:
-        """Stub for ``@sqw/dimensions_match.m``."""
-        # TODO(port-dependency): Port @sqw/dimensions_match.m
-        raise NotImplementedError("sqw.dimensions_match is not yet implemented.")
+        nargout = kwargs.pop("nargout", None)
+        if nargout is None:
+            nargout = _infer_nargout(default=1)
+        return self.cut(*args, nargout=nargout, **kwargs)
+
+    def define_target_axes_block(
+        self,
+        targ_proj: Any,
+        pbin: Sequence[Any],
+        sym: Any = None,
+        nargout: Optional[int] = None,
+    ) -> Any:
+        """Build target AxesBlockBase and transformed projections (delegates to ``data.define_target_axes_block``)."""
+        from pyhorace.coord_transf.bmatrix import _infer_nargout
+
+        if nargout is None:
+            nargout = _infer_nargout(default=1)
+        return self._data.define_target_axes_block(
+            targ_proj, pbin, sym=sym, nargout=nargout
+        )
+
+    def get_targ_range(self, targ_proj: Any = None, *args: Any) -> Any:
+        """Compute range of this dataset's axes in a target projection."""
+        return self._data.get_targ_range(targ_proj, *args)
+
+    def get_proj_and_pbin(self, nargout: Optional[int] = None) -> Any:
+        """Retrieve the projection and binning descriptors of this SQW dataset."""
+        from pyhorace.coord_transf.bmatrix import _infer_nargout
+
+        if nargout is None:
+            nargout = _infer_nargout(default=2)
+        return self._data.get_proj_and_pbin(nargout=nargout)
+
+    def _cut_single(
+        self,
+        targ_proj: Any,
+        targ_axes: Any,
+        opt: Dict[str, Any],
+        log_level: int,
+        sym: Any,
+        return_cut: bool = True,
+    ) -> Optional[Union["sqw", DnDBase]]:
+        """Execute a single cut on this ``sqw`` object (port of ``@sqw/private/cut_single_.m``)."""
+        keep_pix = bool(opt.get("keep_pix", True))
+        outfile = str(opt.get("outfile", "") or "")
+
+        s, e, npix, pix_out, runid_contributed = self._cut_accumulate_data(
+            targ_proj, targ_axes, keep_pix, log_level, return_cut, sym
+        )
+
+        proj_0 = (
+            targ_proj[0]
+            if isinstance(targ_proj, (list, tuple, np.ndarray))
+            else targ_proj
+        )
+        data_dnd = DnDBase.dnd(targ_axes, proj_0, s, e, npix)
+        data_dnd.title = self.title
+
+        if not keep_pix:
+            wout: Union[sqw, DnDBase] = data_dnd
+        else:
+            main_header = copy.deepcopy(self._main_header)
+            exp_info = copy.deepcopy(self._exper_info)
+
+            if (
+                not main_header.creation_date_defined
+                and exp_info.n_runs > 0
+                and len(runid_contributed) > 0
+            ):
+                cur_keys = set(int(k) for k in np.asarray(exp_info.runid_map.keys).ravel())
+                contrib_set = set(int(r) for r in np.asarray(runid_contributed).ravel())
+                if not contrib_set.issubset(cur_keys) and self._pix.num_pixels > 0:
+                    from pyhorace.coord_transf._dependencies import fast_map
+
+                    u_ids = np.unique(self._pix.run_idx).astype(float)
+                    if u_ids.size == exp_info.n_runs:
+                        exp_info.runid_map = fast_map(
+                            u_ids, np.arange(1, exp_info.n_runs + 1, dtype=int)
+                        )
+                        exp_info.runid_recalculated = False
+
+            if len(runid_contributed) > 0 and exp_info.n_runs > 0:
+                exp_sub = exp_info.get_subobj(
+                    np.asarray(runid_contributed, dtype=int).ravel()
+                )
+            else:
+                exp_sub = Experiment()
+
+            main_header.nfiles = exp_sub.n_runs
+            wout_sqw = sqw()
+            wout_sqw._do_check_combo_arg = False
+            wout_sqw._main_header = main_header
+            wout_sqw._exper_info = exp_sub
+            wout_sqw._data = data_dnd
+            wout_sqw._pix = pix_out
+            wout_sqw._do_check_combo_arg = True
+            wout_sqw.check_combo_arg()
+            wout = wout_sqw
+
+        if outfile:
+            wout.save(outfile)
+            wout.full_filename = outfile
+
+        if not return_cut:
+            return None
+        return wout
+
+    def _cut_accumulate_data(
+        self,
+        targ_proj: Any,
+        targ_axes: Any,
+        keep_pixels: bool,
+        log_level: int,
+        return_cut: bool,
+        sym: Any,
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, PixelDataBase, np.ndarray]:
+        """Accumulate binned signal, error, npix, and pixels for a cut.
+
+        Ported from ``@sqw/private/cut_accumulate_data_.m``.
+        """
+        from pyhorace.coord_transf.axes_block_base import normalize_signal
+        from pyhorace.core.configurations.hor_config import hor_config
+
+        targ_proj_list: List[Any] = (
+            list(targ_proj)
+            if isinstance(targ_proj, (list, tuple, np.ndarray))
+            else [targ_proj]
+        )
+        sym_list: List[Any] = (
+            list(sym) if isinstance(sym, (list, tuple, np.ndarray)) else [sym]
+        )
+        n_sym = len(targ_proj_list)
+        apply_symmetries = n_sym > 1
+
+        sproj = copy.deepcopy(self._data.proj)
+        saxes = self._data.axes
+        data_npix = self._data.npix
+
+        starts_per_sym: List[np.ndarray] = []
+        sizes_per_sym: List[np.ndarray] = []
+        for proj in targ_proj_list:
+            b_starts, b_sizes = sproj.get_nrange(data_npix, saxes, targ_axes, proj)
+            starts_per_sym.append(np.asarray(b_starts, dtype=np.int64).ravel())
+            sizes_per_sym.append(np.asarray(b_sizes, dtype=np.int64).ravel())
+
+        if apply_symmetries:
+            block_starts, block_sizes = sqw._merge_ranges(
+                starts_per_sym, sizes_per_sym
+            )
+        else:
+            block_starts = starts_per_sym[0]
+            block_sizes = sizes_per_sym[0]
+
+        targ_dims = tuple(int(x) for x in targ_axes.dims_as_ssize)
+        s = np.zeros(targ_dims, dtype=np.float64, order="F")
+        e = np.zeros(targ_dims, dtype=np.float64, order="F")
+        npix = np.zeros(targ_dims, dtype=np.float64, order="F")
+
+        buf_size = int(hor_config().mem_chunk_size)
+        chunks_starts, chunks_sizes = sqw._split_data_blocks(
+            block_starts, block_sizes, buf_size
+        )
+
+        pix_retained: List[PixelDataBase] = []
+        pix_ix_retained: List[np.ndarray] = []
+        unique_runid = np.array([], dtype=np.int64)
+
+        num_chunks = len(chunks_starts)
+        is_fb = bool(self._pix.is_filebacked)
+        access_type = "Read" if is_fb else "Access"
+        pixel_contrib_name = "retained" if keep_pixels else "contributed"
+
+        import time
+
+        t_start = time.perf_counter()
+        t_read_total = 0.0
+        t_bin_total = 0.0
+        t_sort_total = 0.0
+
+        for iter_idx, (ch_starts, ch_sizes) in enumerate(
+            zip(chunks_starts, chunks_sizes), start=1
+        ):
+            t0 = time.perf_counter()
+            candidate_pix = self._pix.get_pix_in_ranges(ch_starts, ch_sizes, False, True)
+            t_read_total += time.perf_counter() - t0
+            if candidate_pix.num_pixels == 0:
+                continue
+
+            if log_level >= 1:
+                print(
+                    f"*** Step {iter_idx:3d} of {num_chunks:3d}; Read data for {candidate_pix.num_pixels:8d} pixels -- processing data...",
+                    end="",
+                )
+
+            t1 = time.perf_counter()
+            npix_before = float(np.sum(npix))
+            if keep_pixels:
+                for i in range(n_sym):
+                    proj = targ_proj_list[i]
+                    if apply_symmetries:
+                        (
+                            npix,
+                            s,
+                            e,
+                            pix_ok,
+                            unique_runid,
+                            pix_indx,
+                            selected,
+                        ) = proj.bin_pixels(
+                            targ_axes,
+                            candidate_pix,
+                            npix,
+                            s,
+                            e,
+                            unique_runid,
+                            "-nomex",
+                            nargout=7,
+                        )
+                        if pix_ok.num_pixels > 0:
+                            pix_ok.q_coordinates = sym_list[i].transform_vec(
+                                pix_ok.q_coordinates
+                            )
+                        candidate_pix = candidate_pix.tag(selected)
+                    else:
+                        (
+                            npix,
+                            s,
+                            e,
+                            pix_ok,
+                            unique_runid,
+                            pix_indx,
+                        ) = proj.bin_pixels(
+                            targ_axes,
+                            candidate_pix,
+                            npix,
+                            s,
+                            e,
+                            unique_runid,
+                            "-nomex",
+                            nargout=6,
+                        )
+                    if pix_ok.num_pixels > 0:
+                        pix_retained.append(pix_ok)
+                        pix_ix_retained.append(np.asarray(pix_indx, dtype=np.int64).ravel())
+            else:
+                for i in range(n_sym):
+                    proj = targ_proj_list[i]
+                    if apply_symmetries:
+                        npix, s, e, selected = proj.bin_pixels(
+                            targ_axes,
+                            candidate_pix,
+                            npix,
+                            s,
+                            e,
+                            "-selected_only",
+                            "-nomex",
+                            nargout=4,
+                        )
+                        candidate_pix = candidate_pix.tag(selected)
+                    else:
+                        npix, s, e = proj.bin_pixels(
+                            targ_axes,
+                            candidate_pix,
+                            npix,
+                            s,
+                            e,
+                            "-nomex",
+                            nargout=3,
+                        )
+            t_bin_total += time.perf_counter() - t1
+            npix_step = int(round(float(np.sum(npix)) - npix_before))
+            if log_level >= 1:
+                print(f" ----->  {pixel_contrib_name}  {npix_step:8d} pixels")
+
+        s, e = normalize_signal(s, e, npix)
+
+        t2 = time.perf_counter()
+        if keep_pixels:
+            pix_out = sqw._sort_pix(pix_retained, pix_ix_retained, npix)
+        else:
+            pix_out = PixelDataMemory()
+        t_sort_total += time.perf_counter() - t2
+
+        if log_level >= 2:
+            t_total = max(time.perf_counter() - t_start, 1e-9)
+            t_read_safe = max(t_read_total, 1e-9)
+            n_read_bytes = float(np.sum(block_sizes)) * 9.0 * 4.0
+            speed_mbs = (n_read_bytes / (1024.0 * 1024.0)) / t_read_safe
+            prep_pct = (100.0 * t_sort_total / t_total) if keep_pixels else 0.0
+            print(
+                f"*** Cut timings: Total={t_total:.3f}s | {access_type} speed: {speed_mbs:.2f} MB/sec\n"
+                f"    Resulting pix preparation: {prep_pct:5.1f}%"
+            )
+
+        return s, e, npix, pix_out, unique_runid
+
+    @staticmethod
+    def _merge_ranges(
+        starts_cell: Sequence[np.ndarray], sizes_cell: Sequence[np.ndarray]
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Merge overlapping or adjacent 1-based pixel block ranges across symmetries.
+
+        Ported from ``merge_ranges`` in ``@sqw/private/cut_accumulate_data_.m``.
+        """
+        non_empty_starts = []
+        non_empty_ends = []
+        for st, sz in zip(starts_cell, sizes_cell):
+            st_arr = np.asarray(st, dtype=np.int64).ravel()
+            sz_arr = np.asarray(sz, dtype=np.int64).ravel()
+            valid = sz_arr > 0
+            if np.any(valid):
+                s_v = st_arr[valid]
+                e_v = s_v + sz_arr[valid] - 1
+                non_empty_starts.append(s_v)
+                non_empty_ends.append(e_v)
+
+        if not non_empty_starts:
+            return np.array([], dtype=np.int64), np.array([], dtype=np.int64)
+
+        all_starts = np.concatenate(non_empty_starts)
+        all_ends = np.concatenate(non_empty_ends)
+
+        order = np.lexsort((all_ends, all_starts))
+        all_starts = all_starts[order]
+        all_ends = all_ends[order]
+
+        merged_starts = [int(all_starts[0])]
+        merged_ends = [int(all_ends[0])]
+        for s_cur, e_cur in zip(all_starts[1:], all_ends[1:]):
+            if int(s_cur) <= merged_ends[-1] + 1:
+                if int(e_cur) > merged_ends[-1]:
+                    merged_ends[-1] = int(e_cur)
+            else:
+                merged_starts.append(int(s_cur))
+                merged_ends.append(int(e_cur))
+
+        ms = np.asarray(merged_starts, dtype=np.int64)
+        me = np.asarray(merged_ends, dtype=np.int64)
+        return ms, me - ms + 1
+
+    @staticmethod
+    def _split_data_blocks(
+        block_starts: np.ndarray, block_sizes: np.ndarray, buf_size: int
+    ) -> Tuple[List[np.ndarray], List[np.ndarray]]:
+        """Split pixel block ranges into chunks of at most ``buf_size`` pixels.
+
+        Ported from ``split_data_blocks.m``.
+        """
+        starts = np.asarray(block_starts, dtype=np.int64).ravel()
+        sizes = np.asarray(block_sizes, dtype=np.int64).ravel()
+        valid = sizes > 0
+        starts = starts[valid]
+        sizes = sizes[valid]
+
+        if starts.size == 0:
+            return [], []
+
+        buf_sz = max(int(buf_size), 1)
+        chunks_starts: List[np.ndarray] = []
+        chunks_sizes: List[np.ndarray] = []
+
+        cur_starts: List[int] = []
+        cur_sizes: List[int] = []
+        cur_sum = 0
+
+        for s_val, sz_val in zip(starts, sizes):
+            s = int(s_val)
+            sz = int(sz_val)
+            while sz > 0:
+                space = buf_sz - cur_sum
+                if sz <= space:
+                    cur_starts.append(s)
+                    cur_sizes.append(sz)
+                    cur_sum += sz
+                    sz = 0
+                    if cur_sum >= buf_sz:
+                        chunks_starts.append(np.asarray(cur_starts, dtype=np.int64))
+                        chunks_sizes.append(np.asarray(cur_sizes, dtype=np.int64))
+                        cur_starts = []
+                        cur_sizes = []
+                        cur_sum = 0
+                else:
+                    cur_starts.append(s)
+                    cur_sizes.append(space)
+                    chunks_starts.append(np.asarray(cur_starts, dtype=np.int64))
+                    chunks_sizes.append(np.asarray(cur_sizes, dtype=np.int64))
+                    cur_starts = []
+                    cur_sizes = []
+                    cur_sum = 0
+                    s += space
+                    sz -= space
+
+        if cur_starts:
+            chunks_starts.append(np.asarray(cur_starts, dtype=np.int64))
+            chunks_sizes.append(np.asarray(cur_sizes, dtype=np.int64))
+
+        return chunks_starts, chunks_sizes
+
+    @staticmethod
+    def _sort_pix(
+        pix_retained: Sequence[PixelDataBase],
+        pix_ix_retained: Sequence[np.ndarray],
+        npix: np.ndarray,
+    ) -> PixelDataBase:
+        """Sort accumulated pixel chunks by 1-based bin index ``pix_ix_retained``.
+
+        Ported from ``sort_pix.m``.
+        """
+        non_empty_pix = []
+        non_empty_ix = []
+        for p, ix in zip(pix_retained, pix_ix_retained):
+            if p is not None and p.num_pixels > 0:
+                non_empty_pix.append(p.get_pixels(np.arange(1, p.num_pixels + 1, dtype=np.intp), "-raw_data"))
+                non_empty_ix.append(np.asarray(ix, dtype=np.int64).ravel())
+
+        if not non_empty_pix:
+            return PixelDataMemory()
+
+        all_raw = np.hstack(non_empty_pix)
+        all_ix = np.concatenate(non_empty_ix)
+        if all_ix.size > 1:
+            order = np.argsort(all_ix, kind="mergesort")
+            all_raw = all_raw[:, order]
+
+        out = PixelDataMemory(np.asarray(all_raw, dtype=np.float64))
+        out.recalc_data_range("all")
+        return out
 
     def disp2sqw_eval(self, *args: Any, **kwargs: Any) -> Any:
         """Stub for ``@sqw/disp2sqw_eval.m``."""
@@ -1434,11 +1913,6 @@ class sqw(SQWDnDBase):
         """Stub for ``@sqw/get_nearest_pixels.m``."""
         # TODO(port-dependency): Port @sqw/get_nearest_pixels.m
         raise NotImplementedError("sqw.get_nearest_pixels is not yet implemented.")
-
-    def get_proj_and_pbin(self, *args: Any, **kwargs: Any) -> Any:
-        """Stub for ``@sqw/get_proj_and_pbin.m``."""
-        # TODO(port-dependency): Port @sqw/get_proj_and_pbin.m
-        raise NotImplementedError("sqw.get_proj_and_pbin is not yet implemented.")
 
     def get_sqw(self, *args: Any, **kwargs: Any) -> Any:
         """Stub for ``@sqw/get_sqw.m``."""
@@ -1620,10 +2094,169 @@ class sqw(SQWDnDBase):
         # TODO(port-dependency): Port @sqw/sqw_eval_pix.m
         raise NotImplementedError("sqw.sqw_eval_pix is not yet implemented.")
 
-    def symmetrise_sqw(self, *args: Any, **kwargs: Any) -> Any:
-        """Stub for ``@sqw/symmetrise_sqw.m``."""
-        # TODO(port-dependency): Port @sqw/symmetrise_sqw.m
-        raise NotImplementedError("sqw.symmetrise_sqw is not yet implemented.")
+    def symmetrise_sqw(self, *args: Any, **kwargs: Any) -> "sqw":
+        """Symmetrise ``sqw`` dataset according to ``Symop`` (port of ``@sqw/symmetrise_sqw.m``)."""
+        from pyhorace.coord_transf.a_projection_base import aProjectionBase
+        from pyhorace.coord_transf.axes_block_base import normalize_signal
+        from pyhorace.coord_transf.expand_box import expand_box, get_geometry
+        from pyhorace.coord_transf.symop import (
+            Symop,
+            SymopArray,
+            SymopReflection,
+        )
+
+        if not self.has_pixels():
+            raise HoraceError(
+                "HORACE:symmetrise_sqw:invalid_argument",
+                "input object must be sqw type with detector pixel information",
+            )
+
+        varargin = list(args)
+        if len(varargin) > 0 and isinstance(varargin[-1], aProjectionBase):
+            transf_proj = varargin.pop()
+            if getattr(transf_proj, "nonorthogonal", False):
+                raise HoraceError(
+                    "HORACE:symmetrise_sqw:invalid_argument",
+                    "Cannot symmetrise to non-orthogonal projection",
+                )
+
+        if len(varargin) == 1 and (
+            isinstance(varargin[0], (Symop, SymopArray))
+            or (
+                isinstance(varargin[0], (list, tuple, np.ndarray))
+                and len(varargin[0]) > 0
+                and all(isinstance(x, (Symop, SymopArray)) for x in varargin[0])
+            )
+        ):
+            sym_in = varargin[0]
+        elif len(varargin) == 3:
+            warn_with_id(
+                "HORACE:symmetrise_sqw:deprecated",
+                'Passing vectors to symmetrise_sqw is deprecated, please use "Symop"',
+            )
+            sym_in = SymopReflection(*varargin)
+        else:
+            raise HoraceError(
+                "HORACE:symmetrise_sqw:invalid_argument",
+                "Call as:\nwout = symmetrise_sqw(win, sym)\nDEPRECATED wout = symmetrise_sqw(win,v1,v2,v3)",
+            )
+
+        wout = self.copy()
+        if wout.pix.is_filebacked:
+            wout.pix = PixelDataMemory(wout.pix)
+        else:
+            wout.pix = copy.deepcopy(wout.pix)
+
+        proj = wout.data.proj
+        sym_validated, _ = Symop.validate_and_generate_sym(sym_in, proj, nargout=2)
+
+        if isinstance(sym_validated, list) and not isinstance(sym_validated, SymopArray):
+            for op in sym_validated:
+                wout.pix = op.transform_pix(wout.pix)
+            sym_arr: List[Symop] = []
+            for item in sym_validated:
+                if isinstance(item, SymopArray):
+                    sym_arr.extend(item)
+                else:
+                    sym_arr.append(item)
+        else:
+            wout.pix = sym_validated.transform_pix(wout.pix)
+            if isinstance(sym_validated, SymopArray):
+                sym_arr = list(sym_validated)
+            else:
+                sym_arr = [sym_validated]
+        wout.pix.recalc_data_range("all")
+
+        existing_range = np.asarray(wout.data.axes.img_range, dtype=float).copy()
+        exp_range = expand_box(existing_range[0, :3], existing_range[1, :3], nargout=1)
+        cc_ranges = proj.transform_img_to_pix(exp_range)
+
+        cc_exist_range = np.asarray(cc_ranges, dtype=float).copy()
+        _, edges_ind = get_geometry(3)
+        for op in reversed(sym_arr):
+            if isinstance(op, SymopReflection):
+                off = np.asarray(op.offset, dtype=float).reshape(3, 1)
+                u_vec = np.asarray(op.u, dtype=float).reshape(3, 1)
+                v_vec = np.asarray(op.v, dtype=float).reshape(3, 1)
+                plane_points = off + np.hstack([np.zeros((3, 1), dtype=float), u_vec, v_vec])
+                plane_points_cc = proj.transform_hkl_to_pix(plane_points)
+                cross_points = sqw._box_intersect_3d(cc_ranges, plane_points_cc, edges_ind)
+                if cross_points.size > 0:
+                    cc_exist_range = np.hstack([cc_exist_range, cross_points])
+            else:
+                rot_center = proj.transform_hkl_to_pix(
+                    np.asarray(op.offset, dtype=float).reshape(3, 1)
+                )
+                cc_exist_range = np.hstack([cc_exist_range, rot_center])
+
+        for op in reversed(sym_arr):
+            cc_exist_range = op.transform_pix(cc_exist_range, 1e-7)
+
+        img_box_points = proj.transform_pix_to_img(cc_exist_range)
+        img_db_range_minmax = np.vstack(
+            [np.min(img_box_points, axis=1), np.max(img_box_points, axis=1)]
+        )
+        all_sym_range = np.hstack([img_db_range_minmax, existing_range[:, 3:4]])
+
+        dat = wout.data.copy()
+        dat.axes.img_range = all_sym_range
+        targ_dims = tuple(int(x) for x in dat.axes.dims_as_ssize)
+        s = np.zeros(targ_dims, dtype=np.float64, order="F")
+        e = np.zeros(targ_dims, dtype=np.float64, order="F")
+        npix = np.zeros(targ_dims, dtype=np.float64, order="F")
+
+        npix, s, e, pix_binned, _ = proj.bin_pixels(
+            dat.axes, wout.pix, npix, s, e, "-nomex", nargout=5
+        )
+        s, e = normalize_signal(s, e, npix)
+        dat.s = s
+        dat.e = e
+        dat.npix = npix
+        wout.data = dat
+        wout.pix = pix_binned
+        return wout
+
+    @staticmethod
+    def _box_intersect_3d(
+        box_points: np.ndarray, plane_points: np.ndarray, edges_ind: np.ndarray
+    ) -> np.ndarray:
+        """Compute intersection points of a 3D box's 12 edges with a plane defined by 3 points.
+
+        Ported from ``herbert_core/utilities/geometry/box_intersect.m``.
+        """
+        p0 = np.asarray(plane_points[:, 0], dtype=float)
+        u = np.asarray(plane_points[:, 1], dtype=float) - p0
+        v = np.asarray(plane_points[:, 2], dtype=float) - p0
+        n = np.cross(u, v)
+        n_norm = float(np.linalg.norm(n))
+        if n_norm < 1e-12:
+            return np.zeros((3, 0), dtype=float)
+        n = n / n_norm
+
+        cross_pts: List[np.ndarray] = []
+        for e_idx in range(edges_ind.shape[1]):
+            i1 = int(edges_ind[0, e_idx]) - 1
+            i2 = int(edges_ind[1, e_idx]) - 1
+            p1 = box_points[:, i1]
+            p2 = box_points[:, i2]
+            d1 = float(np.dot(p1 - p0, n))
+            d2 = float(np.dot(p2 - p0, n))
+            if abs(d1) <= 1e-9 and abs(d2) <= 1e-9:
+                cross_pts.append(p1.copy())
+                cross_pts.append(p2.copy())
+            elif abs(d1) <= 1e-9:
+                cross_pts.append(p1.copy())
+            elif abs(d2) <= 1e-9:
+                cross_pts.append(p2.copy())
+            elif d1 * d2 < 0.0:
+                t = d1 / (d1 - d2)
+                cross_pts.append(p1 + t * (p2 - p1))
+
+        if not cross_pts:
+            return np.zeros((3, 0), dtype=float)
+        arr = np.column_stack(cross_pts)
+        _, uniq_idx = np.unique(np.round(arr, decimals=9), axis=1, return_index=True)
+        return arr[:, np.sort(uniq_idx)]
 
     def testgateway(self, *args: Any, **kwargs: Any) -> Any:
         """Stub for ``@sqw/testgateway.m``."""
@@ -1659,6 +2292,28 @@ class sqw(SQWDnDBase):
         """Stub for ``@sqw/xydata.m``."""
         # TODO(port-dependency): Port @sqw/xydata.m
         raise NotImplementedError("sqw.xydata is not yet implemented.")
+
+
+def symmetrise_sqw(win: Any, *args: Any, **kwargs: Any) -> sqw:
+    """Symmetrise an ``sqw`` object or file according to ``Symop`` (port of ``symmetrise_sqw.m``)."""
+    if isinstance(win, (str, os.PathLike)):
+        obj = sqw(win, file_backed=False)
+        return obj.symmetrise_sqw(*args, **kwargs)
+    if isinstance(win, sqw):
+        return win.symmetrise_sqw(*args, **kwargs)
+    if isinstance(win, (list, tuple, np.ndarray)) or hasattr(win, "__len__"):
+        if len(win) != 1:
+            raise HoraceError(
+                "HORACE:symmetrise_sqw:invalid_argument",
+                "symmetrisation only implemented for single sqw object, not arrays of objects. Use a for-loop to deal with arrays",
+            )
+        first = win[0]
+        if isinstance(first, sqw):
+            return first.symmetrise_sqw(*args, **kwargs)
+    raise HoraceError(
+        "HORACE:symmetrise_sqw:invalid_argument",
+        "input object must be sqw type with detector pixel information",
+    )
 
 
 SQW = sqw

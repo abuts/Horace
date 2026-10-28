@@ -355,6 +355,26 @@ class DataOpArray(np.ndarray):
                 return (False, mess) if return_msg else False
         return (True, "") if return_msg else True
 
+    def cut(self, *args: Any, **kwargs: Any) -> Any:
+        from pyhorace.algorithms.cut import cut as _alg_cut
+
+        return _alg_cut(self, *args, **kwargs)
+
+    def cut_sqw(self, *args: Any, **kwargs: Any) -> Any:
+        from pyhorace.algorithms.cut import cut_sqw as _alg_cut_sqw
+
+        return _alg_cut_sqw(self, *args, **kwargs)
+
+    def cut_dnd(self, *args: Any, **kwargs: Any) -> Any:
+        from pyhorace.algorithms.cut import cut_dnd as _alg_cut_dnd
+
+        return _alg_cut_dnd(self, *args, **kwargs)
+
+    def cut_sym(self, *args: Any, **kwargs: Any) -> Any:
+        from pyhorace.algorithms.cut import cut_sym as _alg_cut_sym
+
+        return _alg_cut_sym(self, *args, **kwargs)
+
 
 class data_op_interface(ABC):
     """DATA_OP_INTERFACE defines the operations which are available on

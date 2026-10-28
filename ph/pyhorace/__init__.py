@@ -40,6 +40,14 @@ from pyhorace.sqw import (
     read_sqw,
     sqw,
 )
+from pyhorace.algorithms import (
+    cut,
+    cut_dnd,
+    cut_horace,
+    cut_sqw,
+    cut_sym,
+    symmetrise_sqw,
+)
 
 __version__ = "0.1.0"
 __all__ = [
@@ -54,6 +62,11 @@ __all__ = [
     "build_hash",
     "config_base",
     "config_store",
+    "cut",
+    "cut_dnd",
+    "cut_horace",
+    "cut_sqw",
+    "cut_sym",
     "d0d",
     "d1d",
     "d2d",
@@ -78,4 +91,5 @@ __all__ = [
     "read_sqw",
     "sigvar",
     "sqw",
+    "symmetrise_sqw",
 ]

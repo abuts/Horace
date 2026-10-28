@@ -1399,104 +1399,63 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
     # Cut, rebin, replicate, smooth
     # ------------------------------------------------------------------
     def cut_dnd(self, *args: Any, **kwargs: Any) -> Any:
+        """Take a cut from a DnD object (port of ``@DnDBase/cut_dnd.m``)."""
         return self.cut(*args, **kwargs)
 
-    def process_and_validate_cut_inputs(
-        self, return_cut: Any, *args: Any
-    ) -> Tuple[aProjectionBase, List[List[Any]], Dict[str, Any]]:
-        """Parse and validate cut arguments. Ported from cut_parse_inputs_.m."""
-        ndim_in = int(self.dimensions)
-        if ndim_in == 0:
-            raise HoraceError(
-                "HORACE:cut:invalid_argument",
-                "Cannot take a cut from a zero-dimensional (d0d) object",
-            )
+    def cut_sym(self, *args: Any, **kwargs: Any) -> Any:
+        """Take a cut from a DnD object (port of ``@DnDBase/cut_sym.m``)."""
+        return self.cut(*args, **kwargs)
 
-        ok, mess, flags, params = _parse_char_options(
-            args, ["-nopix", "-pix", "-save", "-parallel"]
+    def cut_sqw(self, *args: Any, **kwargs: Any) -> Any:
+        """Raise error when ``cut_sqw`` is called on a DnD object (port of ``@DnDBase/cut_sqw.m``)."""
+        raise HoraceError(
+            "HORACE:cut_sqw:invalid_argument",
+            f"Cannot call cut_sqw on a {type(self).__name__} (dnd) object",
         )
-        if not ok:
-            raise HoraceError("HORACE:cut:invalid_argument", mess)
-        nopix, pix_flag, save_cut, parallel = flags
-        if nopix and pix_flag:
-            raise HoraceError(
-                "HORACE:cut:invalid_argument",
-                "Options '-pix' and '-nopix' cannot be used together",
-            )
-
-        par = list(params)
-        outfile = None
-        if len(par) > 0 and isinstance(par[-1], (str, os.PathLike)) and str(par[-1]):
-            outfile = str(par.pop())
-
-        if len(par) > 0 and isinstance(par[0], aProjectionBase):
-            proj_given = True
-            targ_proj = copy.deepcopy(par[0])
-            targ_proj = targ_proj.copy_proj_param_from_source(self)
-            pbin_args = par[1:]
-        else:
-            proj_given = False
-            targ_proj = copy.deepcopy(self._proj)
-            pbin_args = par
-
-        n_expected = 4 if proj_given else ndim_in
-        if len(pbin_args) != n_expected:
-            raise HoraceError(
-                "HORACE:cut:invalid_argument",
-                f"Expected {n_expected} binning arguments, but got {len(pbin_args)}",
-            )
-
-        if proj_given:
-            pbin_full = list(pbin_args)
-        else:
-            pbin_full = [None] * 4
-            for idx, pax_num in enumerate(self._axes.pax):
-                pbin_full[int(pax_num) - 1] = pbin_args[idx]
-            for idx, iax_num in enumerate(self._axes.iax):
-                pbin_full[int(iax_num) - 1] = self._axes.iint[:, idx].copy()
-
-        # Check for 4-element multicut descriptors [plo, rdiff, phi, rwidth]
-        pbin_out: List[List[Any]] = [list(pbin_full)]
-        opt = {
-            "keep_pix": False,
-            "parallel": parallel,
-            "outfile": outfile,
-            "proj_given": proj_given,
-        }
-        return targ_proj, pbin_out, opt
 
     def cut(self, *args: Any, **kwargs: Any) -> Any:
-        """Take a cut from a DnD object by integrating/rebinning over one or more axes."""
+        """Take a cut from a DnD object by integrating/rebinning over one or more axes.
+
+        Ported from ``@DnDBase/cut.m`` and ``@DnDBase/private/cut_single_.m``.
+        """
         nargout = kwargs.pop("nargout", None)
         if nargout is None:
             nargout = _infer_nargout(default=1)
+        return_cut = bool(nargout > 0)
 
-        targ_proj, pbin_list, opt = self.process_and_validate_cut_inputs(
-            nargout if nargout > 0 else 1, *args
+        targ_proj, pbin_list, sym, opt = self.process_and_validate_cut_inputs(
+            return_cut, *args, nargout=4
         )
 
         results = []
         for pbin in pbin_list:
-            targ_axes = self.define_target_axes_block(targ_proj, pbin)
-            if not opt["proj_given"]:
+            targ_axes, cur_proj = self.define_target_axes_block(
+                targ_proj, pbin, sym, nargout=2
+            )
+            proj_single = (
+                cur_proj[0]
+                if isinstance(cur_proj, (list, tuple, np.ndarray))
+                else cur_proj
+            )
+            if not opt["proj_given"] and not isinstance(cur_proj, (list, tuple, np.ndarray)):
                 targ_axes = self._axes.realign_bin_edges(targ_axes)
                 s_out, e_out, npix_out = self._axes.rebin_data(
                     (self._s, self._e, self._npix), targ_axes
                 )
             else:
                 s_out, e_out, npix_out = self._interpolate_cut_data(
-                    targ_axes, targ_proj
+                    targ_axes, proj_single
                 )
-            wout = DnDBase.dnd(targ_axes, targ_proj, s_out, e_out, npix_out)
+            wout = DnDBase.dnd(targ_axes, proj_single, s_out, e_out, npix_out)
             wout.title = self.title
             if opt.get("outfile"):
                 wout.save(opt["outfile"])
-            results.append(wout)
+            if return_cut:
+                results.append(wout)
 
-        res = results[0] if len(results) == 1 else DataOpArray(results)
-        if nargout == 0 and opt.get("outfile"):
+        if not return_cut:
             return None
-        return res
+        return results[0] if len(results) == 1 else DataOpArray(results)
 
     def _interpolate_cut_data(
         self, targ_axes: AxesBlockBase, targ_proj: aProjectionBase
@@ -1687,11 +1646,46 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
         return s_out, e_out, npix_out
 
     def define_target_axes_block(
-        self, targ_proj: aProjectionBase, pbin: Sequence[Any], sym: Any = None
-    ) -> AxesBlockBase:
-        """Build the target AxesBlockBase for a cut operation.
-        Ported from @SQWDnDBase/private/define_target_axes_block.m.
+        self,
+        targ_proj: Any,
+        pbin: Sequence[Any],
+        sym: Any = None,
+        nargout: Optional[int] = None,
+    ) -> Any:
+        """Build the target AxesBlockBase and symmetry-transformed projections for a cut operation.
+
+        Ported from ``@DnDBase/define_target_axes_block.m``.
         """
+        from ..coord_transf.line_proj_base import LineProjBase
+        from ..coord_transf.symop import SymopIdentity
+
+        if nargout is None:
+            nargout = _infer_nargout(default=1)
+
+        if sym is None:
+            sym_in = [SymopIdentity()]
+        elif isinstance(sym, (list, tuple)):
+            sym_in = list(sym)
+        else:
+            sym_in = [sym]
+
+        base_proj = (
+            targ_proj[0]
+            if isinstance(targ_proj, (list, tuple, np.ndarray))
+            else targ_proj
+        )
+
+        if isinstance(base_proj, LineProjBase):
+            targ_proj_list: List[aProjectionBase] = []
+            sym_out: List[Any] = []
+            for s in sym_in:
+                tp, s_tr = s.transform_proj(base_proj, nargout=2)
+                targ_proj_list.append(tp)
+                sym_out.append(s_tr)
+        else:
+            targ_proj_list = [copy.deepcopy(base_proj)]
+            sym_out = list(sym_in)
+
         default_needed = []
         for pb in pbin:
             if pb is None:
@@ -1706,22 +1700,31 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
                 )
                 default_needed.append(bool(need))
 
+        first_proj = targ_proj_list[0]
         if any(default_needed):
-            source_binning = self.get_targ_range(targ_proj, default_needed, "-binning")
+            source_binning = self.get_targ_range(
+                first_proj, default_needed, "-binning"
+            )
         else:
-            source_binning = [np.array([]), np.array([]), np.array([]), np.array([])]
+            source_binning = [
+                np.array([]),
+                np.array([]),
+                np.array([]),
+                np.array([]),
+            ]
 
-        axes_name = getattr(targ_proj, "axes_name", None)
-        if axes_name is None and hasattr(targ_proj, "_get_axes_class"):
-            axes_name = targ_proj._get_axes_class().__name__
-        ax_cls = _axes_cls_for_name(axes_name or "line_axes")
-        ax_instance = ax_cls()
-        ax_instance = targ_proj.copy_proj_defined_properties_to_axes(ax_instance)
-        targ_ax_block = AxesBlockBase.build_from_input_binning(
-            ax_instance, source_binning, list(pbin)
+        targ_ax_block = first_proj.get_proj_axes_block(source_binning, list(pbin))
+        targ_ax_block.filename = self.filename
+        targ_ax_block.filepath = self.filepath
+
+        targ_proj_out: Any = (
+            targ_proj_list[0] if len(targ_proj_list) == 1 else targ_proj_list
         )
-        targ_ax_block = targ_proj.copy_proj_defined_properties_to_axes(targ_ax_block)
-        return targ_ax_block
+        if nargout <= 1:
+            return targ_ax_block
+        if nargout == 2:
+            return targ_ax_block, targ_proj_out
+        return targ_ax_block, targ_proj_out, sym_out
 
     def rebin(self, *args: Any) -> "DnDBase":
         """Rebin a DnD dataset along its plot axes.

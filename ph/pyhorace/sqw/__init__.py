@@ -12,11 +12,18 @@ from pyhorace.sqw.dnd_metadata import dnd_metadata
 from pyhorace.sqw.dnd_plot_interface import dnd_plot_interface
 from pyhorace.sqw.horace3_dnd_interface import horace3_dnd_interface
 from pyhorace.sqw.read_dnd import read_dnd, read_horace, read_sqw, sqw
+from pyhorace.sqw.sqw import symmetrise_sqw
 from pyhorace.sqw.sqw_dnd_base import SQWDnDBase
+from pyhorace.algorithms.cut import cut, cut_dnd, cut_horace, cut_sqw, cut_sym
 
 __all__ = [
     "DnDBase",
     "SQWDnDBase",
+    "cut",
+    "cut_dnd",
+    "cut_horace",
+    "cut_sqw",
+    "cut_sym",
     "d0d",
     "d1d",
     "d2d",
@@ -32,5 +39,6 @@ __all__ = [
     "read_horace",
     "read_sqw",
     "sqw",
+    "symmetrise_sqw",
 ]
 

@@ -291,6 +291,62 @@ class LineProjBase(aProjectionBase):
             axes_bl.hkle_axes_directions = self.u_to_rlu
         return axes_bl
 
+    def get_contrib_cell_ind(
+        self,
+        cur_axes_block: AxesBlockBase,
+        targ_proj: "aProjectionBase",
+        targ_axes_block: AxesBlockBase,
+    ) -> Any:
+        """Return contributing cell indices or (istart, iend) block ranges of cur_axes_block."""
+        if targ_proj is not None and self._targ_proj is not targ_proj:
+            self.targ_proj = targ_proj
+        if self._convert_targ_to_source is not False and isinstance(targ_proj, LineProjBase):
+            return self._get_contrib_orthocell_ind(cur_axes_block, targ_axes_block)
+        return super().get_contrib_cell_ind(cur_axes_block, targ_proj, targ_axes_block)
+
+    def _get_contrib_orthocell_ind(
+        self,
+        cur_axes_block: AxesBlockBase,
+        targ_axes_block: AxesBlockBase,
+    ) -> Any:
+        """Fast contributing cell block finder for ortho-to-ortho projections."""
+        img_coords, dEgrid = cur_axes_block.get_bin_nodes("-3D", nargout=2)
+        bsize = tuple(int(x) + 1 for x in cur_axes_block.nbins_all_dims[:3])
+        bin_range = targ_axes_block.img_range
+        any_inside, e_inside = AxesBlockBase.bins_in_1Drange(dEgrid, bin_range[:, 3])
+        if not any_inside:
+            return ()
+        img_coords = self.from_this_to_targ_coord(img_coords)
+        bin_in: Optional[np.ndarray] = None
+        nx, ny, nz = bsize[0] - 1, bsize[1] - 1, bsize[2] - 1
+        for i in range(3):
+            coord = img_coords[i, :].reshape(bsize, order="F")
+            bl = coord < bin_range[0, i]
+            bh = coord > bin_range[1, i]
+            bl_all = (
+                bl[0:nx, 0:ny, 0:nz]
+                & bl[1 : nx + 1, 0:ny, 0:nz]
+                & bl[0:nx, 1 : ny + 1, 0:nz]
+                & bl[1 : nx + 1, 1 : ny + 1, 0:nz]
+                & bl[0:nx, 0:ny, 1 : nz + 1]
+                & bl[1 : nx + 1, 0:ny, 1 : nz + 1]
+                & bl[0:nx, 1 : ny + 1, 1 : nz + 1]
+                & bl[1 : nx + 1, 1 : ny + 1, 1 : nz + 1]
+            )
+            bh_all = (
+                bh[0:nx, 0:ny, 0:nz]
+                & bh[1 : nx + 1, 0:ny, 0:nz]
+                & bh[0:nx, 1 : ny + 1, 0:nz]
+                & bh[1 : nx + 1, 1 : ny + 1, 0:nz]
+                & bh[0:nx, 0:ny, 1 : nz + 1]
+                & bh[1 : nx + 1, 0:ny, 1 : nz + 1]
+                & bh[0:nx, 1 : ny + 1, 1 : nz + 1]
+                & bh[1 : nx + 1, 1 : ny + 1, 1 : nz + 1]
+            )
+            in_i = ~(bl_all | bh_all)
+            bin_in = in_i if bin_in is None else (bin_in & in_i)
+        return self.convert_3Dplus1Ind_to_4Dind_ranges(bin_in, e_inside)
+
     def bin_pixels(
         self,
         axes: AxesBlockBase,

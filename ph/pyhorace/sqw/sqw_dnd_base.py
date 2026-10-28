@@ -562,3 +562,342 @@ class SQWDnDBase(
         finally:
             ldw.delete()
         return self
+
+    # ------------------------------------------------------------------
+    # Cut input parsing (@SQWDnDBase/process_and_validate_cut_inputs)
+    # ------------------------------------------------------------------
+    def process_and_validate_cut_inputs(
+        self, *args: Any, nargout: Optional[int] = None
+    ) -> Any:
+        """Parse and validate cut parameters (port of ``@SQWDnDBase/private/cut_parse_inputs_.m``).
+
+        Can be invoked either as an instance method ``obj.process_and_validate_cut_inputs(return_cut, *args)``
+        or via class/static style ``SQWDnDBase.process_and_validate_cut_inputs(in_obj, return_cut, *args)``
+        or ``tester.process_and_validate_cut_inputs(in_obj, return_cut, *args)``.
+        """
+        import os
+        from pyhorace.coord_transf.line_proj import line_proj
+        from pyhorace.coord_transf.symop import Symop, SymopArray, SymopIdentity
+
+        if nargout is None:
+            nargout = _infer_nargout(default=4)
+
+        if len(args) >= 2 and isinstance(args[0], SQWDnDBase):
+            in_obj = args[0]
+            return_cut = bool(args[1])
+            cut_args = list(args[2:])
+        elif len(args) >= 1:
+            in_obj = self
+            return_cut = bool(args[0])
+            cut_args = list(args[1:])
+        else:
+            raise HoraceError(
+                "HORACE:cut:invalid_argument",
+                "Insufficient arguments passed to process_and_validate_cut_inputs",
+            )
+
+        d_res = in_obj.dimensions(nargout=1) if callable(getattr(in_obj, "dimensions", None)) else in_obj.dimensions
+        ndims = int(d_res[0] if isinstance(d_res, tuple) else d_res)
+        if ndims == 0:
+            raise HoraceError(
+                "HORACE:cut:invalid_argument",
+                "Cannot take a cut from a zero-dimensional (d0d or 0D sqw) object",
+            )
+
+        # Parse recognized string flags ('-pix', '-nopix', '-parallel', '-save');
+        # any unrecognized '-flag' is left in par to trigger the extra-binning-args error
+        # matching parse_Args(..., '-keys_at_end', false) in cut_parse_inputs_.m.
+        pix_flag = True
+        pix_present = False
+        nopix_flag = False
+        nopix_present = False
+        parallel_flag = False
+        save_flag = False
+        save_present = False
+        par: List[Any] = []
+
+        for arg in cut_args:
+            if isinstance(arg, str) and arg.startswith("-"):
+                a_low = arg.lower()
+                if "-pix".startswith(a_low) and len(a_low) >= 2:
+                    pix_flag = True
+                    pix_present = True
+                elif "-nopix".startswith(a_low) and len(a_low) >= 2:
+                    nopix_flag = True
+                    nopix_present = True
+                elif "-parallel".startswith(a_low) and len(a_low) >= 3:
+                    parallel_flag = True
+                elif "-save".startswith(a_low) and len(a_low) >= 2:
+                    save_flag = True
+                    save_present = True
+                else:
+                    par.append(arg)
+            else:
+                par.append(arg)
+
+        if pix_present and nopix_present:
+            raise HoraceError(
+                "HORACE:cut:invalid_argument",
+                "Options '-pix' and '-nopix' cannot both be given",
+            )
+        keep_pix = pix_flag and (not nopix_flag)
+
+        # Check for trailing output filename
+        outfile = ""
+        if (
+            len(par) > 0
+            and isinstance(par[-1], (str, os.PathLike))
+            and str(par[-1])
+            and not str(par[-1]).startswith("-")
+        ):
+            outfile = str(par.pop()).strip()
+
+        # Check for leading projection (aProjectionBase or legacy dict)
+        if len(par) > 0 and (
+            isinstance(par[0], aProjectionBase) or isinstance(par[0], dict)
+        ):
+            first = par.pop(0)
+            if isinstance(first, aProjectionBase):
+                proj = copy.deepcopy(first)
+            else:
+                proj = line_proj(first)
+            npbin_expected = 4
+            proj_given = True
+        else:
+            src_proj = in_obj.data.proj if hasattr(in_obj, "data") else in_obj.proj
+            proj = copy.deepcopy(src_proj)
+            npbin_expected = ndims
+            proj_given = False
+
+        # Check for trailing symmetry argument (Symop, SymopArray, or sequence of them)
+        def _is_sym_arg(val: Any) -> bool:
+            if isinstance(val, (Symop, SymopArray)):
+                return True
+            if isinstance(val, (list, tuple, np.ndarray)) and len(val) > 0:
+                seq = list(val.flat) if isinstance(val, np.ndarray) else list(val)
+                return any(isinstance(x, (Symop, SymopArray)) for x in seq)
+            return False
+
+        if len(par) > 0 and _is_sym_arg(par[-1]):
+            sym = SQWDnDBase._check_sym_arg(par.pop())
+        else:
+            sym = [SymopIdentity()]
+
+        # Validate number of binning arguments
+        if len(par) < npbin_expected:
+            if proj_given:
+                raise HoraceError(
+                    "HORACE:cut:invalid_argument",
+                    "Must give binning arguments for all four dimensions if new projection axes",
+                )
+            else:
+                raise HoraceError(
+                    "HORACE:cut:invalid_argument",
+                    "Number of binning arguments must match the number of dimensions of the sqw data being cut",
+                )
+        elif len(par) > npbin_expected:
+            extra_str = " ".join(str(x) for x in par[npbin_expected:])
+            raise HoraceError(
+                "HORACE:cut:invalid_argument",
+                f"Object has {npbin_expected} dimensions but cutting with {len(par)} binning parameters\n"
+                f'Unrecognised additional input(s): "{extra_str}" were provided to cut',
+            )
+
+        # Validate that all binning arguments are empty or numeric
+        for pb in par:
+            if pb is None or (isinstance(pb, (list, tuple, np.ndarray)) and len(pb) == 0):
+                continue
+            if isinstance(pb, (bool, str, dict)) or not _is_numeric(pb):
+                raise HoraceError(
+                    "HORACE:cut:invalid_argument",
+                    "Binning arguments must all be numeric (check also if any optional arguments were mis-spelt)",
+                )
+
+        if proj_given:
+            proj = proj.copy_proj_param_from_source(in_obj)
+            pbin_4d: List[np.ndarray] = []
+            for pb in par:
+                if pb is None or (isinstance(pb, (list, tuple, np.ndarray)) and np.asarray(pb).size == 0):
+                    pbin_4d.append(np.array([], dtype=float))
+                else:
+                    pbin_4d.append(np.asarray(pb, dtype=float).ravel())
+        else:
+            img = in_obj.data if hasattr(in_obj, "data") else in_obj
+            pbin_4d = [np.array([], dtype=float) for _ in range(4)]
+            for k, pax_num in enumerate(img.pax):
+                pbin_4d[int(pax_num) - 1] = SQWDnDBase._select_pbin(par[k], img.p[k])
+            for k, iax_num in enumerate(img.iax):
+                pbin_4d[int(iax_num) - 1] = np.asarray(img.iint[:, k], dtype=float).ravel().copy()
+
+        # Expand multicuts (any 4-element binning descriptor [plo, rdiff, phi, rwidth])
+        pbin_list = SQWDnDBase._expand_multicuts(pbin_4d)
+
+        # Validate output / save options
+        save_to_file = save_flag or (not save_present and bool(outfile))
+        if save_present and not outfile:
+            raise HoraceError(
+                "HORACE:cut:invalid_argument",
+                "Use of '-save' option and/or provision of output file name are not consistent",
+            )
+        if not save_to_file and not return_cut:
+            raise HoraceError(
+                "HORACE:cut:invalid_argument",
+                "Neither output cut object nor output file requested - routine is not being asked to do anything",
+            )
+        if save_to_file:
+            _, file_ext = os.path.splitext(outfile)
+            if len(file_ext) <= 1:
+                raise HoraceError(
+                    "HORACE:cut:invalid_argument",
+                    f"Output filename '{outfile}' has no extension - check optional arguments",
+                )
+            try:
+                existed = os.path.exists(outfile)
+                with open(outfile, "ab"):
+                    pass
+                if not existed and os.path.exists(outfile):
+                    os.remove(outfile)
+            except OSError as exc:
+                raise HoraceError(
+                    "HORACE:cut:invalid_argument",
+                    f"Cannot open output file {outfile}",
+                ) from exc
+
+        opt = {
+            "keep_pix": bool(keep_pix),
+            "parallel": bool(parallel_flag),
+            "outfile": outfile,
+            "proj_given": bool(proj_given),
+        }
+        if nargout == 3:
+            return proj, pbin_list, opt
+        return proj, pbin_list, sym, opt
+
+    process_and_validate_cut_inputs_public = process_and_validate_cut_inputs
+
+    @staticmethod
+    def _check_sym_arg(sym: Any) -> List[Any]:
+        """Validate and normalize symmetry arguments (port of ``check_sym_arg`` in ``cut_parse_inputs_.m``)."""
+        from pyhorace.coord_transf.symop import Symop, SymopArray, SymopIdentity
+
+        if not isinstance(sym, (list, tuple)):
+            sym_seq = [sym]
+        else:
+            sym_seq = list(sym)
+
+        valid_items: List[Any] = []
+        for item in sym_seq:
+            if item is None or (isinstance(item, (list, tuple, np.ndarray)) and len(item) == 0):
+                continue
+            if isinstance(item, (Symop, SymopArray)):
+                s_item = item
+            elif isinstance(item, (list, tuple, np.ndarray)):
+                flat = list(item.flat) if isinstance(item, np.ndarray) else list(item)
+                if not all(isinstance(x, Symop) for x in flat):
+                    raise HoraceError(
+                        "HORACE:cut:invalid_argument",
+                        "Symmetry argument items must all be Symop objects",
+                    )
+                s_item = flat[0] if len(flat) == 1 else SymopArray(flat)
+            else:
+                raise HoraceError(
+                    "HORACE:cut:invalid_argument",
+                    "Symmetry argument items must all be Symop objects",
+                )
+
+            if isinstance(s_item, SymopIdentity):
+                continue
+            if isinstance(s_item, SymopArray) and all(isinstance(x, SymopIdentity) for x in s_item):
+                continue
+            valid_items.append(s_item)
+
+        return [SymopIdentity(), *valid_items]
+
+    @staticmethod
+    def _select_pbin(upbin: Any, p: np.ndarray) -> np.ndarray:
+        """Merge user binning descriptor ``upbin`` with existing plot axis boundaries ``p``
+        when cutting without a new projection (port of ``select_pbin`` in ``cut_parse_inputs_.m``).
+        """
+        eps_s = float(np.finfo(np.float32).eps)
+        if upbin is None:
+            u = np.array([], dtype=float)
+        else:
+            u = np.asarray(upbin, dtype=float).ravel()
+
+        p_arr = np.asarray(p, dtype=float).ravel()
+
+        if u.size == 0:
+            bin_width = float(p_arr[1] - p_arr[0])
+            bin_centers = 0.5 * (p_arr[:-1] + p_arr[1:])
+            return np.array([float(bin_centers[0]), bin_width, float(bin_centers[-1])], dtype=float)
+        if u.size == 1:
+            pstep_given = float(u[0])
+            if abs(pstep_given) < eps_s:
+                new_axis = p_arr
+            else:
+                n_steps = int(np.floor((p_arr[-1] - p_arr[0]) / pstep_given))
+                paxis_end = float(p_arr[0]) + pstep_given * n_steps
+                if float(p_arr[-1]) - paxis_end > 4.0 * eps_s:
+                    n_steps += 1
+                paxis_end = float(p_arr[0]) + pstep_given * n_steps
+                new_axis = np.linspace(float(p_arr[0]), paxis_end, n_steps + 1)
+            bin_centers = 0.5 * (new_axis[:-1] + new_axis[1:])
+            pbins = new_axis[1:] - new_axis[:-1]
+            pstep = float(np.sum(pbins) / pbins.size)
+            return np.array([float(bin_centers[0]), pstep, float(bin_centers[-1])], dtype=float)
+        if u.size == 2:
+            lo = float(p_arr[0]) if np.isneginf(u[0]) else float(u[0])
+            hi = float(p_arr[-1]) if np.isposinf(u[1]) else float(u[1])
+            return np.array([lo, hi], dtype=float)
+        if u.size == 3:
+            pstep = float(p_arr[-1] - p_arr[0]) / float(len(p_arr) - 1)
+            pcent_lo = float(0.5 * (p_arr[0] + p_arr[1]))
+            pcent_hi = float(0.5 * (p_arr[-2] + p_arr[-1]))
+            if abs(float(u[1])) < eps_s:
+                lo = pcent_lo if np.isneginf(u[0]) else float(u[0])
+                hi = pcent_hi if np.isposinf(u[2]) else float(u[2])
+                return np.array([lo, pstep, hi], dtype=float)
+            lo = float(p_arr[0]) if np.isneginf(u[0]) else float(u[0])
+            hi = float(p_arr[-1]) if np.isposinf(u[2]) else float(u[2])
+            return np.array([lo, float(u[1]), hi], dtype=float)
+        return u.copy()
+
+    @staticmethod
+    def _expand_multicuts(pbin_4d: List[np.ndarray]) -> List[List[np.ndarray]]:
+        """Expand 4-element multicut descriptors ``[plo, rdiff, phi, rwidth]`` into a list of 4-axis pbin lists."""
+        axis_options: List[List[np.ndarray]] = []
+        for pb in pbin_4d:
+            arr = np.asarray(pb, dtype=float).ravel()
+            if arr.size == 4:
+                plo, rdiff, phi, rwidth = float(arr[0]), float(arr[1]), float(arr[2]), float(arr[3])
+                if plo > phi or rdiff <= 0.0 or rwidth <= 0.0:
+                    raise HoraceError(
+                        "HORACE:cut:invalid_argument",
+                        f"Invalid multicut binning descriptor: {arr.tolist()}",
+                    )
+                n_cuts = int(np.floor((phi - plo) / rdiff))
+                if abs(phi - plo - n_cuts * rdiff) > 4.0 * float(np.finfo(float).eps):
+                    n_cuts += 1
+                cuts_for_ax = [
+                    np.array(
+                        [
+                            plo + j * rdiff - 0.5 * rwidth,
+                            plo + j * rdiff + 0.5 * rwidth,
+                        ],
+                        dtype=float,
+                    )
+                    for j in range(n_cuts + 1)
+                ]
+                axis_options.append(cuts_for_ax)
+            else:
+                axis_options.append([arr])
+
+        # Build cartesian product in Fortran/MATLAB column-major order across axes
+        expanded: List[List[np.ndarray]] = [[]]
+        for ax_cuts in axis_options:
+            new_expanded: List[List[np.ndarray]] = []
+            for cut_item in ax_cuts:
+                for prev in expanded:
+                    new_expanded.append([*prev, cut_item.copy()])
+            expanded = new_expanded
+        return expanded

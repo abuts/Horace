@@ -1913,6 +1913,50 @@ class PixelDataBase(Serializable, data_op_interface, abc.ABC):
             other.page_num = saved_pg2
         return True, ""
 
+    def get_pix_byte_size(self, keep_precision: bool = False) -> int:
+        """Return size in bytes of a single pixel in memory or on disk."""
+        if self.is_filebacked and keep_precision:
+            return self.DEFAULT_NUM_PIX_FIELDS * 4
+        return self.DEFAULT_NUM_PIX_FIELDS * 8
+
+    @property
+    def pix_byte_size(self) -> int:
+        return self.get_pix_byte_size()
+
+    def tag(self, selected: Any = None) -> "PixelDataBase":
+        """Tag pixels by negating their detector_idx so they are ignored in subsequent binning."""
+        if self.num_pixels == 0:
+            return self
+        det = self.get_prop("detector_idx").copy()
+        if selected is None:
+            det = -det
+        else:
+            sel = np.asarray(selected).ravel()
+            if sel.size > 0:
+                if sel.dtype == bool:
+                    det[:, sel] = -det[:, sel]
+                else:
+                    det[:, sel.astype(int) - 1] = -det[:, sel.astype(int) - 1]
+        self.set_prop("detector_idx", det)
+        return self
+
+    def untag(self, selected: Any = None) -> "PixelDataBase":
+        """Untag pixels by restoring positive detector_idx."""
+        if self.num_pixels == 0:
+            return self
+        det = self.get_prop("detector_idx").copy()
+        if selected is None:
+            det = np.abs(det)
+        else:
+            sel = np.asarray(selected).ravel()
+            if sel.size > 0:
+                if sel.dtype == bool:
+                    det[:, sel] = np.abs(det[:, sel])
+                else:
+                    det[:, sel.astype(int) - 1] = np.abs(det[:, sel.astype(int) - 1])
+        self.set_prop("detector_idx", det)
+        return self
+
     # ------------------------------------------------------------------
     # Serializable interface
     # ------------------------------------------------------------------
