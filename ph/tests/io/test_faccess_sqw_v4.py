@@ -21,10 +21,12 @@ from pyhorace.data.instr_classes import (
     IX_aperture,
     IX_fermi_chopper,
 )
+from pathlib import Path
 from pyhorace.data.pixels.pix_metadata import pix_metadata
 
-COMMON_DATA_DIR = r"c:\Users\abuts\Documents\DEVELOPMENT\Horace_fork\_test\common_data"
-TEST_SQW_FILE_DIR = r"c:\Users\abuts\Documents\DEVELOPMENT\Horace_fork\_test\test_sqw_file"
+HORACE_ROOT = Path(__file__).resolve().parents[3]
+COMMON_DATA_DIR = str(HORACE_ROOT / "_test" / "common_data")
+TEST_SQW_FILE_DIR = str(HORACE_ROOT / "_test" / "test_sqw_file")
 
 
 def create_test_instrument():

@@ -93,21 +93,32 @@ def test_calculation(fixture_data):
 
 ---
 
-## 3. Handling Test Fixtures (`.mat` files)
+## 3. Handling Test Fixtures and Data File Paths
 
-When translating tests that rely on pre-computed `.mat` data:
+When translating tests that rely on external test files (`.mat`, `.sqw`, `.d2d`, `.par`, `.phx`, etc.):
 
-1. **Use `scipy.io.loadmat`**:
+1. **Always Use Relative Paths Resolved from `__file__`**:
+   Never hardcode machine-specific absolute paths in test files. Resolve paths to `_test/common_data` or suite-specific `_test/test_<name>` folders relative to `Path(__file__).resolve()`:
+   ```python
+   from pathlib import Path
+
+   # For a test file in ph/tests/<subpackage>/test_<name>.py:
+   HORACE_ROOT = Path(__file__).resolve().parents[3]
+   COMMON_DATA_DIR = HORACE_ROOT / "_test" / "common_data"
+   TEST_DATA_DIR = HORACE_ROOT / "_test" / "test_<name>"
+   ```
+
+2. **Use `scipy.io.loadmat` for `.mat` Fixtures**:
    ```python
    from scipy.io import loadmat
 
    # squeeze_me=True eliminates single-dimensional axes, simplifying array access
-   data = loadmat("test_data.mat", squeeze_me=True, struct_as_record=False)
+   data = loadmat(TEST_DATA_DIR / "test_data.mat", squeeze_me=True, struct_as_record=False)
    ref_array = data["expected_output"]
    ```
 
-2. **Inline Constants**:
-   If the `.mat` file contains small matrices or arrays, inline them directly into the test file using `np.array([...])` to eliminate external file dependencies.
+3. **Inline Constants**:
+   If a `.mat` file contains only small matrices or arrays, inline them directly into the test file using `np.array([...])` to eliminate external file dependencies.
 
 ---
 

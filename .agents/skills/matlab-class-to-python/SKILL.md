@@ -58,6 +58,14 @@ Create `test_<class_name>.py` before or alongside the Python class.
 1. **Map Test Fixtures & Setup**:
    - `TestMethodSetup` -> `pytest.fixture(autouse=True)` or explicit fixture functions.
    - Resetting MATLAB `persistent` variables -> `pytest.fixture(autouse=True)` with `yield` to restore state before and after each test.
+   - **Use relative paths for test data and fixture files**: Never hardcode machine-specific absolute paths (e.g. `r"C:\Users\...\Horace_fork\_test\..."`) in translated test files. Always resolve test fixture and common data directories relative to `__file__` using `pathlib.Path` (or `os.path.dirname(__file__)`), for example:
+     ```python
+     from pathlib import Path
+
+     HORACE_ROOT = Path(__file__).resolve().parents[3]
+     COMMON_DATA_DIR = HORACE_ROOT / "_test" / "common_data"
+     TEST_DATA_DIR = HORACE_ROOT / "_test" / "test_<suite_name>"
+     ```
    - Loading test `.mat` data -> `scipy.io.loadmat(..., squeeze_me=True)` or inline test data. To inspect variables, shapes, and struct fields inside a `.mat` fixture file, run [inspect_mat.py](./scripts/inspect_mat.py).
    - Copying template objects -> In MATLAB value classes, `obj2 = obj1` or `repmat(obj, ...)` copies by value. In Python, explicitly use `copy.copy(obj)` or `copy.deepcopy(obj)` when populating object lists or mutating copies in tests.
 2. **Map Assertions**:
