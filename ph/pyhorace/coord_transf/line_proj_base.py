@@ -23,6 +23,7 @@ class LineProjBase(aProjectionBase):
         self._u_to_rlu: Optional[np.ndarray] = None
         self._u_to_rlu_legacy: Optional[np.ndarray] = None
         self._ulen: Optional[np.ndarray] = None
+        self._sym_transf: Optional[np.ndarray] = None
         self._ortho_ortho_transf_mat: Optional[np.ndarray] = None
         self._ortho_ortho_offset: Optional[np.ndarray] = None
         self._convert_targ_to_source: Optional[bool] = None
@@ -32,6 +33,39 @@ class LineProjBase(aProjectionBase):
     # ------------------------------------------------------------------
     # Properties & Legacy Aliases
     # ------------------------------------------------------------------
+    @property
+    def sym_transf(self) -> np.ndarray:
+        """3x3 matrix obtained from Symop used to modify pix_to_img transformation."""
+        if self._sym_transf is None:
+            return np.array([], dtype=float)
+        return self._sym_transf.copy()
+
+    @sym_transf.setter
+    def sym_transf(self, mat: Any) -> None:
+        if mat is None or (isinstance(mat, (list, tuple, np.ndarray)) and np.asarray(mat).size == 0):
+            self._sym_transf = None
+        else:
+            if isinstance(mat, (str, bytes, dict)):
+                raise HoraceError(
+                    "HORACE:LineProjBase:invalid_argument",
+                    f"Symmetry transformation should be defined by 3x3 matrix. Provided value has class {type(mat).__name__}",
+                )
+            try:
+                arr = np.asarray(mat, dtype=float)
+            except (ValueError, TypeError) as exc:
+                raise HoraceError(
+                    "HORACE:LineProjBase:invalid_argument",
+                    f"Symmetry transformation should be defined by 3x3 matrix. Provided value has class {type(mat).__name__}",
+                ) from exc
+            if arr.shape != (3, 3):
+                raise HoraceError(
+                    "HORACE:LineProjBase:invalid_argument",
+                    f"Symmetry transformation should be defined by 3x3 matrix. Provided value has size {arr.shape}",
+                )
+            self._sym_transf = arr.copy()
+        if self._do_check_combo_arg:
+            self.check_combo_arg()
+
     @property
     def uoffset(self) -> np.ndarray:
         """Legacy alias for offset."""

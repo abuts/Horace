@@ -58,6 +58,7 @@ class line_proj(LineProjBase):
             "w",
             "nonorthogonal",
             "type",
+            "sym_transf",
             "alatt",
             "angdeg",
             "offset",
@@ -273,6 +274,10 @@ class line_proj(LineProjBase):
             nargout=3,
         )
         offset_cc_3 = b @ self._offset[:3]
+        if self._sym_transf is not None:
+            pix_to_img_3 = pix_to_img_3 @ self._sym_transf
+            offset_cc_3 = np.linalg.solve(self._sym_transf, offset_cc_3)
+            u_to_rlu_3 = np.linalg.inv(pix_to_img_3 @ b)
 
         if ndim == 3:
             mat = pix_to_img_3
@@ -312,7 +317,7 @@ class line_proj(LineProjBase):
         if not self.lattice_defined:
             return np.array([], dtype=float)
         b = self.bmatrix(3, nargout=1)
-        _, u_to_rlu_3, _ = self.u_to_rlu_legacy_from_uvw(
+        pix_to_img_3, u_to_rlu_3, _ = self.u_to_rlu_legacy_from_uvw(
             b,
             self._alatt,
             self._angdeg,
@@ -323,6 +328,8 @@ class line_proj(LineProjBase):
             self._nonorthogonal,
             nargout=3,
         )
+        if self._sym_transf is not None:
+            u_to_rlu_3 = np.linalg.inv((pix_to_img_3 @ self._sym_transf) @ b)
         u4 = np.eye(4, dtype=float)
         u4[:3, :3] = u_to_rlu_3
         return u4

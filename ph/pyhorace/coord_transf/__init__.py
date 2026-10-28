@@ -26,6 +26,16 @@ from pyhorace.coord_transf.line_proj import line_proj
 from pyhorace.coord_transf.line_proj_base import LineProjBase
 from pyhorace.coord_transf.sphere_axes import sphere_axes
 from pyhorace.coord_transf.sphere_proj import sphere_proj
+from pyhorace.coord_transf.symop import (
+    Symop,
+    SymopArray,
+    SymopGeneral,
+    SymopIdentity,
+    SymopReflection,
+    SymopRotation,
+    SymopSetPlaneInterface,
+    symop,
+)
 from pyhorace.coord_transf.ubmat_proj import ubmat_proj
 from pyhorace.coord_transf.ubmatrix import ubmatrix
 
@@ -37,7 +47,10 @@ __all__ = [
     "LineProjBase",
     "PixelDataBase",
     "PixelDataMemory",
-    "aProjectionBase",
+    "Symop",
+    "SymopIdentity",
+    "SymopReflection",
+    "SymopRotation",
     "bmatrix",
     "calc_proj_matrix",
     "crystal_alignment_info",
@@ -63,6 +76,7 @@ __all__ = [
     "rotvec_to_rotmat_rad",
     "sphere_axes",
     "sphere_proj",
+    "symop",
     "ubmat_proj",
     "ubmatrix",
 ]
