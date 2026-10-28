@@ -183,7 +183,7 @@ class PixelDataFileBacked(PixelDataBase):
             # Initialize from in-memory PixelDataMemory
             wh = pix_write_handle(arg.full_filename, keep_precision=arg.keep_precision)
             if arg.num_pixels > 0:
-                wh.store_page(arg.data)
+                wh.store_page(arg.get_raw_data())
             self._full_filename = arg.full_filename
             self._alignment_matr = arg.alignment_matr.copy()
             self._is_corrected = arg.is_corrected

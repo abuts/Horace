@@ -358,8 +358,8 @@ class LineProjBase(aProjectionBase):
         nargout: Optional[int] = None,
     ) -> Any:
         """Project and bin pixels into axes using MEX if configured, else Python."""
-        nomex = "-nomex" in args
-        force_mex = "-force_mex" in args
+        nomex = any(isinstance(a, str) and a == "-nomex" for a in args)
+        force_mex = any(isinstance(a, str) and a == "-force_mex" for a in args)
         if nomex and force_mex:
             raise HoraceError(
                 "HORACE:LineProjBase:invalid_argument",

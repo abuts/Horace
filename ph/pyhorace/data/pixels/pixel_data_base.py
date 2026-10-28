@@ -1171,10 +1171,7 @@ class PixelDataBase(Serializable, data_op_interface, abc.ABC):
         from pyhorace.data.pixels.pixel_data_memory import PixelDataMemory
 
         out_arr = pix_data_arr
-        if not keep_precision:
-            out_arr = np.asarray(out_arr, dtype=np.float64)
-
-        if self._is_corrected and (align or not raw_data):
+        if self._is_corrected and align:
             if pix_col_idx is None:
                 out_arr = out_arr.copy()
                 out_arr[:3, :] = self._alignment_matr @ out_arr[:3, :]
@@ -1182,17 +1179,20 @@ class PixelDataBase(Serializable, data_op_interface, abc.ABC):
                 # Re-align Q coordinates if any of u1, u2, u3 requested
                 pass
 
+        if not keep_precision:
+            out_arr = np.asarray(out_arr, dtype=np.float64)
+
         if raw_data:
             return out_arr
 
-        pix_out = PixelDataMemory()
-        pix_out.set_raw_data(np.asarray(out_arr, dtype=np.float64))
+        if ignore_range:
+            pix_out = PixelDataMemory()
+            pix_out.set_raw_data(np.asarray(out_arr, dtype=np.float64))
+        else:
+            pix_out = PixelDataMemory(np.asarray(out_arr, dtype=np.float64))
         pix_out.full_filename = self.full_filename
         if self._is_corrected and not align:
-            pix_out._alignment_matr = self._alignment_matr.copy()
-            pix_out._is_corrected = True
-        if not ignore_range:
-            pix_out.recalc_data_range("all")
+            pix_out.alignment_matr = self._alignment_matr.copy()
         return pix_out
 
     def get_pixels(

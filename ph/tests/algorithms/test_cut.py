@@ -135,7 +135,7 @@ class TestCutAlgorithm:
         try:
             hc.mem_chunk_size = 10000
             sqw_obj_fb = sqw_4d.copy()
-            sqw_obj_fb.pix = PixelDataFileBacked(_SQW_FILE)
+            sqw_obj_fb.pix = PixelDataFileBacked(sqw_4d.pix)
             try:
                 sqw_cut_fb = cut(sqw_obj_fb, *_make_ref_params())
             finally:

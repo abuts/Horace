@@ -466,8 +466,8 @@ class IX_experiment(Goniometer):
     @staticmethod
     def _subdiag_elements(mat: np.ndarray) -> bool:
         n = mat.shape[0]
-        off_diag = mat[~np.eye(n, dtype=bool)]
-        return bool(np.any(np.abs(off_diag) > 4.0e-7))
+        subdiag = mat[np.tril_indices(n, k=-1)]
+        return bool(np.any(np.abs(subdiag) > 4.0 * np.finfo(np.float32).eps))
 
     @property
     def uoffset(self) -> np.ndarray:
@@ -774,11 +774,7 @@ class IX_experiment(Goniometer):
             if "ulabel" in hdr:
                 exp.ulabel = hdr["ulabel"]
             if "u_to_rlu" in hdr and hdr["u_to_rlu"] is not None and np.size(hdr["u_to_rlu"]) > 0:
-                u_mat = np.asarray(hdr["u_to_rlu"], dtype=float)
-                b_mat = bmatrix(alatt, angdeg, nargout=1)
-                ub_inv = np.linalg.inv(ubmatrix(exp.u, exp.v, b_mat, nargout=1))
-                if np.any(np.abs(u_mat[:3, :3] - ub_inv) > 4.0e-7):
-                    exp._u_to_rlu = u_mat[:3, :3].copy()
+                exp.u_to_rlu = hdr["u_to_rlu"]
             if nout != 3:
                 exp.angular_units = "deg"
         finally:

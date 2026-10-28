@@ -441,7 +441,13 @@ class sqw(SQWDnDBase):
         if not isinstance(dnd_data_obj, DnDBase):
             dnd_data_obj = DnDBase.dnd(dnd_data_obj)
 
+        al_info = None
+        if hasattr(loader, "_dnd_data_alignment") and hasattr(exp_info, "header_average"):
+            al_info = loader._dnd_data_alignment(dnd_data_obj, exp_info.header_average())
+
         pix_obj = PixelDataBase.create(loader, filebacked=file_backed)
+        if al_info is not None and hasattr(al_info, "rotmat") and pix_obj.num_pixels > 0:
+            pix_obj.alignment_matr = al_info.rotmat
         if not mh.creation_date_defined:
             pix_obj.old_file_format = True
             if isinstance(pix_obj, PixelDataMemory) and pix_obj.num_pixels > 0:
@@ -1539,6 +1545,9 @@ class sqw(SQWDnDBase):
             else:
                 exp_sub = Experiment()
 
+            if self._main_header.nfiles != exp_sub.n_runs:
+                from datetime import datetime
+                main_header.creation_date = datetime.now()
             main_header.nfiles = exp_sub.n_runs
             wout_sqw = sqw()
             wout_sqw._do_check_combo_arg = False

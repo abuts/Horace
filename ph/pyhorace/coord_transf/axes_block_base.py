@@ -1982,7 +1982,7 @@ class AxesBlockBase(Serializable, ABC):
         """Bin pixel coordinates using C++/MEX routine ``bin_pixels_c``."""
         _ = (coord, npix, s, err, pix_cand, nargout, kwargs)
         mex_par = self.prepare_mex_code_input(mode_to_bin, *args)
-        if "-test_mex_inputs" in args:
+        if any(isinstance(a, str) and a == "-test_mex_inputs" for a in args):
             return mex_par
         # TODO(port-mex): Requires C++ MEX routine bin_pixels_c
         raise NotImplementedError(
@@ -1991,10 +1991,10 @@ class AxesBlockBase(Serializable, ABC):
 
     def prepare_mex_code_input(self, mode_to_bin: int, *args) -> dict:
         """Prepare parameter dictionary for C++/MEX routine ``bin_pixels_c``."""
-        force_double = "-force_double" in args
-        selected_only = "-selected_only" in args
-        test_mex_inputs = "-test_mex_inputs" in args
-        nosort = "-nosort" in args
+        force_double = any(isinstance(a, str) and a == "-force_double" for a in args)
+        selected_only = any(isinstance(a, str) and a == "-selected_only" for a in args)
+        test_mex_inputs = any(isinstance(a, str) and a == "-test_mex_inputs" for a in args)
+        nosort = any(isinstance(a, str) and a == "-nosort" for a in args)
         return {
             "range": self.img_range,
             "nbins_all_dims": self.nbins_all_dims,

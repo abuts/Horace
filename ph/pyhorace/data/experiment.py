@@ -1166,6 +1166,10 @@ class Experiment(Serializable):
                 return {}, True
             return {}
         hdr_av = self.convert_to_old_headers(header_num=1)[0]
+        if self._expdata[0]._u_to_rlu is not None:
+            hdr_av["u_to_rlu"] = self._expdata[0].u_to_rlu
+        else:
+            hdr_av["u_to_rlu"] = np.zeros(0, dtype=float)
         if nout >= 2:
             ebins_are_same = self.is_same_ebins()
             return hdr_av, ebins_are_same
@@ -1508,7 +1512,7 @@ class Experiment(Serializable):
 
             # Convert sample
             if raw_samp is None or (isinstance(raw_samp, dict) and len(raw_samp) == 0) or (isinstance(raw_samp, str) and raw_samp == ""):
-                samp_obj: IX_samp = IX_null_sample("", alatt, angdeg)
+                samp_obj: IX_samp = IX_samp("", alatt, angdeg)
             elif isinstance(raw_samp, IX_samp):
                 samp_obj = copy.deepcopy(raw_samp)
                 if samp_obj.alatt.size == 0:

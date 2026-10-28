@@ -62,13 +62,13 @@ class PixelDataMemory(PixelDataBase):
                 try:
                     for pg in range(1, arg.num_pages + 1):
                         arg.page_num = pg
-                        pages.append(np.asarray(arg.get_raw_data(pg), dtype=np.float64))
+                        pages.append(np.asarray(arg.get_data(pg), dtype=np.float64))
                 finally:
                     arg.page_num = saved_pg
                 self._data = np.hstack(pages) if pages else np.empty((9, 0), dtype=np.float64)
             self._full_filename = arg.full_filename
-            self._alignment_matr = arg.alignment_matr.copy()
-            self._is_corrected = arg.is_corrected
+            self._alignment_matr = np.eye(3, dtype=np.float64)
+            self._is_corrected = False
             if arg.is_range_valid("all"):
                 self._data_range = arg.data_range.copy()
             else:

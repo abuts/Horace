@@ -439,6 +439,12 @@ class faccess_sqw_v3(sqw_binfile_common):
                 res.add(item)
             elif isinstance(item, dict) and "serial_name" in item:
                 res.add(Serializable.from_struct(item))
+            elif isinstance(item, dict) and "fermi_chopper" in item:
+                from pyhorace.data.instr_classes.ix_inst_dgfermi import IX_inst_DGfermi
+                res.add(IX_inst_DGfermi(item))
+            elif isinstance(item, dict) and "disk_chopper" in item:
+                from pyhorace.data.instr_classes.ix_inst_dgdisk import IX_inst_DGdisk
+                res.add(IX_inst_DGdisk(item))
             else:
                 res.add(IX_null_inst())
         return res
@@ -557,21 +563,85 @@ class faccess_sqw_v3(sqw_binfile_common):
         return pack_io_outputs((samp, obj), nargout, default=1)
 
     def get_exp_info(self, *args: Any, nargout: Optional[int] = None) -> Any:
-        base_args = [a for a in args if not (isinstance(a, str) and a.lower() == "-no_is")]
+        base_args = [
+            a
+            for a in args
+            if not (isinstance(a, str) and a.lower() in ("-no_is", "-no_samp_inst"))
+        ]
         exp_info, last_pos = super().get_exp_info(*base_args, nargout=2)
-        get_all = any(isinstance(a, str) and a.lower() in ("-all", "-no_is") for a in args)
-        no_is = any(isinstance(a, str) and a.lower() == "-no_is" for a in args)
+        get_all = any(
+            isinstance(a, str) and a.lower() in ("-all", "-no_is", "-no_samp_inst")
+            for a in args
+        )
+        no_is = any(
+            isinstance(a, str) and a.lower() in ("-no_is", "-no_samp_inst")
+            for a in args
+        )
+        n_runs = exp_info.n_runs
         if not no_is:
             try:
-                if get_all or not any(isinstance(a, (int, np.integer)) and not isinstance(a, bool) for a in args):
+                if get_all or not any(
+                    isinstance(a, (int, np.integer)) and not isinstance(a, bool)
+                    for a in args
+                ):
                     inst = self.get_instrument("-all", nargout=1)
-                    samp = self.get_sample("-all", nargout=1)
+                    main_sampl = self.get_sample("-all", nargout=1)
                 else:
-                    num = next(int(a) for a in args if isinstance(a, (int, np.integer)) and not isinstance(a, bool))
+                    n_runs = 1
+                    num = next(
+                        int(a)
+                        for a in args
+                        if isinstance(a, (int, np.integer)) and not isinstance(a, bool)
+                    )
                     inst = self.get_instrument(num, nargout=1)
-                    samp = self.get_sample(num, nargout=1)
-                exp_info.instruments = inst
-                exp_info.samples = samp
+                    main_sampl = self.get_sample(num, nargout=1)
+
+                is_null_samp = isinstance(main_sampl, IX_null_samp) or (
+                    isinstance(main_sampl, unique_objects_container)
+                    and (main_sampl.n_runs == 0 or isinstance(main_sampl[0], IX_null_samp))
+                )
+                if not is_null_samp:
+                    if isinstance(main_sampl, (list, tuple)) and len(main_sampl) == 1:
+                        main_sampl = main_sampl[0]
+                    if isinstance(main_sampl, unique_objects_container):
+                        if main_sampl.n_runs == 1 and n_runs > 1:
+                            main_sampl = main_sampl.replicate_runs(n_runs)
+                    else:
+                        ms = unique_objects_container(baseclass="IX_samp")
+                        ms.add(main_sampl)
+                        if n_runs > 1:
+                            ms = ms.replicate_runs(n_runs)
+                        main_sampl = ms
+
+                    bas_sample = exp_info.samples
+                    n_samp = main_sampl.n_runs
+                    for i in range(min(n_samp, bas_sample.n_runs)):
+                        s_obj = main_sampl[i]
+                        b_obj = bas_sample[i]
+                        if getattr(s_obj, "alatt", None) is None or np.asarray(s_obj.alatt).size == 0:
+                            s_obj.alatt = b_obj.alatt
+                        if getattr(s_obj, "angdeg", None) is None or np.asarray(s_obj.angdeg).size == 0:
+                            s_obj.angdeg = b_obj.angdeg
+                        main_sampl[i] = s_obj
+                    exp_info.samples = main_sampl
+
+                is_null_inst = isinstance(inst, IX_null_inst) or (
+                    isinstance(inst, unique_objects_container)
+                    and (inst.n_runs == 0 or isinstance(inst[0], IX_null_inst))
+                )
+                if not is_null_inst:
+                    if isinstance(inst, (list, tuple)) and len(inst) == 1:
+                        inst = inst[0]
+                    if isinstance(inst, unique_objects_container):
+                        if inst.n_runs == 1 and n_runs > 1:
+                            inst = inst.replicate_runs(n_runs)
+                        exp_info.instruments = inst
+                    else:
+                        mi = unique_objects_container(baseclass="IX_inst")
+                        mi.add(inst)
+                        if n_runs > 1:
+                            mi = mi.replicate_runs(n_runs)
+                        exp_info.instruments = mi
             except Exception:
                 pass
         return pack_io_outputs((exp_info, last_pos), nargout, default=1)

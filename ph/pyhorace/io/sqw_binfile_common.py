@@ -1069,11 +1069,10 @@ class sqw_binfile_common(binfile_v2_common, sqw_file_interface):
         detpar = exp_info.detector_arrays
         data = self.get_data(*data_args, nargout=1)
 
+        al_info = None
         if not (opts["head"] or opts["his"]):
             hav = exp_info.header_average()
             al_info = self._dnd_data_alignment(data, hav)
-            if al_info is not None:
-                data.proj = al_info
 
         if opts["head"] or opts["his"] or opts["nopix"] or not isinstance(self.npixels, int) or self.npixels == 0:
             pix: Any = PixelDataBase.create()
@@ -1085,6 +1084,9 @@ class sqw_binfile_common(binfile_v2_common, sqw_file_interface):
             pix.full_filename = self.full_filename
         else:
             pix = PixelDataBase.create(self)
+
+        if al_info is not None and hasattr(al_info, "rotmat") and pix.num_pixels > 0:
+            pix.alignment_matr = al_info.rotmat
 
         sqw_struc: Dict[str, Any] = {
             "main_header": main_header,
@@ -1120,17 +1122,37 @@ class sqw_binfile_common(binfile_v2_common, sqw_file_interface):
 
     @staticmethod
     def _dnd_data_alignment(data_obj: Any, hav: Dict[str, Any]) -> Any:
-        """Align legacy line_proj lattice parameters with experiment header average when needed."""
+        """Extract legacy crystal alignment info and update projection lattice parameters if needed."""
         proj = getattr(data_obj, "proj", None)
-        if proj is None or not getattr(proj, "undeefined_fields_from_data_file", False):
-            return None
-        alatt = np.asarray(hav.get("alatt", proj.alatt), dtype=np.float64).ravel()
-        angdeg = np.asarray(hav.get("angdeg", proj.angdeg), dtype=np.float64).ravel()
-        if not np.allclose(alatt, np.asarray(proj.alatt).ravel(), atol=1e-6):
-            proj.alatt = alatt
-        if not np.allclose(angdeg, np.asarray(proj.angdeg).ravel(), atol=1e-6):
-            proj.angdeg = angdeg
-        return proj
+        if proj is not None and getattr(proj, "undeefined_fields_from_data_file", False):
+            alatt = np.asarray(hav.get("alatt", proj.alatt), dtype=np.float64).ravel()
+            angdeg = np.asarray(hav.get("angdeg", proj.angdeg), dtype=np.float64).ravel()
+            if not np.allclose(alatt, np.asarray(proj.alatt).ravel(), atol=1e-6):
+                proj.alatt = alatt
+            if not np.allclose(angdeg, np.asarray(proj.angdeg).ravel(), atol=1e-6):
+                proj.angdeg = angdeg
+            data_obj.proj = proj
+
+        u_to_rlu = hav.get("u_to_rlu", None) if isinstance(hav, dict) else getattr(hav, "u_to_rlu", None)
+        if u_to_rlu is not None and np.size(u_to_rlu) > 0 and proj is not None:
+            bmat4 = proj.bmatrix(4)
+            u_mat = np.asarray(u_to_rlu, dtype=np.float64)
+            if u_mat.shape == (3, 3):
+                u_mat4 = np.eye(4, dtype=np.float64)
+                u_mat4[:3, :3] = u_mat
+            else:
+                u_mat4 = u_mat
+            alignment_matrix = bmat4 @ u_mat4
+        else:
+            alignment_matrix = np.eye(2, dtype=np.float64)
+
+        subdiag = alignment_matrix[np.tril_indices(alignment_matrix.shape[0], k=-1)]
+        if np.any(np.abs(subdiag) > 4.0 * np.finfo(np.float32).eps):
+            from pyhorace.coord_transf import crystal_alignment_info, rotmat_to_rotvec_rad
+
+            rotvec = rotmat_to_rotvec_rad(alignment_matrix[:3, :3])
+            return crystal_alignment_info(data_obj.alatt, data_obj.angdeg, rotvec)
+        return None
 
     def head(self, *args: Any) -> Dict[str, Any]:
         """Return summary dictionary of SQW header information."""

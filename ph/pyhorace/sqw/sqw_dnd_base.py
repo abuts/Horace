@@ -598,7 +598,9 @@ class SQWDnDBase(
 
         d_res = in_obj.dimensions(nargout=1) if callable(getattr(in_obj, "dimensions", None)) else in_obj.dimensions
         ndims = int(d_res[0] if isinstance(d_res, tuple) else d_res)
-        if ndims == 0:
+        has_pix_fn = getattr(in_obj, "has_pixels", None)
+        has_pix = bool(has_pix_fn()) if callable(has_pix_fn) else False
+        if ndims == 0 and not has_pix:
             raise HoraceError(
                 "HORACE:cut:invalid_argument",
                 "Cannot take a cut from a zero-dimensional (d0d or 0D sqw) object",

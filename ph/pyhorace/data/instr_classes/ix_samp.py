@@ -72,9 +72,16 @@ class IX_samp(hashable):
         Ported from `@IX_samp/init.m`.
         """
         fields_to_set = list(self.saveable_fields())
-        if len(args) == 1 and not kwargs and isinstance(args[0], str):
+        if (
+            len(args) >= 1
+            and isinstance(args[0], str)
+            and not args[0].startswith("-")
+            and args[0] not in fields_to_set
+        ):
             self.name = args[0]
-            return self
+            args = args[1:]
+            if not args and not kwargs:
+                return self
 
         _, remains = self.set_positional_and_key_val_arguments(
             fields_to_set, False, *args, **kwargs
