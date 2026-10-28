@@ -96,9 +96,9 @@ class sqw(SQWDnDBase):
         self._pix: PixelDataBase = PixelDataBase.create()
         self._is_tmp_obj: bool = False
         self._tmp_file_path: str = ""
-
         if len(args) == 0 and len(kwargs) == 0:
             return
+
         self.init(*args, **kwargs)
 
     # ------------------------------------------------------------------
@@ -346,10 +346,15 @@ class sqw(SQWDnDBase):
                 f"File does not exist: {path}",
             )
 
+        ldr = None
         try:
             from pyhorace.io.sqw_formats_factory import sqw_formats_factory
 
             ldr = sqw_formats_factory.instance().get_loader(path)
+        except Exception:
+            ldr = None
+
+        if ldr is not None:
             try:
                 if not bool(ldr.sqw_type):
                     raise HoraceError(
@@ -363,35 +368,6 @@ class sqw(SQWDnDBase):
                 )
             finally:
                 ldr.fclose()
-        except HoraceError as exc:
-            if "does not contain" in str(exc):
-                raise
-        except Exception:
-            pass
-
-        from pyhorace.sqw.read_dnd import _read_binary_sqw_full
-
-        with open(path, "rb") as f:
-            magic = f.read(16)
-
-        if len(magic) >= 10 and magic[:4] == b"\x06\x00\x00\x00" and magic[4:10] == b"horace":
-            mh, exp_info, dnd_obj, pix_obj, sqw_type = _read_binary_sqw_full(
-                path,
-                file_backed=file_backed,
-                pixel_page_size=pixel_page_size,
-            )
-            if sqw_type != 1:
-                raise HoraceError(
-                    "HORACE:sqw:invalid_argument",
-                    f"Data file '{path}' does not contain an sqw-type object (contains dnd-type only)",
-                )
-            self._main_header = mh
-            self._exper_info = exp_info
-            self._data = dnd_obj
-            self._pix = pix_obj if pix_obj is not None else PixelDataMemory()
-            self._trim_old_file_exper_info()
-            self._main_header.nfiles = self._exper_info.n_runs
-            return self
 
         # Try loading as a MATLAB .mat file
         import scipy.io
@@ -508,7 +484,7 @@ class sqw(SQWDnDBase):
             and getattr(self._pix, "old_file_format", False)
             and getattr(self._pix, "unique_run_id", np.array([])).size > 0
         ):
-            self._exper_info = self._exper_info.get_subobj(self._pix.unique_run_id)
+            self.exper_info = self._exper_info.get_subobj(self._pix.unique_run_id)
             self._pix.old_file_format = False
 
     def _init_from_dict(
@@ -956,7 +932,7 @@ class sqw(SQWDnDBase):
     @property
     def is_tmp_obj(self) -> bool:
         """True if this ``sqw`` object owns a temporary backing file to be deleted on destruction."""
-        return bool(self._is_tmp_obj)
+        return bool(getattr(self, "_is_tmp_obj", False))
 
     @property
     def npixels(self) -> int:
@@ -1573,11 +1549,6 @@ class sqw(SQWDnDBase):
         """Stub for ``@sqw/resolution_plot.m``."""
         # TODO(port-dependency): Port @sqw/resolution_plot.m
         raise NotImplementedError("sqw.resolution_plot is not yet implemented.")
-
-    def save(self, *args: Any, **kwargs: Any) -> Any:
-        """Stub for ``@sqw/save.m``."""
-        # TODO(port-dependency): Port @sqw/save.m
-        raise NotImplementedError("sqw.save is not yet implemented.")
 
     def section(self, *args: Any, **kwargs: Any) -> Any:
         """Stub for ``@sqw/section.m``."""

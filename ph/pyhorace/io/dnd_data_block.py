@@ -49,8 +49,12 @@ class dnd_data_block(data_block):
 
         if len(args) == 1 and isinstance(args[0], dnd_data_block):
             other = args[0]
+            self._sqw_prop_name = other._sqw_prop_name
+            self._level2_prop_name = other._level2_prop_name
             self._position = other._position
             self._size = other._size
+            self._serialized_obj_cache = other._serialized_obj_cache
+            self._locked = other._locked
             self._dimensions = other._dimensions
             self._data_size = other._data_size
             return

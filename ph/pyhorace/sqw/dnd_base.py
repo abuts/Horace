@@ -220,6 +220,17 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
                 self._init_from_dict(arg)
                 return
 
+            if hasattr(arg, "get_dnd"):
+                loaded = arg.get_dnd()
+                if self.NUM_DIMS is not None and int(loaded.dimensions) != self.NUM_DIMS:
+                    raise HoraceError(
+                        f"HORACE:{self._err_cls_name()}:invalid_argument",
+                        f"Loader contains {int(loaded.dimensions)}D data, cannot load into {self._err_cls_name()}",
+                    )
+                self._copy_from_dnd(loaded)
+                self._do_check_combo_arg = True
+                return
+
             raise HoraceError(
                 f"HORACE:{self._err_cls_name()}:invalid_argument",
                 f"Cannot construct {self._err_cls_name()} from single argument of type {type(arg).__name__}",
@@ -2258,16 +2269,6 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
         wout._s = s_new
         wout._e = e_new
         return wout
-
-    def save(self, filename: Optional[str] = None, *args: Any) -> Optional["DnDBase"]:
-        """Save a DnD object to file."""
-        if not filename or not isinstance(filename, (str, os.PathLike)):
-            raise HoraceError("HORACE:sqw:invalid_argument", "Filename must be a non-empty string")
-        import scipy.io
-
-        strc = self.to_struct()
-        scipy.io.savemat(str(filename), {"saved_dnd": strc})
-        return self
 
 
 def dnd(*args: Any, **kwargs: Any) -> DnDBase:

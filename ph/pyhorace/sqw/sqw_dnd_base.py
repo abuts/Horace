@@ -512,3 +512,53 @@ class SQWDnDBase(
             "HORACE:change_crystal:invalid_argument",
             "Invalid arguments to change_crystal",
         )
+
+    def save(self, *args: Any) -> "SQWDnDBase":
+        """Save a SQW or DnD object to a binary file using ``sqw_formats_factory``.
+
+        Ported from ``@SQWDnDBase/save.m``.
+        """
+        import os
+        from pyhorace.io.horace_binfile_interface import horace_binfile_interface
+        from pyhorace.io.sqw_formats_factory import sqw_formats_factory
+
+        full_fn = getattr(self, "full_filename", "")
+        file_internal = isinstance(full_fn, str) and len(full_fn) > 0
+
+        ldw = None
+        rem_args = list(args)
+        for idx, arg in enumerate(rem_args):
+            if isinstance(arg, horace_binfile_interface):
+                ldw = arg
+                rem_args.pop(idx)
+                break
+
+        if len(rem_args) == 0:
+            if not file_internal:
+                raise HoraceError(
+                    "HORACE:sqw:invalid_argument",
+                    "Must give filename if internal filename is not present",
+                )
+            file = full_fn
+        elif len(rem_args) == 1:
+            if not isinstance(rem_args[0], (str, os.PathLike)) or not str(rem_args[0]):
+                raise HoraceError(
+                    "HORACE:sqw:invalid_argument",
+                    "Filename must be a non-empty string",
+                )
+            file = str(rem_args[0])
+        else:
+            raise HoraceError(
+                "HORACE:sqw:invalid_argument",
+                "Too many input arguments provided to save",
+            )
+
+        if ldw is None or not ldw.is_Compatible(self):
+            ldw = sqw_formats_factory.instance().get_pref_access(self)
+
+        ldw = ldw.init(self, file)
+        try:
+            ldw.put_sqw()
+        finally:
+            ldw.delete()
+        return self

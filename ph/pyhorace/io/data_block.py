@@ -52,6 +52,7 @@ class data_block(Serializable):
             self._level2_prop_name = other._level2_prop_name
             self._position = other._position
             self._size = other._size
+            self._serialized_obj_cache = other._serialized_obj_cache
             self._locked = other._locked
             return
 
@@ -62,6 +63,9 @@ class data_block(Serializable):
                 f"Expected at most {len(fld)} positional arguments, got {len(args)}.",
             )
         self._init_from_args(fld, args)
+
+    def __copy__(self) -> "data_block":
+        return type(self)(self)
 
     def _init_from_args(self, fld: List[str], args: Tuple[Any, ...]) -> None:
         self._do_check_combo_arg = False

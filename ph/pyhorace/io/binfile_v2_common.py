@@ -359,7 +359,7 @@ class binfile_v2_common(horace_binfile_interface):
         self.sqw_holder_ = inobj
         if len(args) > 0 and isinstance(args[0], (str, os.PathLike)):
             self.full_filename = str(args[0])
-        elif getattr(inobj, "filename", ""):
+        elif not self.filename_ and getattr(inobj, "filename", ""):
             self.filename_ = getattr(inobj, "filename", "")
             self.filepath_ = getattr(inobj, "filepath", "")
         return self
@@ -443,7 +443,7 @@ class binfile_v2_common(horace_binfile_interface):
                 pass
 
     def copy_contents(
-        self, other_obj: "horace_binfile_interface", keep_internals: Any = False, *args: Any
+        self, other_obj: "horace_binfile_interface", keep_internals: Any = False, *args: Any, **kwargs: Any
     ) -> Tuple["binfile_v2_common", List[str]]:
         """Copy file positions and handle from `other_obj`."""
         write_mode = False
@@ -459,12 +459,15 @@ class binfile_v2_common(horace_binfile_interface):
 
     def _copy_contents_impl(
         self,
-        other_obj: "horace_binfile_interface",
+        other_obj: Union["horace_binfile_interface", Dict[str, Any]],
         keep_internals: bool = False,
         write_mode: bool = False,
     ) -> Tuple["binfile_v2_common", List[str]]:
         this_pos = self.get_pos_info()
-        other_pos = other_obj.get_pos_info() if hasattr(other_obj, "get_pos_info") else other_obj.to_bare_struct()
+        if isinstance(other_obj, dict):
+            other_pos = other_obj
+        else:
+            other_pos = other_obj.get_pos_info() if hasattr(other_obj, "get_pos_info") else other_obj.to_bare_struct()
         missing_fields: List[str] = []
         for fld in this_pos:
             if fld in other_pos:
@@ -472,7 +475,7 @@ class binfile_v2_common(horace_binfile_interface):
             else:
                 missing_fields.append(fld)
 
-        if not keep_internals:
+        if not keep_internals and not isinstance(other_obj, dict):
             self.sqw_holder_ = getattr(other_obj, "sqw_holder_", None)
             self.real_eof_pos_ = getattr(other_obj, "real_eof_pos_", 0)
             self.eof_pos_ = getattr(other_obj, "eof_pos_", 0)
@@ -481,19 +484,20 @@ class binfile_v2_common(horace_binfile_interface):
             self.upgrade_headers_ = getattr(other_obj, "upgrade_headers_", True)
             self.data_in_file_ = getattr(other_obj, "data_in_file_", False)
 
-        if other_obj.file_id > 0:
-            file, acc, _, _ = sqw_fopen_info(other_obj.file_id)
-            if file:
-                self.full_filename = file
-                if write_mode:
-                    self.reopen_to_write(file)
-                else:
-                    self.file_id_ = sqw_fopen(file, acc)
-                    self.read_only_ = acc in ("rb", "r")
-        elif other_obj.full_filename:
-            self.full_filename = other_obj.full_filename
-            if write_mode and os.path.isfile(self.full_filename):
-                self.reopen_to_write(self.full_filename)
+        if not isinstance(other_obj, dict):
+            if other_obj.file_id > 0:
+                file, acc, _, _ = sqw_fopen_info(other_obj.file_id)
+                if file:
+                    self.full_filename = file
+                    if write_mode:
+                        self.reopen_to_write(file)
+                    else:
+                        self.file_id_ = sqw_fopen(file, acc)
+                        self.read_only_ = acc in ("rb", "r")
+            elif other_obj.full_filename:
+                self.full_filename = other_obj.full_filename
+                if write_mode and os.path.isfile(self.full_filename):
+                    self.reopen_to_write(self.full_filename)
 
         return self, missing_fields
 

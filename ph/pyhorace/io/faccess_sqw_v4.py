@@ -193,16 +193,67 @@ class faccess_sqw_v4(binfile_v4_common, sqw_file_interface):
                 self.num_contrib_files_ = int(mh.nfiles)
             except Exception:
                 pass
-        bl_pix, bl_idx = self.bat_.get_data_block("bl_pix_data_wrap", nargout=2)
-        if bl_pix.npixels == "undefined" and bl_pix.position > 0 and self.file_id_ > 0:
-            bl_pix.read_n_pixels(self.file_id_)
-            self.bat_.set_changed_block(bl_pix, bl_idx)
+        try:
+            bl_pix, bl_idx = self.bat_.get_data_block("bl_pix_data_wrap", nargout=2)
+            if bl_pix.npixels == "undefined" and bl_pix.position > 0 and self.file_id_ > 0:
+                bl_pix.read_n_pixels(self.file_id_)
+                self.bat_.set_changed_block(bl_pix, bl_idx)
+        except Exception:
+            pass
+        return self
+
+    def init_pix_file(
+        self,
+        filename: str,
+        npixels: int = 0,
+        pix_meta: Optional[pix_metadata] = None,
+    ) -> "faccess_sqw_v4":
+        """Initialize a standalone v4 pixel binary file on disk for file-backed pixels."""
+        from pyhorace.io.sqw_fopen import sqw_fopen
+
+        full_path = os.path.abspath(str(filename))
+        parent = os.path.dirname(full_path)
+        if parent and not os.path.isdir(parent):
+            os.makedirs(parent, exist_ok=True)
+        self.filename_ = os.path.basename(full_path)
+        self.filepath_ = (parent + os.sep) if parent else ""
+        if self.file_id_ > 0:
+            self.fclose()
+        self.file_id_ = sqw_fopen(full_path, "wb+")
+        self.read_only_ = False
+        self.num_dim_ = 0
+        self.num_contrib_files_ = 1
+        self.data_in_file_ = True
+
+        # Initialize BAT with pix_metadata and pix_data_block
+        meta = pix_meta if isinstance(pix_meta, pix_metadata) else pix_metadata()
+        meta.npix = int(npixels)
+        bl_meta = data_block("pix", "metadata")
+        bl_meta.calc_obj_size(meta, nocache=False)
+
+        bl_pix = pix_data_block()
+        bl_pix.npixels = int(npixels)
+        bl_pix.n_rows = 9
+        bl_pix.records_only = True
+
+        self.bat_.init(int(self.max_header_size_), [bl_meta, bl_pix])
+        _, pos_meta, _ = self.bat_.find_block_place(bl_meta, bl_meta.size)
+        bl_meta.position = pos_meta
+
+        _, pos_pix, _ = self.bat_.find_block_place(bl_pix, bl_pix.size)
+        bl_pix.position = pos_pix
+        self.bat_.initialized_ = True
+
+        self.put_app_header()
+        bl_meta.put_sqw_block(self.file_id_, meta)
+        bl_pix.put_data_header(self.file_id_)
+        self.bat_.put_bat(self.file_id_)
         return self
 
     def copy_contents(
-        self, other_obj: "horace_binfile_interface", *args: Any
+        self, other_obj: "horace_binfile_interface", *args: Any, **kwargs: Any
     ) -> Tuple["faccess_sqw_v4", List[str]]:
-        self, missing_fields = super().copy_contents(other_obj, *args)  # type: ignore[misc]
+        self, missing_fields = super().copy_contents(other_obj, *args, **kwargs)  # type: ignore[misc]
         upgrade_range = any(
             isinstance(a, str) and a.strip().lower().lstrip("-").startswith("upgrade")
             for a in args
@@ -538,8 +589,23 @@ class faccess_sqw_v4(binfile_v4_common, sqw_file_interface):
         return raw.astype(np.float64)
 
     def get_pix(self, *args: Any, nargout: Optional[int] = None) -> Any:
-        if len(args) > 0:
-            raw = self.get_raw_pix(*args)
+        raw_output = any(
+            isinstance(a, str) and a.strip().lower().lstrip("-") in ("raw_output", "raw")
+            for a in args
+        )
+        keep_precision = any(
+            isinstance(a, str) and a.strip().lower().lstrip("-") == "keep_precision"
+            for a in args
+        )
+        num_args = [
+            int(a)
+            for a in args
+            if isinstance(a, (int, np.integer, float, np.floating)) and not isinstance(a, bool)
+        ]
+        if len(num_args) > 0 or raw_output:
+            raw = self.get_raw_pix(*num_args)
+            if keep_precision:
+                raw = raw.astype(np.float32, copy=False)
             return pack_io_outputs((raw, self), nargout, default=1)
 
         if isinstance(self.npixels, (str, list)):
@@ -594,7 +660,10 @@ class faccess_sqw_v4(binfile_v4_common, sqw_file_interface):
         block_sizes: Union[Sequence[int], np.ndarray],
         skip_validation: bool = False,
         keep_precision: bool = False,
+        **kwargs: Any,
     ) -> np.ndarray:
+        if "skip_arg_validation" in kwargs:
+            skip_validation = bool(kwargs.pop("skip_arg_validation"))
         starts = np.asarray(pix_starts, dtype=np.int64).ravel()
         sizes = np.asarray(block_sizes, dtype=np.int64).ravel()
         if not skip_validation:
@@ -603,7 +672,8 @@ class faccess_sqw_v4(binfile_v4_common, sqw_file_interface):
         if starts.size == 0:
             return np.zeros((9, 0), dtype=np.float32 if keep_precision else np.float64)
         ends = starts + sizes - 1
-        if np.any(starts < 1) or np.any(ends > npix_tot):
+        valid_mask = sizes > 0
+        if np.any(starts[valid_mask] < 1) or np.any(ends[valid_mask] > npix_tot):
             raise HoraceError(
                 "SQW_BINFILE_COMMON:get_pix_in_ranges",
                 f"Pixel range exceeds total pixels ({npix_tot}).",
@@ -945,12 +1015,10 @@ class faccess_sqw_v4(binfile_v4_common, sqw_file_interface):
         return self
 
     def put_num_pixels(self, num_pixels: int) -> "faccess_sqw_v4":
-        bl_pix, bl_idx = self.bat_.get_data_block("bl_pix_data_wrap", nargout=2)
+        bl_pix, _ = self.bat_.get_data_block("bl_pix_data_wrap", nargout=2)
         bl_pix.npixels = int(num_pixels)
-        self.bat_.set_changed_block(bl_pix, bl_idx)
-        self.move_to_position(self.file_id_, int(bl_pix.position))
-        do_fwrite(self.file_id_, np.array([int(num_pixels)], dtype="<u8"), "uint64")
-        self.check_write_error(self.file_id_, "Error writing number of pixels")
+        self.bat_.set_data_block(bl_pix)
+        bl_pix.put_data_header(self.file_id_)
         self.bat_.put_bat(self.file_id_)
         return self
 

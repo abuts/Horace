@@ -9,21 +9,19 @@ from typing import Any, Optional
 
 import numpy as np
 
-from pyhorace.data.pixels.filebacked_pix_interface import (
-    FileBackedPixInterface,
-    FileBackedPixStub,
-)
 from pyhorace.data.pixels.pix_metadata import pix_metadata
 
 
 class pix_write_handle:
-    """Helper class managing paged writes of pixels to a temporary backing file."""
+    """Helper class managing paged writes of pixels to a temporary backing file via ``faccess_sqw_v4``."""
 
     def __init__(
         self,
         num_pix_or_source: Any = 0,
         keep_precision: bool = False,
     ) -> None:
+        from pyhorace.io.faccess_sqw_v4 import faccess_sqw_v4
+
         self._keep_precision: bool = bool(keep_precision)
         self.is_tmp_obj: bool = True
         self.pix_range: np.ndarray = pix_metadata.EMPTY_RANGE.copy()
@@ -39,21 +37,16 @@ class pix_write_handle:
 
         tmp_name = f"sqw_pix_{uuid.uuid4().hex}.tmp_pix"
         self.write_FileName: str = os.path.join(base_dir, tmp_name)
-        self.f_accessor: FileBackedPixInterface = FileBackedPixStub(
-            filename=self.write_FileName,
-            num_pixels=0,
-            offset=1,
-            tail=0,
-            writable=True,
-            create_file=True,
-        )
+        facc = faccess_sqw_v4()
+        facc.init_pix_file(self.write_FileName, npixels=0)
+        self.f_accessor: Any = facc
 
     def store_page(
         self,
         data: np.ndarray,
         pos_start: Optional[int] = None,
     ) -> np.ndarray:
-        """Write a page of pixel data to the backing file and update ``pix_range``."""
+        """Write a page of pixel data to the backing file via ``f_accessor.put_raw_pix`` and update ``pix_range``."""
         arr = np.asarray(data)
         if arr.size == 0:
             return arr
@@ -73,14 +66,24 @@ class pix_write_handle:
         start_pix = (self.num_pixels + 1) if pos_start is None else int(pos_start)
         end_pix = start_pix + n_page - 1
 
-        self.f_accessor.set_pix_slice(slice(None), start_pix, end_pix, arr_single)
+        self.f_accessor.put_raw_pix(arr_single, start_pix)
         self.num_pixels = max(self.num_pixels, end_pix)
+        if hasattr(self.f_accessor, "put_num_pixels"):
+            self.f_accessor.put_num_pixels(self.num_pixels)
 
         page_min = np.min(range_src, axis=1)
         page_max = np.max(range_src, axis=1)
         self.pix_range[0, :] = np.minimum(self.pix_range[0, :], page_min)
         self.pix_range[1, :] = np.maximum(self.pix_range[1, :], page_max)
         return ret_data
+
+    def save_data(
+        self,
+        data: np.ndarray,
+        pos_start: Optional[int] = None,
+    ) -> np.ndarray:
+        """Alias for :meth:`store_page` matching MATLAB ``pix_write_handle.save_data``."""
+        return self.store_page(data, pos_start=pos_start)
 
     def write_pixels(
         self,
@@ -105,5 +108,8 @@ class pix_write_handle:
 
     def close(self) -> None:
         """Close the write handle."""
-        if self.f_accessor is not None and self.f_accessor.is_activated:
-            self.f_accessor.deactivate()
+        if self.f_accessor is not None:
+            if hasattr(self.f_accessor, "deactivate"):
+                self.f_accessor.deactivate()
+            elif hasattr(self.f_accessor, "fclose"):
+                self.f_accessor.fclose()

@@ -287,7 +287,7 @@ class pixfile_combine_info(MultipixBase):
                 "HORACE:pixfile_combine_info:runtime_error",
                 f"File '{fname}' does not exist.",
             )
-        # Read npix chunk from pos_npixstart and pixel data from pos_pixstart
+        # Read npix chunk from pos_npixstart and pixel data via faccess if initialized
         b0, b1 = int(npix_idx[0]), int(npix_idx[1])
         n_bins_read = b1 - b0 + 1
         pos_npix = int(self._pos_npixstart[idx]) if self._pos_npixstart.size > idx else 0
@@ -297,15 +297,36 @@ class pixfile_combine_info(MultipixBase):
             f.seek(pos_npix + (b0 - 1) * 8)
             npix_chunk = np.fromfile(f, dtype=np.uint64, count=n_bins_read)
             n_pix_to_read = int(np.sum(npix_chunk))
-            # pos_pixstart in Horace SQW binary format has a 12-byte header or direct float32 array;
-            # seek to pos_pix + (pix_pos_start - 1) * 9 * 4
-            f.seek(pos_pix + (int(pix_pos_start) - 1) * self.DEFAULT_NUM_PIX_FIELDS * 4)
-            raw = np.fromfile(
-                f, dtype=np.float32, count=n_pix_to_read * self.DEFAULT_NUM_PIX_FIELDS
-            )
-            pix_data = raw.reshape((self.DEFAULT_NUM_PIX_FIELDS, n_pix_to_read), order="F").astype(
-                np.float64
-            )
+
+        pix_acc = (
+            self._f_accessors[idx]
+            if idx < len(self._f_accessors) and self._f_accessors[idx] is not None
+            else None
+        )
+        if (
+            pix_acc is not None
+            and getattr(pix_acc, "f_accessor", None) is not None
+            and hasattr(pix_acc.f_accessor, "get_pix")
+            and (pos_pix == 0 or pos_pix == getattr(pix_acc, "offset", 0))
+        ):
+            if n_pix_to_read == 0:
+                pix_data = np.empty((self.DEFAULT_NUM_PIX_FIELDS, 0), dtype=np.float64)
+            else:
+                pix_lo = int(pix_pos_start)
+                pix_hi = pix_lo + n_pix_to_read - 1
+                pix_data = np.asarray(
+                    pix_acc.f_accessor.get_pix(pix_lo, pix_hi, "-raw_output"),
+                    dtype=np.float64,
+                ).copy()
+        else:
+            with open(fname, "rb") as f:
+                f.seek(pos_pix + (int(pix_pos_start) - 1) * self.DEFAULT_NUM_PIX_FIELDS * 4)
+                raw = np.fromfile(
+                    f, dtype=np.float32, count=n_pix_to_read * self.DEFAULT_NUM_PIX_FIELDS
+                )
+                pix_data = raw.reshape(
+                    (self.DEFAULT_NUM_PIX_FIELDS, n_pix_to_read), order="F"
+                ).astype(np.float64)
 
         if self._run_label == "filenum":
             pix_data[4, :] = self.filenum[idx]

@@ -137,9 +137,27 @@ class horace_binfile_interface(Serializable):
     def filename(self) -> str:
         return self.filename_
 
+    @filename.setter
+    def filename(self, val: Union[str, os.PathLike]) -> None:
+        if not isinstance(val, (str, os.PathLike)):
+            raise HoraceError(
+                "HORACE:horace_binfile_interface:invalid_argument",
+                f"The filename can be only string or char array. It is: {type(val).__name__}",
+            )
+        self.filename_ = str(val)
+
     @property
     def filepath(self) -> str:
         return self.filepath_
+
+    @filepath.setter
+    def filepath(self, val: Union[str, os.PathLike]) -> None:
+        if not isinstance(val, (str, os.PathLike)):
+            raise HoraceError(
+                "HORACE:horace_binfile_interface:invalid_argument",
+                f"The filepath can be only string or char array. It is: {type(val).__name__}",
+            )
+        self.filepath_ = str(val)
 
     @property
     def full_filename(self) -> str:
@@ -417,11 +435,11 @@ class horace_binfile_interface(Serializable):
             self.copy_contents(other)
             if len(argi) > 1:
                 if self.sqw_holder_ is None and other.file_id > 0:
-                    try:
+                    if other.sqw_type:
                         self.sqw_holder_ = other.get_sqw("-verbatim", nargout=1)
-                        self.init_from_sqw_obj(self.sqw_holder_)
-                    except Exception:
-                        pass
+                    else:
+                        self.sqw_holder_ = other.get_dnd("-verbatim", nargout=1)
+                    self.init_from_sqw_obj(self.sqw_holder_)
                 self.set_file_to_update(argi[1])
             return self
 
@@ -1162,7 +1180,7 @@ class horace_binfile_interface(Serializable):
 
     @abstractmethod
     def copy_contents(
-        self, other_obj: "horace_binfile_interface", *args: Any
+        self, other_obj: "horace_binfile_interface", *args: Any, **kwargs: Any
     ) -> Any:
         """Copy file positions and open handle from `other_obj`."""
 

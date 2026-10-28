@@ -16,6 +16,7 @@ import numpy as np
 
 from pyhorace.core.exceptions import HoraceError
 from pyhorace.core.unique_objects_container import unique_objects_container
+from pyhorace.coord_transf.line_axes import line_axes
 from pyhorace.data.experiment import Experiment
 from pyhorace.data.instr_classes.ix_detector_array import IX_detector_array
 from pyhorace.data.instr_classes.ix_experiment import IX_experiment
@@ -46,6 +47,20 @@ from pyhorace.io.sqw_fopen import (
     pack_io_outputs,
 )
 from pyhorace.io.sqw_serializer import sqw_serializer
+
+
+def _validate_pixel_ranges(starts: np.ndarray, sizes: np.ndarray) -> None:
+    """Validate 1-based pixel start positions and block sizes."""
+    if starts.size != sizes.size:
+        raise HoraceError(
+            "HORACE:validate_ranges:invalid_argument",
+            "pix_starts and block_sizes must have equal length",
+        )
+    if starts.size > 0 and (np.any(starts < 1) or np.any(sizes < 0)):
+        raise HoraceError(
+            "HORACE:validate_ranges:invalid_argument",
+            "pix_starts must be >= 1 and block_sizes must be >= 0",
+        )
 
 
 def _parse_const_flag(*args: Any) -> bool:
@@ -141,6 +156,8 @@ def _process_detpar_fields(*args: Any) -> Dict[str, Any]:
 
 def _update_pixels_run_id(sqw_struc: Dict[str, Any]) -> Dict[str, Any]:
     """Ensure `experiment_info.runid_map` matches pixel `run_idx` values when creation date is undefined."""
+    from pyhorace.coord_transf._dependencies import fast_map
+
     pix = sqw_struc.get("pix")
     exp_info = sqw_struc.get("experiment_info")
     if pix is None or exp_info is None or not isinstance(exp_info, Experiment):
@@ -148,8 +165,8 @@ def _update_pixels_run_id(sqw_struc: Dict[str, Any]) -> Dict[str, Any]:
     if pix.num_pixels == 0:
         return sqw_struc
 
-    unique_run_id = np.unique(pix.run_idx).astype(int)
-    file_id = np.asarray(exp_info.runid_map.keys, dtype=int)
+    unique_run_id = np.unique(pix.run_idx).astype(float)
+    file_id = np.asarray(exp_info.runid_map.keys, dtype=float)
     in_Pix_id = np.isin(file_id, unique_run_id)
     if np.all(in_Pix_id):
         return sqw_struc
@@ -162,11 +179,13 @@ def _update_pixels_run_id(sqw_struc: Dict[str, Any]) -> Dict[str, Any]:
         )
 
     if len(unique_run_id) == n_runs:
-        exp_info.runid_map = dict(zip(unique_run_id.tolist(), range(1, n_runs + 1)))
+        exp_info.runid_map = fast_map(unique_run_id, np.arange(1, n_runs + 1, dtype=int))
         exp_info.runid_recalculated = True
     else:
+        exp_list = list(exp_info.expdata)
         for idx, r_id in enumerate(unique_run_id, start=1):
-            exp_info.expdata[idx - 1].run_id = int(r_id)
+            exp_list[idx - 1].run_id = float(r_id)
+        exp_info.expdata = exp_list
         exp_info.runid_recalculated = True
 
     sqw_struc["experiment_info"] = exp_info
@@ -403,25 +422,15 @@ class sqw_binfile_common(binfile_v2_common, sqw_file_interface):
         self.contains_runid_in_header_ = "$id$" in fname
 
     @staticmethod
-    def convert_old_det_forms(det: Any, nfiles: int = 1) -> unique_objects_container:
+    def convert_old_det_forms(det: Any, nfiles: Optional[Any] = 1) -> Any:
         """Convert old detpar struct(s) into a `unique_objects_container` of `IX_detector_array`."""
-        det_container = unique_objects_container(baseclass="IX_detector_array")
-        if isinstance(det, dict):
-            det_arr = IX_detector_array(det)
-            det_container = det_container.add(det_arr)
-            if nfiles > 1:
-                det_container = det_container.replicate_runs(nfiles)
-        elif isinstance(det, (list, tuple)):
+        if isinstance(det, (list, tuple)):
+            det_container = unique_objects_container(baseclass="IX_detector_array")
             for d in det:
                 det_arr = d if isinstance(d, IX_detector_array) else IX_detector_array(d)
-                det_container = det_container.add(det_arr)
-        elif isinstance(det, IX_detector_array):
-            det_container = det_container.add(det)
-            if nfiles > 1:
-                det_container = det_container.replicate_runs(nfiles)
-        elif isinstance(det, unique_objects_container):
-            det_container = det
-        return det_container
+                det_container.add(det_arr)
+            return det_container
+        return binfile_v2_common.convert_old_det_forms(det, nfiles)
 
     # ------------------------------------------------------------------
     # Initialization (from SQW object or open file)
@@ -511,9 +520,8 @@ class sqw_binfile_common(binfile_v2_common, sqw_file_interface):
         mh_form = self.get_main_header_form()
         if from_obj:
             mh_obj, _ = self.extract_correct_subobj("main_header", inobj)
-            mh_input = mh_obj.to_bare_struct() if isinstance(mh_obj, main_header_cl) else mh_obj
             mh_pos, pos = self.sqw_serializer_.calculate_positions(
-                mh_form, mh_input, self.main_header_pos_
+                mh_form, mh_obj, self.main_header_pos_
             )
             n_files = int(mh_obj.nfiles) if hasattr(mh_obj, "nfiles") else int(mh_obj.get("nfiles", 0))
             self.num_contrib_files_ = n_files
@@ -603,7 +611,7 @@ class sqw_binfile_common(binfile_v2_common, sqw_file_interface):
         det_form = self.get_detpar_form()
         if from_obj:
             detpar_obj, _ = self.extract_correct_subobj("detpar", inobj)
-            if isinstance(detpar_obj, unique_objects_container):
+            if isinstance(detpar_obj, unique_objects_container) or hasattr(detpar_obj, "n_runs"):
                 if detpar_obj.n_runs > 0:
                     detpar_struct = detpar_obj[0].get_detpar_representation()
                 else:
@@ -831,11 +839,16 @@ class sqw_binfile_common(binfile_v2_common, sqw_file_interface):
             headers_raw.append(hdr_dict)
 
         header_arg: Any = headers_raw[0] if len(headers_raw) == 1 else headers_raw
-        exp_info, contains_runid = Experiment.build_from_binfile_headers(header_arg)
-        self.contains_runid_in_header_ = bool(contains_runid)
+        exp_res = Experiment.build_from_binfile_headers(header_arg)
+        if isinstance(exp_res, tuple):
+            exp_info, contains_runid = exp_res
+            self.contains_runid_in_header_ = bool(contains_runid)
+        else:
+            exp_info = exp_res
+            self.contains_runid_in_header_ = not bool(getattr(exp_info, "runid_recalculated", True))
 
         detpar = self.get_detpar(nargout=1)
-        detpar = detpar.replicate_runs(exp_info.n_runs)
+        detpar.replicate_runs(exp_info.n_runs)
         exp_info.detector_arrays = detpar
 
         return pack_io_outputs((exp_info, last_pos), nargout, default=1)
@@ -874,7 +887,7 @@ class sqw_binfile_common(binfile_v2_common, sqw_file_interface):
             data_str.axes.img_range = self.get_img_db_range(data_str)
         return pack_io_outputs((data_str, self), nargout, default=1)
 
-    def get_img_db_range(self, *args: Any) -> np.ndarray:
+    def _read_img_range(self) -> np.ndarray:
         """Read `2 x 4` `img_db_range` array directly from the binary SQW file."""
         if self.img_db_range_pos_ > 0 and self.file_id_ > 0:
             do_fseek(self.file_id_, int(self.img_db_range_pos_), "bof")
@@ -882,7 +895,19 @@ class sqw_binfile_common(binfile_v2_common, sqw_file_interface):
             _, res = do_ferror(self.file_id_)
             if res == 0 and cnt == 8:
                 return raw.reshape((2, 4), order="F").astype(np.float64)
-        return super().get_img_db_range(*args)
+        return super().get_img_db_range()
+
+    def get_img_db_range(self, *args: Any) -> np.ndarray:
+        """Return `2 x 4` `img_db_range` array (port of `@sqw_binfile_common/sqw_binfile_common.m`)."""
+        if len(args) == 0:
+            return self._read_img_range()
+        data_str = args[0]
+        img_db_range = line_axes.calc_img_db_range(data_str)
+        if np.any(np.isinf(img_db_range)):
+            img_data_range = self._read_img_range()
+            undef = np.isinf(img_db_range)
+            img_db_range[undef] = img_data_range[undef]
+        return img_db_range
 
     def get_pix_range(self) -> np.ndarray:
         return np.empty((0, 4), dtype=np.float64)
@@ -932,12 +957,27 @@ class sqw_binfile_common(binfile_v2_common, sqw_file_interface):
         return arr.astype(np.float64) if self.convert_to_double else arr
 
     def get_pix(self, *args: Any, nargout: Optional[int] = None) -> Any:
-        """Read `PixelDataMemory` for pixel range `[pix_lo, pix_hi]` (1-based inclusive)."""
+        """Read `PixelDataMemory` (or raw array when `-raw_output` is given) for pixel range `[pix_lo, pix_hi]`."""
+        raw_output = any(
+            isinstance(a, str) and a.strip().lower().lstrip("-") in ("raw_output", "raw")
+            for a in args
+        )
+        keep_precision = any(
+            isinstance(a, str) and a.strip().lower().lstrip("-") == "keep_precision"
+            for a in args
+        )
         if isinstance(self.pix_position, str) or isinstance(self.npixels, str) or int(self.npixels) == 0:
+            if raw_output:
+                empty_raw = np.empty((9, 0), dtype=np.float32 if keep_precision else np.float64)
+                return pack_io_outputs((empty_raw, self), nargout, default=1)
             return pack_io_outputs((PixelDataBase.create(), self), nargout, default=1)
 
         total_pix = int(self.npixels)
-        num_args = [a for a in args if isinstance(a, (int, np.integer, float, np.floating))]
+        num_args = [
+            a
+            for a in args
+            if isinstance(a, (int, np.integer, float, np.floating)) and not isinstance(a, bool)
+        ]
         if len(num_args) == 0:
             pix_lo, pix_hi = 1, total_pix
         elif len(num_args) == 1:
@@ -948,6 +988,10 @@ class sqw_binfile_common(binfile_v2_common, sqw_file_interface):
             pix_hi = int(num_args[1])
 
         raw = self.get_raw_pix(pix_lo, pix_hi)
+        if keep_precision:
+            raw = raw.astype(np.float32, copy=False)
+        if raw_output:
+            return pack_io_outputs((raw, self), nargout, default=1)
         pix = PixelDataBase.create(raw)
         pix.full_filename = self.full_filename
         return pack_io_outputs((pix, self), nargout, default=1)
@@ -977,27 +1021,34 @@ class sqw_binfile_common(binfile_v2_common, sqw_file_interface):
         block_sizes: Union[Sequence[int], np.ndarray],
         skip_arg_validation: bool = False,
         keep_precision: bool = False,
+        **kwargs: Any,
     ) -> np.ndarray:
         """Read multiple pixel blocks starting at 1-based `pix_starts` with lengths `block_sizes`."""
+        if "skip_validation" in kwargs:
+            skip_arg_validation = bool(kwargs.pop("skip_validation"))
         starts = np.asarray(pix_starts, dtype=np.int64).ravel()
         sizes = np.asarray(block_sizes, dtype=np.int64).ravel()
         if not skip_arg_validation:
-            if starts.size != sizes.size:
+            _validate_pixel_ranges(starts, sizes)
+        total_pix = int(self.npixels) if isinstance(self.npixels, int) else 0
+        if starts.size > 0:
+            ends = starts + sizes - 1
+            valid_mask = sizes > 0
+            if np.any(starts[valid_mask] < 1) or np.any(ends[valid_mask] > total_pix):
                 raise HoraceError(
-                    "HORACE:validate_ranges:invalid_argument",
-                    "pix_starts and block_sizes must have equal length",
-                )
-            if np.any(starts < 1) or np.any(sizes <= 0):
-                raise HoraceError(
-                    "HORACE:validate_ranges:invalid_argument",
-                    "pix_starts must be >= 1 and block_sizes must be > 0",
+                    "SQW_BINFILE_COMMON:get_pix_in_ranges",
+                    f"Pixel range exceeds total pixels ({total_pix}).",
                 )
         blocks: List[np.ndarray] = []
         for st, sz in zip(starts, sizes):
             if sz > 0:
-                blocks.append(self.get_raw_pix(int(st), int(st + sz - 1)))
+                blk = self.get_raw_pix(int(st), int(st + sz - 1))
+                blocks.append(blk.astype(np.float32, copy=False) if keep_precision else blk)
         if not blocks:
-            return np.empty((9, 0), dtype=np.float64 if self.convert_to_double else np.float32)
+            return np.empty(
+                (9, 0),
+                dtype=np.float32 if keep_precision else (np.float64 if self.convert_to_double else np.float32),
+            )
         return np.hstack(blocks)
 
     def get_sqw(self, *args: Any, nargout: Optional[int] = None) -> Any:
@@ -1131,11 +1182,6 @@ class sqw_binfile_common(binfile_v2_common, sqw_file_interface):
         if new_obj and update and not self.upgrade_mode:
             self.upgrade_mode = True
 
-        if isinstance(sub_obj, main_header_cl):
-            mh_struct = sub_obj.to_bare_struct()
-        else:
-            mh_struct = sub_obj
-
         if update and not self.upgrade_headers_:
             mh_form = self.get_main_header_form("-const")
             start_pos = int(self.main_head_pos_info_["nfiles_pos_"])
@@ -1145,7 +1191,7 @@ class sqw_binfile_common(binfile_v2_common, sqw_file_interface):
 
         if self.sqw_serializer_ is None:
             self.sqw_serializer_ = sqw_serializer()
-        bytes_arr = self.sqw_serializer_.serialize(mh_struct, mh_form)
+        bytes_arr = self.sqw_serializer_.serialize(sub_obj, mh_form)
 
         if update and self.upgrade_mode:
             self.upgrade_map_.check_equal_sizes("main_header", len(bytes_arr))
@@ -1227,7 +1273,7 @@ class sqw_binfile_common(binfile_v2_common, sqw_file_interface):
         update, argi = self.parse_updt_directions(*args)
         self.check_obj_initated_properly()
         sub_obj, new_obj = self.extract_correct_subobj("detpar", *argi)
-        if isinstance(sub_obj, unique_objects_container):
+        if isinstance(sub_obj, unique_objects_container) or hasattr(sub_obj, "n_runs"):
             if sub_obj.n_runs > 0:
                 sub_obj = sub_obj[0].get_detpar_representation()
             else:
@@ -1260,11 +1306,14 @@ class sqw_binfile_common(binfile_v2_common, sqw_file_interface):
         return self
 
     def put_num_pixels(self, num_pixels: int) -> "sqw_binfile_common":
-        """Write `uint64` pixel count at `pix_pos_`."""
+        """Write `uint64` pixel count at `pix_pos_ - 8`."""
         self.check_obj_initated_properly()
-        do_fseek(self.file_id_, int(self.pix_pos_), "bof")
-        do_fwrite(self.file_id_, np.array([int(num_pixels)], dtype="<u8"), "uint64")
+        npix = int(num_pixels)
+        do_fseek(self.file_id_, int(self.pix_pos_) - 8, "bof")
+        do_fwrite(self.file_id_, np.array([npix], dtype="<u8"), "uint64")
         self.check_error_report_fail_("put_num_pixels: Error writing number of pixels")
+        self.npixels_ = npix
+        self.eof_pix_pos_ = int(self.pix_pos_) + npix * self.FILE_PIX_SIZE
         return self
 
     def put_raw_pix(
@@ -1399,6 +1448,39 @@ class sqw_binfile_common(binfile_v2_common, sqw_file_interface):
                 self.put_raw_pix(sub_obj.data, 1)
         else:
             self.put_raw_pix(np.asarray(sub_obj), 1)
+        return self
+
+    def put_dnd(self, *args: Any, **kwargs: Any) -> "sqw_binfile_common":
+        """Save SQW data into binary file as a DND file."""
+        pos = self.get_pos_info()
+        update, nopix, input_obj = self._parse_update_args(*args)
+        if input_obj is not None:
+            inobj = input_obj
+            internal_obj = False
+        else:
+            inobj = self.sqw_holder_
+            internal_obj = True
+
+        if inobj is None and self.file_id_ > 0:
+            dnd_inobj = self.get_dnd("-verbatim", nargout=1)
+        elif inobj is not None:
+            dnd_inobj, _ = self.extract_correct_subobj("data", inobj)
+        else:
+            dnd_inobj = None
+
+        self.data_pos_ = 26
+        self.data_type_ = "b+"
+        if dnd_inobj is not None:
+            self._init_from_sqw(dnd_inobj)
+
+        argi: List[Any] = [a for a in args if isinstance(a, str)]
+        if dnd_inobj is not None:
+            argi.append(dnd_inobj)
+        super().put_dnd(*argi)
+
+        self.copy_contents(pos, True)
+        if internal_obj:
+            self.sqw_holder_ = inobj
         return self
 
     def put_sqw(self, *args: Any, **kwargs: Any) -> "sqw_binfile_common":

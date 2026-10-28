@@ -49,12 +49,18 @@ class Serializable(BaseModel, ABC):
                 container._on_item_mutated(idx, self)
 
     def __setattr__(self, name: str, value: Any) -> None:
-        is_private_or_flag = name.startswith("_") or name in (
+        is_private_or_flag = name.startswith("_") or name.endswith("_") or name in (
             "do_check_combo_arg",
             "do_check_combo_arg_",
             "hash_value_",
         )
-        super().__setattr__(name, value)
+        cls_attr = getattr(type(self), name, None)
+        if isinstance(cls_attr, property) and cls_attr.fset is not None:
+            cls_attr.fset(self, value)
+        elif name in getattr(type(self), "model_fields", {}) or name in getattr(type(self), "__private_attributes__", {}):
+            super().__setattr__(name, value)
+        else:
+            object.__setattr__(self, name, value)
         if not is_private_or_flag and type(self).__setattr__ is Serializable.__setattr__:
             self._notify_container_mutation()
 
@@ -77,7 +83,16 @@ class Serializable(BaseModel, ABC):
             self.check_combo_arg()
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
+        if "__setattr__" not in cls.__dict__:
+            cls.__setattr__ = Serializable.__setattr__  # type: ignore[assignment]
         super().__init_subclass__(**kwargs)
+        SERIALIZABLE_REGISTRY[cls.__name__] = cls
+
+    @classmethod
+    def __pydantic_init_subclass__(cls, **kwargs: Any) -> None:
+        super().__pydantic_init_subclass__(**kwargs)
+        if getattr(cls, "__setattr__", None) is BaseModel.__setattr__:
+            cls.__setattr__ = Serializable.__setattr__  # type: ignore[assignment]
         SERIALIZABLE_REGISTRY[cls.__name__] = cls
 
     @classmethod

@@ -423,12 +423,17 @@ class FileBackedPixStub(FileBackedPixInterface):
 
     def get_pix_at_indices(
         self,
-        field_indices: Union[int, Sequence[int], slice],
-        pix_indices: np.ndarray,
+        field_indices_or_pix_indices: Union[int, Sequence[int], slice, np.ndarray],
+        pix_indices: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         self._check_activated()
-        rows = _normalize_row_indices(field_indices)
-        idx0 = np.asarray(pix_indices, dtype=np.intp).ravel() - 1
+        if pix_indices is None:
+            rows: Union[slice, np.ndarray] = slice(None)
+            raw_idx = np.asarray(field_indices_or_pix_indices, dtype=np.intp).ravel()
+        else:
+            rows = _normalize_row_indices(field_indices_or_pix_indices)
+            raw_idx = np.asarray(pix_indices, dtype=np.intp).ravel()
+        idx0 = raw_idx - 1
         if idx0.size == 0 or self._num_pixels == 0:
             n_rows = (
                 self.DEFAULT_NUM_PIX_FIELDS
@@ -438,10 +443,141 @@ class FileBackedPixStub(FileBackedPixInterface):
                 else len(rows)
             )
             return np.empty((n_rows, 0), dtype=np.float64)
+        if np.any(raw_idx < 1) or np.any(raw_idx > self._num_pixels):
+            raise HoraceError(
+                "SQW_BINFILE_COMMON:get_pix_at_indices",
+                f"Pixel indices out of bounds [1, {self._num_pixels}].",
+            )
         sub = self._buffer[rows][:, idx0]
         if sub.ndim == 1:
             sub = sub.reshape(1, -1)
         return np.asarray(sub, dtype=np.float64)
+
+    def get_raw_pix(
+        self, pix_lo: Optional[int] = None, pix_hi: Optional[int] = None
+    ) -> np.ndarray:
+        lo = 1 if pix_lo is None else int(pix_lo)
+        hi = self._num_pixels if pix_hi is None else int(pix_hi)
+        return self.get_pix_slice(slice(None), lo, hi)
+
+    def get_pix(self, *args: Any, **kwargs: Any) -> Any:
+        keep_precision = any(
+            isinstance(a, str) and a.strip().lower().lstrip("-") == "keep_precision"
+            for a in args
+        )
+        num_args = [
+            int(a)
+            for a in args
+            if isinstance(a, (int, np.integer, float, np.floating)) and not isinstance(a, bool)
+        ]
+        if len(num_args) == 0:
+            lo, hi = 1, self._num_pixels
+        elif len(num_args) == 1:
+            lo, hi = num_args[0], self._num_pixels
+        else:
+            lo, hi = num_args[0], num_args[1]
+        raw = self.get_raw_pix(lo, hi)
+        return raw.astype(np.float32, copy=False) if keep_precision else raw
+
+    def get_pix_in_ranges(
+        self,
+        pix_starts: Union[Sequence[int], np.ndarray],
+        block_sizes: Union[Sequence[int], np.ndarray],
+        skip_validation: bool = False,
+        keep_precision: bool = False,
+        **kwargs: Any,
+    ) -> np.ndarray:
+        if "skip_arg_validation" in kwargs:
+            skip_validation = bool(kwargs.pop("skip_arg_validation"))
+        starts = np.asarray(pix_starts, dtype=np.int64).ravel()
+        sizes = np.asarray(block_sizes, dtype=np.int64).ravel()
+        if not skip_validation:
+            if starts.size != sizes.size or np.any(starts < 1) or np.any(sizes < 0):
+                raise HoraceError(
+                    "HORACE:validate_ranges:invalid_argument",
+                    "Invalid pix_starts or block_sizes.",
+                )
+        if starts.size == 0:
+            return np.empty((9, 0), dtype=np.float32 if keep_precision else np.float64)
+        ends = starts + sizes - 1
+        valid = sizes > 0
+        if np.any(starts[valid] < 1) or np.any(ends[valid] > self._num_pixels):
+            raise HoraceError(
+                "SQW_BINFILE_COMMON:get_pix_in_ranges",
+                f"Pixel range exceeds total pixels ({self._num_pixels}).",
+            )
+        blocks = [
+            self.get_raw_pix(int(st), int(st + sz - 1))
+            for st, sz in zip(starts, sizes)
+            if sz > 0
+        ]
+        if not blocks:
+            return np.empty((9, 0), dtype=np.float32 if keep_precision else np.float64)
+        out = np.hstack(blocks)
+        return out.astype(np.float32, copy=False) if keep_precision else out
+
+    def put_raw_pix(
+        self, pix_data_arr: Any, pix_idx: int = 1, *args: Any
+    ) -> "FileBackedPixStub":
+        arr = getattr(pix_data_arr, "data", pix_data_arr)
+        arr = np.asarray(arr, dtype=np.float32)
+        if arr.ndim == 1:
+            arr = arr.reshape((self.DEFAULT_NUM_PIX_FIELDS, -1), order="F")
+        n_pix = int(arr.shape[1])
+        if n_pix > 0:
+            self.set_pix_slice(slice(None), int(pix_idx), int(pix_idx) + n_pix - 1, arr)
+        return self
+
+    def put_pix(self, *args: Any, **kwargs: Any) -> "FileBackedPixStub":
+        num_args = [
+            int(a)
+            for a in args
+            if isinstance(a, (int, np.integer)) and not isinstance(a, bool)
+        ]
+        obj_args = [
+            a
+            for a in args
+            if not isinstance(a, (str, int, np.integer, bool))
+        ]
+        if obj_args:
+            low_idx = num_args[0] if num_args else 1
+            self.put_raw_pix(obj_args[0], low_idx)
+        return self
+
+    def put_num_pixels(self, num_pixels: int) -> "FileBackedPixStub":
+        self._num_pixels = int(num_pixels)
+        return self
+
+    def put_pix_metadata(self, *args: Any, **kwargs: Any) -> "FileBackedPixStub":
+        return self
+
+    def reopen_to_write(self, filename: Optional[str] = None) -> "FileBackedPixStub":
+        self.activate(new_filename=filename, writable=True)
+        return self
+
+    def fclose(self) -> "FileBackedPixStub":
+        self.deactivate()
+        return self
+
+    def delete(self) -> "FileBackedPixStub":
+        self.deactivate()
+        return self
+
+    @property
+    def npixels(self) -> int:
+        return self._num_pixels
+
+    @property
+    def pix_position(self) -> int:
+        return self._offset
+
+    @property
+    def eof_pix_position(self) -> int:
+        return self._offset + self._num_pixels * 9 * 4
+
+    @property
+    def read_only(self) -> bool:
+        return not self._writable
 
     def set_pix_at_indices(
         self,

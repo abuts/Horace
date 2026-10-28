@@ -33,6 +33,7 @@ class pix_data_block(data_block):
         self._sqw_prop_name = "pix"
         self._level2_prop_name = "data_wrap"
         self._locked = True
+        self.records_only: bool = False
 
         if kwargs:
             for k, v in kwargs.items():
@@ -48,9 +49,15 @@ class pix_data_block(data_block):
 
         if len(args) == 1 and isinstance(args[0], pix_data_block):
             other = args[0]
+            self._sqw_prop_name = other._sqw_prop_name
+            self._level2_prop_name = other._level2_prop_name
             self._position = other._position
+            self._size = other._size
+            self._serialized_obj_cache = other._serialized_obj_cache
+            self._locked = other._locked
             self._npixels = other._npixels
             self._n_rows = other._n_rows
+            self.records_only = other.records_only
             return
 
         if len(args) == 4:
@@ -214,6 +221,26 @@ class pix_data_block(data_block):
         self._serialized_obj_cache = None if nocache else subobj
         return self
 
+    def read_n_pixels(self, fid: int) -> "pix_data_block":
+        """Read ``n_rows`` (uint32) and ``npixels`` (uint64) from ``self.position``."""
+        self.move_to_position(fid)
+        n_rows_arr = do_fread(fid, 1, "*uint32")
+        self.check_read_error(fid, "num pix rows")
+        self._n_rows = int(n_rows_arr[0])
+        n_pix_arr = do_fread(fid, 1, "*uint64")
+        self.check_read_error(fid, "num pixels")
+        self._npixels = int(n_pix_arr[0])
+        return self
+
+    def put_pix_chunk(self, fid: int, obj_data: Any, pos: int) -> "pix_data_block":
+        """Write a chunk of pixel data at byte position ``pos``."""
+        self.move_to_position(fid, pos)
+        data = getattr(obj_data, "data", obj_data)
+        if isinstance(data, np.ndarray) and data.size > 0:
+            do_fwrite(fid, np.asarray(data, dtype=np.float32).ravel(order="F"), "float32")
+            self.check_write_error(fid, "writing pixel data chunk")
+        return self
+
     def put_data_header(self, fid: int) -> "pix_data_block":
         """Write ``n_rows`` (uint32) and ``npixels`` (uint64) at ``self.position``."""
         if isinstance(self._npixels, str):
@@ -230,12 +257,14 @@ class pix_data_block(data_block):
 
     def put_bindata_in_file(self, fid: int, obj_data: Any) -> None:
         self.move_to_position(fid)
-        n_rows = int(obj_data.n_rows)
-        npix = int(obj_data.npix)
+        n_rows = int(getattr(obj_data, "n_rows", self._n_rows))
+        npix = int(getattr(obj_data, "npix", 0 if isinstance(self._npixels, str) else self._npixels))
         do_fwrite(fid, np.uint32(n_rows), "uint32")
         self.check_write_error(fid, "num pix rows")
         do_fwrite(fid, np.uint64(npix), "uint64")
         self.check_write_error(fid, "num_pixels")
+        if self.records_only:
+            return
         data = getattr(obj_data, "data", None)
         if isinstance(data, np.ndarray) and data.size > 0:
             do_fwrite(fid, np.asarray(data, dtype=np.float32).ravel(order="F"), "float32")
@@ -267,6 +296,7 @@ class pix_data_block(data_block):
         self._sqw_prop_name = "pix"
         self._level2_prop_name = "data_wrap"
         self._locked = True
+        self.records_only: bool = False
         if "position" in s:
             self.position = s["position"]
         if "n_rows" in s:

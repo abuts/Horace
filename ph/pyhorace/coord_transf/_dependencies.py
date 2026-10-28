@@ -10,17 +10,8 @@ import numpy as np
 from pyhorace.coord_transf.bmatrix import _infer_nargout, bmatrix
 from pyhorace.coord_transf.calc_proj_matrix import calc_proj_matrix
 from pyhorace.coord_transf.ubmatrix import ubmatrix
+from pyhorace.core.exceptions import HoraceError
 from pyhorace.core.serializable import Serializable
-
-
-class HoraceError(ValueError, RuntimeError):
-    """Exception class for Horace and Herbert errors with MATLAB-style error IDs."""
-
-    def __init__(self, error_id: str, message: str = "") -> None:
-        self.error_id = error_id
-        self.message = message or error_id
-        full_msg = f"{error_id}: {message}" if message else error_id
-        super().__init__(full_msg)
 
 
 def rotvec_to_rotmat_rad(

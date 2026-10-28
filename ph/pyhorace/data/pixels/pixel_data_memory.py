@@ -84,29 +84,68 @@ class PixelDataMemory(PixelDataBase):
             return
 
         if isinstance(arg, (str, os.PathLike)):
-            stub = FileBackedPixStub(str(arg))
-            self._full_filename = stub.full_filename
-            self._data = stub.get_pix_slice(slice(None), 1, stub.num_pixels)
-            self.recalc_data_range("all")
-            return
+            filepath = str(arg)
+            if not os.path.isfile(filepath):
+                raise HoraceError(
+                    f"HORACE:PixelDataMemory:invalid_argument - "
+                    f"Cannot find file '{filepath}' to initialize PixelDataMemory."
+                )
+            try:
+                from pyhorace.io.sqw_formats_factory import sqw_formats_factory
 
-        if isinstance(arg, FileBackedPixInterface):
+                ldr = sqw_formats_factory.instance().get_loader(filepath)
+                try:
+                    self._init_from_single_arg(ldr)
+                    return
+                finally:
+                    ldr.fclose()
+            except Exception:
+                stub = FileBackedPixStub(filepath)
+                self._full_filename = stub.full_filename
+                self._data = stub.get_pix(1, stub.num_pixels, "-raw_output")
+                self.recalc_data_range("all")
+                return
+
+        if isinstance(arg, FileBackedPixStub):
             self._full_filename = arg.full_filename
-            self._data = arg.get_pix_slice(slice(None), 1, arg.num_pixels)
+            if hasattr(arg, "get_pix"):
+                self._data = np.asarray(arg.get_pix(1, arg.num_pixels, "-raw_output"), dtype=np.float64)
+            else:
+                self._data = arg.get_pix_slice(slice(None), 1, arg.num_pixels)
             self.recalc_data_range("all")
             return
 
-        if hasattr(arg, "get_pix") or hasattr(arg, "npix"):
+        if hasattr(arg, "get_pix") or hasattr(arg, "npix") or hasattr(arg, "npixels"):
             if hasattr(arg, "faccess_version"):
                 try:
                     if float(arg.faccess_version) < 4.0:
                         self._old_file_format = True
                 except Exception:
                     pass
-            stub = FileBackedPixStub.from_faccess(arg)
-            self._full_filename = stub.full_filename
-            self._data = stub.get_pix_slice(slice(None), 1, stub.num_pixels)
+            if hasattr(arg, "get_pix") and hasattr(arg, "npixels"):
+                npix_val = getattr(arg, "npixels", 0)
+                n_pix = int(npix_val) if npix_val is not None and not (isinstance(npix_val, (list, tuple, np.ndarray)) and len(npix_val) == 0) else 0
+                self._full_filename = getattr(arg, "full_filename", "")
+                if n_pix == 0:
+                    self._data = np.empty((self.DEFAULT_NUM_PIX_FIELDS, 0), dtype=np.float64)
+                else:
+                    try:
+                        self._data = np.asarray(
+                            arg.get_pix(1, n_pix, "-raw_output"), dtype=np.float64
+                        )
+                    except TypeError:
+                        raw = arg.get_pix(1, n_pix)
+                        self._data = np.asarray(
+                            raw.data if isinstance(raw, PixelDataBase) else raw,
+                            dtype=np.float64,
+                        )
+            else:
+                stub = FileBackedPixStub.from_faccess(arg)
+                self._full_filename = stub.full_filename
+                self._data = stub.get_pix_slice(slice(None), 1, stub.num_pixels)
             self.recalc_data_range("all")
+            if self._old_file_format and self.num_pixels > 0:
+                self._unique_run_id = np.unique(self.run_idx).astype(float)
             return
 
         if isinstance(arg, dict):

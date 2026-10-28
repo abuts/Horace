@@ -199,7 +199,7 @@ class binfile_v4_common(horace_binfile_interface):
         self.bat_.get_bat(self.file_id_)
         if "bl_data_nd_data" in self.bat_.block_names:
             bl, bl_idx = self.bat_.get_data_block("bl_data_nd_data", nargout=2)
-            if not bl.dnd_info_defined:
+            if not bl.dnd_info_defined and bl.position > 0 and bl.size > 0:
                 bl.read_dnd_info(self.file_id_)
                 self.bat_.set_changed_block(bl, bl_idx)
             self.num_dim_ = int(bl.dimensions) if hasattr(bl, "dimensions") and bl.dnd_info_defined else self.num_dim_
@@ -207,7 +207,7 @@ class binfile_v4_common(horace_binfile_interface):
         return self
 
     def copy_contents(
-        self, other_obj: "horace_binfile_interface", *args: Any
+        self, other_obj: "horace_binfile_interface", *args: Any, **kwargs: Any
     ) -> Tuple["binfile_v4_common", List[str]]:
         write_mode = False
         for a in args:

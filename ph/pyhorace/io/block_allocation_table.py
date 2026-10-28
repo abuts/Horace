@@ -629,6 +629,7 @@ class blockAllocationTable(Serializable):
             self.free_spaces_and_size_ = np.vstack((next_valid, free_valid)).astype(np.uint64)
         else:
             self.free_spaces_and_size_ = np.zeros((2, 0), dtype=np.uint64)
+        self.initialized_ = True
         return self
 
     def _find_block_place(
@@ -684,6 +685,7 @@ class blockAllocationTable(Serializable):
 
         self.free_spaces_and_size_ = fs.astype(np.uint64)
         self.blocks_list_[bl_ind] = the_block
+        self.initialized_ = True
         return self, new_pos, compress_bat
 
     def _init_obj_info(
