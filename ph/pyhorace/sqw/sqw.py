@@ -38,6 +38,7 @@ from pyhorace.sqw.d4d import d4d
 from pyhorace.sqw.data_sqw_dnd import data_sqw_dnd
 from pyhorace.sqw.dnd_base import DnDBase
 from pyhorace.sqw.sqw_dnd_base import SQWDnDBase
+from pyhorace.sqw.sqw_plot_interface import sqw_plot_interface
 
 
 class _CallableBool(int):
@@ -71,7 +72,7 @@ class _CallableBool(int):
 
 
 @register_serializable
-class sqw(SQWDnDBase):
+class sqw(SQWDnDBase, sqw_plot_interface):
     """Horace 4D SQW dataset combining main header, experiment metadata, DnD grid data, and pixels.
 
     Translated from ``horace_core/sqw/@sqw/sqw.m``.
@@ -1007,8 +1008,8 @@ class sqw(SQWDnDBase):
         self._data.proj = val
 
     @property
-    def dimensions(self) -> int:
-        return int(self._data.dimensions)
+    def dimensions(self) -> Any:
+        return self._data.dimensions
 
     @property
     def s(self) -> np.ndarray:
@@ -1928,20 +1929,44 @@ class sqw(SQWDnDBase):
         # TODO(port-dependency): Port @sqw/get_sqw.m
         raise NotImplementedError("sqw.get_sqw is not yet implemented.")
 
-    def IX_dataset_1d(self, *args: Any, **kwargs: Any) -> Any:
-        """Stub for ``@sqw/IX_dataset_1d.m``."""
-        # TODO(port-dependency): Port @sqw/IX_dataset_1d.m
-        raise NotImplementedError("sqw.IX_dataset_1d is not yet implemented.")
+    def IX_dataset_1d(self) -> Any:
+        """Convert 1D sqw object into IX_dataset_1d (port of ``@sqw/IX_dataset_1d.m``)."""
+        from pyhorace.data.ix_dataset_1d import IX_dataset_1d as _IX1D
 
-    def IX_dataset_2d(self, *args: Any, **kwargs: Any) -> Any:
-        """Stub for ``@sqw/IX_dataset_2d.m``."""
-        # TODO(port-dependency): Port @sqw/IX_dataset_2d.m
-        raise NotImplementedError("sqw.IX_dataset_2d is not yet implemented.")
+        if int(self.dimensions()) != 1:
+            raise HoraceError(
+                "HORACE:sqw:invalid_argument",
+                "Not all elements in the array of sqw objects are one dimensional",
+            )
+        res = _IX1D(self.data)
+        res._obj_holder = getattr(self, "_obj_holder", None) or self
+        return res
 
-    def IX_dataset_3d(self, *args: Any, **kwargs: Any) -> Any:
-        """Stub for ``@sqw/IX_dataset_3d.m``."""
-        # TODO(port-dependency): Port @sqw/IX_dataset_3d.m
-        raise NotImplementedError("sqw.IX_dataset_3d is not yet implemented.")
+    def IX_dataset_2d(self) -> Any:
+        """Convert 2D sqw object into IX_dataset_2d (port of ``@sqw/IX_dataset_2d.m``)."""
+        from pyhorace.data.ix_dataset_2d import IX_dataset_2d as _IX2D
+
+        if int(self.dimensions()) != 2:
+            raise HoraceError(
+                "HORACE:sqw:invalid_argument",
+                "sqw object is not two dimensional",
+            )
+        res = _IX2D(self.data)
+        res._obj_holder = getattr(self, "_obj_holder", None) or self
+        return res
+
+    def IX_dataset_3d(self) -> Any:
+        """Convert 3D sqw object into IX_dataset_3d (port of ``@sqw/IX_dataset_3d.m``)."""
+        from pyhorace.data.ix_dataset_3d import IX_dataset_3d as _IX3D
+
+        if int(self.dimensions()) != 3:
+            raise HoraceError(
+                "HORACE:sqw:invalid_argument",
+                "Not all elements in the array of sqw objects are three dimensional",
+            )
+        res = _IX3D(self.data)
+        res._obj_holder = getattr(self, "_obj_holder", None) or self
+        return res
 
     def join(self, *args: Any, **kwargs: Any) -> Any:
         """Stub for ``@sqw/join.m``."""

@@ -56,6 +56,8 @@ class IX_dataset_2d(IX_dataset):
                 if isinstance(first, IX_dataset) and first.ndim() == 3:
                     parts = [cls._build_from_ix_data_3d(el) for el in arg0.ravel(order="F")]
                     return DataOpArray(np.concatenate([p.ravel(order="F") for p in parts]))
+                if hasattr(first, "IX_dataset_2d") and callable(first.IX_dataset_2d):
+                    return DataOpArray([cls(el) for el in arg0.flat]).reshape(arg0.shape)
         return super().__new__(cls)
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -234,6 +236,7 @@ class IX_dataset_2d(IX_dataset):
                     self._xyz = [arr.copy() for arr in in_val._xyz]
                     self._xyz_axis = [ax.copy() for ax in in_val._xyz_axis]
                     self._xyz_distribution = in_val._xyz_distribution.copy()
+                    self._obj_holder = getattr(in_val, "_obj_holder", None)
                     return
                 if isinstance(in_val, dict):
                     self.init_from_structure(in_val)
@@ -271,6 +274,8 @@ class IX_dataset_2d(IX_dataset):
                 elif hasattr(in_val, "IX_dataset_2d") and callable(in_val.IX_dataset_2d):
                     res = in_val.IX_dataset_2d()
                     self._build_ixdataset_2d(res)
+                    if getattr(self, "_obj_holder", None) is None:
+                        self._obj_holder = getattr(in_val, "_obj_holder", None)
                     return
                 else:
                     raise ValueError(

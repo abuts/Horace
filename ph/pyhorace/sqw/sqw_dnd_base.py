@@ -29,7 +29,6 @@ from pyhorace.core.data_op_interface import (
     matlab_size,
 )
 from pyhorace.core.serializable import Serializable
-from pyhorace.sqw.dnd_plot_interface import dnd_plot_interface
 from pyhorace.sqw.horace3_dnd_interface import horace3_dnd_interface
 
 
@@ -113,7 +112,7 @@ def disp2sqw(
 
 
 class SQWDnDBase(
-    data_op_interface, horace3_dnd_interface, dnd_plot_interface, Serializable, ABC
+    data_op_interface, horace3_dnd_interface, Serializable, ABC
 ):
     """Abstract base class common to SQW and DnD objects."""
 
@@ -143,7 +142,10 @@ class SQWDnDBase(
     # ------------------------------------------------------------------
     def copy(self) -> "SQWDnDBase":
         """Return a deep copy of this object."""
-        return copy.deepcopy(self)
+        res = copy.deepcopy(self)
+        if getattr(res, "_obj_holder", None) is not None:
+            res._obj_holder = None
+        return res
 
     def equal_to_tol(
         self,

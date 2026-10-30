@@ -61,6 +61,15 @@ class IX_dataset_3d(IX_dataset):
         "z_distribution",
     ]
 
+    def __new__(cls, *args: Any, **kwargs: Any) -> Any:
+        if len(args) == 1 and not kwargs:
+            arg0 = args[0]
+            if isinstance(arg0, DataOpArray) and arg0.size > 0:
+                first = arg0.ravel(order="F")[0]
+                if hasattr(first, "IX_dataset_3d") and callable(first.IX_dataset_3d):
+                    return DataOpArray([cls(el) for el in arg0.flat]).reshape(arg0.shape)
+        return super().__new__(cls)
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__()
         self._xyz = [
@@ -262,6 +271,7 @@ class IX_dataset_3d(IX_dataset):
                     self._xyz = [arr.copy() for arr in in_val._xyz]
                     self._xyz_axis = [ax.copy() for ax in in_val._xyz_axis]
                     self._xyz_distribution = in_val._xyz_distribution.copy()
+                    self._obj_holder = getattr(in_val, "_obj_holder", None)
                     return
                 if isinstance(in_val, dict):
                     self.init_from_structure(in_val)
@@ -305,6 +315,8 @@ class IX_dataset_3d(IX_dataset):
                 elif hasattr(in_val, "IX_dataset_3d") and callable(in_val.IX_dataset_3d):
                     res = in_val.IX_dataset_3d()
                     self._build_ixdataset_3d(res)
+                    if getattr(self, "_obj_holder", None) is None:
+                        self._obj_holder = getattr(in_val, "_obj_holder", None)
                     return
                 else:
                     raise ValueError(

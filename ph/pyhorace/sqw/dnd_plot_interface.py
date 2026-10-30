@@ -1,362 +1,429 @@
-"""Plot interfaces for DnD and SQW objects (data_plot_interface, dnd_plot_interface).
+"""Interface for plotting DnD objects (`d1d`, `d2d`, `d3d`).
 
-Ported from Herbert/Horace MATLAB data_plot_interface and dnd_plot_interface
-(herbert_core/graphics/plot_interfaces/data_plot_interface.m and dnd_plot_interface.m).
+Ported from Herbert MATLAB `dnd_plot_interface`
+(`herbert_core/graphics/plot_interfaces/dnd_plot_interface.m`).
 """
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, List, Tuple
 
 import numpy as np
 
 from pyhorace.coord_transf._dependencies import HoraceError
-from pyhorace.coord_transf.bmatrix import _infer_nargout
 from pyhorace.core.data_op_interface import DataOpArray
+from pyhorace.data.data_plot_interface import (
+    _dispatch_plot_method,
+    data_plot_interface as _BaseDataPlotInterface,
+)
+from pyhorace.data.graphics import aspect, genieplot
+from pyhorace.data.ix_dataset_1d import IX_dataset_1d
+from pyhorace.data.ix_dataset_2d import IX_dataset_2d
+from pyhorace.data.ix_dataset_3d import IX_dataset_3d
 
 
-def _flatten_objs(w: Any) -> Tuple[List[Any], bool]:
-    """Return flat list of objects and True if input is scalar."""
+def _extract_input_items(self_obj: Any, kwargs: dict[str, Any]) -> Any:
+    """Return `_dataset_array` if provided by DataOpArray dispatch, else `self_obj`."""
+    dataset_array = kwargs.pop("_dataset_array", None)
+    if dataset_array is not None:
+        return DataOpArray(dataset_array)
+    return self_obj
+
+
+def _flatten_objects(w: Any) -> List[Any]:
+    """Flatten scalar, DataOpArray, list, tuple, or ndarray of objects into a list."""
+    if isinstance(w, DataOpArray):
+        return [item for item in w.flat]
     if isinstance(w, (list, tuple)):
-        flat: List[Any] = []
+        out: List[Any] = []
         for item in w:
-            sub, _ = _flatten_objs(item)
-            flat.extend(sub)
-        return flat, len(flat) == 1
-    if isinstance(w, (np.ndarray, DataOpArray)):
-        items = list(w.ravel(order="F"))
-        return items, w.size == 1
-    return [w], True
+            out.extend(_flatten_objects(item))
+        return out
+    if isinstance(w, np.ndarray) and w.dtype == object:
+        return [item for item in w.ravel()]
+    return [w]
 
 
-def _format_plot_return(
-    fig_h: Any = "figure_",
-    axes_h: Any = "axes_",
-    plot_h: Any = "plot_",
-    nargout: Optional[int] = None,
-) -> Any:
-    if nargout is None:
-        nargout = _infer_nargout(default=3)
-    if nargout <= 1:
-        return fig_h
-    if nargout == 2:
-        return fig_h, axes_h
-    return fig_h, axes_h, plot_h
+def _with_default_fig_name(fig_name: str, fn: Callable[[], Any]) -> Any:
+    """Temporarily set `genieplot.default_fig_name` while executing `fn`."""
+    gp = genieplot.instance()
+    prev_name = gp.default_fig_name
+    gp.default_fig_name = fig_name
+    try:
+        return fn()
+    finally:
+        gp.default_fig_name = prev_name
 
 
-class data_plot_interface(ABC):
-    """Abstract interface defining 1D, 2D, 3D, and generic plot methods."""
+def _convert_2d_signal_arg(arg: Any) -> Any:
+    """Convert second dataset argument in ds2/ps2/ps2oc to IX_dataset_2d if it is a DnD/sqw."""
+    from pyhorace.sqw.dnd_base import DnDBase
 
-    # 1D plot methods
-    @abstractmethod
-    def dd(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def de(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def dh(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def dl(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def dm(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def dp(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def pd(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def pdoc(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def pe(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def peoc(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def ph(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def phoc(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def pl(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def ploc(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def pm(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def pmoc(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def pp(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def ppoc(self, *args: Any, **kwargs: Any) -> Any: ...
-
-    # 2D plot methods
-    @abstractmethod
-    def da(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def ds(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def ds2(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def pa(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def paoc(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def ps(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def psoc(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def ps2(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def ps2oc(self, *args: Any, **kwargs: Any) -> Any: ...
-
-    # 3D plot methods
-    @abstractmethod
-    def sliceomatic(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def sliceomatic_overview(self, *args: Any, **kwargs: Any) -> Any: ...
-
-    # ND generic plot methods
-    @abstractmethod
-    def plot(self, *args: Any, **kwargs: Any) -> Any: ...
-    @abstractmethod
-    def plotover(self, *args: Any, **kwargs: Any) -> Any: ...
+    items = _flatten_objects(arg)
+    if items and all(hasattr(x, "IX_dataset_2d") and not isinstance(x, IX_dataset_2d) for x in items):
+        for x in items:
+            holder = getattr(x, "_obj_holder", None)
+            if holder is None or isinstance(holder, DnDBase):
+                x._obj_holder = x
+        if len(items) == 1:
+            return IX_dataset_2d(items[0])
+        return IX_dataset_2d(DataOpArray(items))
+    return arg
 
 
-class dnd_plot_interface(data_plot_interface):
-    """Concrete implementation of plot interface for DnD and SQW objects."""
+class dnd_plot_interface(_BaseDataPlotInterface):
+    """Plot interface for DnD (1D, 2D, and 3D) objects.
+
+    Mirrors `herbert_core/graphics/plot_interfaces/dnd_plot_interface.m`.
+    """
+
+    def data_plot_titles(self) -> Tuple[Any, ...]:
+        """Return `(title_main, title_pax, title_iax, ...)` from `self.axes.data_plot_titles`."""
+        if hasattr(self, "axes") and hasattr(self.axes, "data_plot_titles"):
+            return self.axes.data_plot_titles(self)
+        return ("", [], [])
+
+    # ------------------------------------------------------------------
+    # Static validation & aspect helpers
+    # ------------------------------------------------------------------
+    @staticmethod
+    def check_data(w: Any, ndim: int, scalar_only: bool, func_name: str) -> Any:
+        """Check dimensionality and scalar constraint, and attach `_obj_holder`."""
+        w_list = _flatten_objects(w)
+        if not w_list or (scalar_only and len(w_list) > 1) or any(
+            int(x.dimensions()) != int(ndim) for x in w_list
+        ):
+            if scalar_only:
+                string = f"a single {ndim}D object"
+            else:
+                string = f"{ndim}D object(s)"
+            raise HoraceError(
+                "HORACE:graphics:invalid_argument",
+                f"Plot method '{func_name}' only works for {string}",
+            )
+        from pyhorace.sqw.dnd_base import DnDBase
+
+        for x in w_list:
+            holder = getattr(x, "_obj_holder", None)
+            if holder is None or isinstance(holder, DnDBase):
+                x._obj_holder = x
+        if len(w_list) == 1:
+            return w_list[0]
+        return DataOpArray(w_list)
 
     @staticmethod
-    def check_data(
-        w: Any, ndim: int, scalar_only: bool, func_name: str
-    ) -> None:
-        """Validate dimensionality and scalar-ness of object(s) to plot."""
-        objs, is_scalar = _flatten_objs(w)
-        dims = []
-        for x in objs:
-            d = x.dimensions()
-            nd = d[0] if isinstance(d, tuple) else int(d)
-            dims.append(nd)
-        if (scalar_only and not is_scalar) or any(d != ndim for d in dims):
-            if scalar_only:
-                mess = (
-                    f"Plot method '{func_name}' only works for a single "
-                    f"{ndim}-dimensional object"
-                )
+    def strip_aspect_option(*args: Any) -> Tuple[Tuple[Any, ...], bool]:
+        """Strip `'-aspect'` option from arguments and return `(remaining_args, adjust_aspect)`."""
+        adjust_aspect = True
+        adjust_present = False
+        remaining: List[Any] = []
+        target = "-aspect"
+        for arg in args:
+            if isinstance(arg, str) and len(arg) > 0 and target.startswith(arg.lower()):
+                if not adjust_present:
+                    adjust_present = True
+                else:
+                    raise HoraceError(
+                        "HORACE:graphics:invalid_argument",
+                        "Input key: '-aspect' appears at least twice in the argument list",
+                    )
             else:
-                mess = (
-                    f"Plot method '{func_name}' only works for "
-                    f"{ndim}-dimensional object(s)"
-                )
-            raise HoraceError("HORACE:graphics:invalid_argument", mess)
+                remaining.append(arg)
+        if adjust_present:
+            adjust_aspect = True
+        return tuple(remaining), adjust_aspect
+
+    @staticmethod
+    def adjust_aspect_ratio(w: Any) -> None:
+        """Adjust plot aspect ratio for 2D and 3D DnD datasets if required."""
+        w_list = _flatten_objects(w)
+        if not w_list:
+            return
+        ndims = int(w_list[0].dimensions())
+        if ndims not in (2, 3):
+            return
+        if not all(bool(getattr(x.axes, "changes_aspect_ratio", True)) for x in w_list):
+            return
+
+        ulen_ref: np.ndarray | None = None
+        is_energy_axis_ref: np.ndarray | None = None
+        for idx, w_i in enumerate(w_list):
+            pax_dax = [int(w_i.pax[int(d) - 1]) for d in w_i.dax]
+            ulen = np.array([float(w_i.axes.ulen[p_idx - 1]) for p_idx in pax_dax], dtype=float)
+            is_energy_axis = np.array([p_idx == 4 for p_idx in pax_dax], dtype=bool)
+            if idx == 0:
+                ulen_ref = ulen.copy()
+                is_energy_axis_ref = is_energy_axis.copy()
+            else:
+                assert ulen_ref is not None and is_energy_axis_ref is not None
+                if not np.array_equal(is_energy_axis, is_energy_axis_ref) or float(
+                    np.max(np.abs((ulen - ulen_ref) / ulen_ref))
+                ) > 1e-8:
+                    return
+
+        if ulen_ref is not None and is_energy_axis_ref is not None:
+            ulen_plot = ulen_ref.copy()
+            ulen_plot[is_energy_axis_ref] = 0.0
+            aspect(ulen_plot)
 
     # ------------------------------------------------------------------
-    # 1D Plot Methods
+    # 1D plotting methods
     # ------------------------------------------------------------------
-    def dd(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 1, False, "dd")
-        return _format_plot_return(nargout=nargout)
-
-    def de(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 1, False, "de")
-        return _format_plot_return(nargout=nargout)
-
-    def dh(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 1, False, "dh")
-        return _format_plot_return(nargout=nargout)
-
-    def dl(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 1, False, "dl")
-        return _format_plot_return(nargout=nargout)
-
-    def dm(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 1, False, "dm")
-        return _format_plot_return(nargout=nargout)
-
-    def dp(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 1, False, "dp")
-        return _format_plot_return(nargout=nargout)
-
-    def pd(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 1, False, "pd")
-        return _format_plot_return(nargout=nargout)
-
-    def pdoc(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 1, False, "pdoc")
-        return _format_plot_return(nargout=nargout)
-
-    def pe(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 1, False, "pe")
-        return _format_plot_return(nargout=nargout)
-
-    def peoc(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 1, False, "peoc")
-        return _format_plot_return(nargout=nargout)
-
-    def ph(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 1, False, "ph")
-        return _format_plot_return(nargout=nargout)
-
-    def phoc(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 1, False, "phoc")
-        return _format_plot_return(nargout=nargout)
-
-    def pl(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 1, False, "pl")
-        return _format_plot_return(nargout=nargout)
-
-    def ploc(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 1, False, "ploc")
-        return _format_plot_return(nargout=nargout)
-
-    def pm(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 1, False, "pm")
-        return _format_plot_return(nargout=nargout)
-
-    def pmoc(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 1, False, "pmoc")
-        return _format_plot_return(nargout=nargout)
-
-    def pp(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 1, False, "pp")
-        return _format_plot_return(nargout=nargout)
-
-    def ppoc(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 1, False, "ppoc")
-        return _format_plot_return(nargout=nargout)
-
-    # ------------------------------------------------------------------
-    # 2D Plot Methods
-    # ------------------------------------------------------------------
-    def da(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 2, False, "da")
-        return _format_plot_return(nargout=nargout)
-
-    def ds(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 2, False, "ds")
-        return _format_plot_return(nargout=nargout)
-
-    def ds2(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 2, False, "ds2")
-        return _format_plot_return(nargout=nargout)
-
-    def pa(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 2, False, "pa")
-        return _format_plot_return(nargout=nargout)
-
-    def paoc(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 2, False, "poc")
-        return _format_plot_return(nargout=nargout)
-
-    def ps(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 2, False, "ps")
-        return _format_plot_return(nargout=nargout)
-
-    def psoc(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 2, False, "psoc")
-        return _format_plot_return(nargout=nargout)
-
-    def ps2(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 2, False, "ps2")
-        return _format_plot_return(nargout=nargout)
-
-    def ps2oc(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 2, False, "ps2oc")
-        return _format_plot_return(nargout=nargout)
-
-    # ------------------------------------------------------------------
-    # 3D Plot Methods
-    # ------------------------------------------------------------------
-    def sliceomatic(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        self.check_data(self, 3, True, "sliceomatic")
-        return _format_plot_return(nargout=nargout)
-
-    def sliceomatic_overview(
-        self, *args: Any, nargout: Optional[int] = None, **kwargs: Any
-    ) -> Any:
-        self.check_data(self, 3, True, "sliceomatic")
-        return _format_plot_return(nargout=nargout)
-
-    # ------------------------------------------------------------------
-    # Generic ND Plot Methods
-    # ------------------------------------------------------------------
-    def plot(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        objs, _ = _flatten_objs(self)
-        d = objs[0].dimensions()
-        nd = d[0] if isinstance(d, tuple) else int(d)
-        if nd == 1:
-            dnd_plot_interface.check_data(self, 1, False, "dp")
-            return _format_plot_return(nargout=nargout)
-        if nd == 2:
-            dnd_plot_interface.check_data(self, 2, False, "da")
-            return _format_plot_return(nargout=nargout)
-        if nd == 3:
-            dnd_plot_interface.check_data(self, 3, True, "sliceomatic")
-            return _format_plot_return(nargout=nargout)
-        raise HoraceError(
-            "HORACE:graphics:invalid_argument",
-            f"Method 'plot' is not available for {nd}-dimensional objects",
+    def _plot_1d(self, method_name: str, *args: Any, **kwargs: Any) -> Any:
+        w_in = _extract_input_items(self, kwargs)
+        w_checked = dnd_plot_interface.check_data(w_in, 1, False, method_name)
+        return _with_default_fig_name(
+            "Horace 1D plot",
+            lambda: _dispatch_plot_method(method_name, IX_dataset_1d(w_checked), *args, **kwargs),
         )
 
-    def plotover(self, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        objs, _ = _flatten_objs(self)
-        d = objs[0].dimensions()
-        nd = d[0] if isinstance(d, tuple) else int(d)
-        if nd == 1:
-            dnd_plot_interface.check_data(self, 1, False, "pp")
-            return _format_plot_return(nargout=nargout)
-        if nd == 2:
-            dnd_plot_interface.check_data(self, 2, False, "pa")
-            return _format_plot_return(nargout=nargout)
-        raise HoraceError(
-            "HORACE:graphics:invalid_argument",
-            f"Method 'plotover' is not available for {nd}-dimensional objects",
+    def dd(self, *args: Any, **kwargs: Any) -> Any:
+        return self._plot_1d("dd", *args, **kwargs)
+
+    def de(self, *args: Any, **kwargs: Any) -> Any:
+        return self._plot_1d("de", *args, **kwargs)
+
+    def dh(self, *args: Any, **kwargs: Any) -> Any:
+        return self._plot_1d("dh", *args, **kwargs)
+
+    def dl(self, *args: Any, **kwargs: Any) -> Any:
+        return self._plot_1d("dl", *args, **kwargs)
+
+    def dm(self, *args: Any, **kwargs: Any) -> Any:
+        return self._plot_1d("dm", *args, **kwargs)
+
+    def dp(self, *args: Any, **kwargs: Any) -> Any:
+        return self._plot_1d("dp", *args, **kwargs)
+
+    def pd(self, *args: Any, **kwargs: Any) -> Any:
+        return self._plot_1d("pd", *args, **kwargs)
+
+    def pdoc(self, *args: Any, **kwargs: Any) -> Any:
+        return self._plot_1d("pdoc", *args, **kwargs)
+
+    def pe(self, *args: Any, **kwargs: Any) -> Any:
+        return self._plot_1d("pe", *args, **kwargs)
+
+    def peoc(self, *args: Any, **kwargs: Any) -> Any:
+        return self._plot_1d("peoc", *args, **kwargs)
+
+    def ph(self, *args: Any, **kwargs: Any) -> Any:
+        return self._plot_1d("ph", *args, **kwargs)
+
+    def phoc(self, *args: Any, **kwargs: Any) -> Any:
+        return self._plot_1d("phoc", *args, **kwargs)
+
+    def pl(self, *args: Any, **kwargs: Any) -> Any:
+        return self._plot_1d("pl", *args, **kwargs)
+
+    def ploc(self, *args: Any, **kwargs: Any) -> Any:
+        return self._plot_1d("ploc", *args, **kwargs)
+
+    def pm(self, *args: Any, **kwargs: Any) -> Any:
+        return self._plot_1d("pm", *args, **kwargs)
+
+    def pmoc(self, *args: Any, **kwargs: Any) -> Any:
+        return self._plot_1d("pmoc", *args, **kwargs)
+
+    def pp(self, *args: Any, **kwargs: Any) -> Any:
+        return self._plot_1d("pp", *args, **kwargs)
+
+    def ppoc(self, *args: Any, **kwargs: Any) -> Any:
+        return self._plot_1d("ppoc", *args, **kwargs)
+
+    # ------------------------------------------------------------------
+    # 2D plotting methods
+    # ------------------------------------------------------------------
+    def da(self, *args: Any, **kwargs: Any) -> Any:
+        w_in = _extract_input_items(self, kwargs)
+        w_checked = dnd_plot_interface.check_data(w_in, 2, False, "da")
+        rem_args, adjust_aspect = dnd_plot_interface.strip_aspect_option(*args)
+
+        def _do_plot() -> Any:
+            res = _dispatch_plot_method("da", IX_dataset_2d(w_checked), *rem_args, **kwargs)
+            if adjust_aspect:
+                dnd_plot_interface.adjust_aspect_ratio(w_checked)
+            return res
+
+        return _with_default_fig_name("Horace area plot", _do_plot)
+
+    def ds(self, *args: Any, **kwargs: Any) -> Any:
+        w_in = _extract_input_items(self, kwargs)
+        w_checked = dnd_plot_interface.check_data(w_in, 2, False, "ds")
+        rem_args, adjust_aspect = dnd_plot_interface.strip_aspect_option(*args)
+
+        def _do_plot() -> Any:
+            res = _dispatch_plot_method("ds", IX_dataset_2d(w_checked), *rem_args, **kwargs)
+            if adjust_aspect:
+                dnd_plot_interface.adjust_aspect_ratio(w_checked)
+            return res
+
+        return _with_default_fig_name("Horace surface plot", _do_plot)
+
+    def ds2(self, *args: Any, **kwargs: Any) -> Any:
+        w_in = _extract_input_items(self, kwargs)
+        w_checked = dnd_plot_interface.check_data(w_in, 2, False, "ds2")
+        rem_args, adjust_aspect = dnd_plot_interface.strip_aspect_option(*args)
+        if len(rem_args) > 0:
+            rem_args = (_convert_2d_signal_arg(rem_args[0]), *rem_args[1:])
+
+        def _do_plot() -> Any:
+            res = _dispatch_plot_method("ds2", IX_dataset_2d(w_checked), *rem_args, **kwargs)
+            if adjust_aspect:
+                dnd_plot_interface.adjust_aspect_ratio(w_checked)
+            return res
+
+        return _with_default_fig_name("Horace surface plot", _do_plot)
+
+    def pa(self, *args: Any, **kwargs: Any) -> Any:
+        w_in = _extract_input_items(self, kwargs)
+        w_checked = dnd_plot_interface.check_data(w_in, 2, False, "pa")
+        return _with_default_fig_name(
+            "Horace area plot",
+            lambda: _dispatch_plot_method("pa", IX_dataset_2d(w_checked), *args, **kwargs),
         )
+
+    def paoc(self, *args: Any, **kwargs: Any) -> Any:
+        w_in = _extract_input_items(self, kwargs)
+        w_checked = dnd_plot_interface.check_data(w_in, 2, False, "poc")
+        return _with_default_fig_name(
+            "Horace area plot",
+            lambda: _dispatch_plot_method("paoc", IX_dataset_2d(w_checked), *args, **kwargs),
+        )
+
+    def ps(self, *args: Any, **kwargs: Any) -> Any:
+        w_in = _extract_input_items(self, kwargs)
+        w_checked = dnd_plot_interface.check_data(w_in, 2, False, "ps")
+        return _with_default_fig_name(
+            "Horace surface plot",
+            lambda: _dispatch_plot_method("ps", IX_dataset_2d(w_checked), *args, **kwargs),
+        )
+
+    def psoc(self, *args: Any, **kwargs: Any) -> Any:
+        w_in = _extract_input_items(self, kwargs)
+        w_checked = dnd_plot_interface.check_data(w_in, 2, False, "psoc")
+        return _with_default_fig_name(
+            "Horace surface plot",
+            lambda: _dispatch_plot_method("psoc", IX_dataset_2d(w_checked), *args, **kwargs),
+        )
+
+    def ps2(self, *args: Any, **kwargs: Any) -> Any:
+        w_in = _extract_input_items(self, kwargs)
+        w_checked = dnd_plot_interface.check_data(w_in, 2, False, "ps2")
+        conv_args = (_convert_2d_signal_arg(args[0]), *args[1:]) if len(args) > 0 else args
+        return _with_default_fig_name(
+            "Horace surface plot",
+            lambda: _dispatch_plot_method("ps2", IX_dataset_2d(w_checked), *conv_args, **kwargs),
+        )
+
+    def ps2oc(self, *args: Any, **kwargs: Any) -> Any:
+        w_in = _extract_input_items(self, kwargs)
+        w_checked = dnd_plot_interface.check_data(w_in, 2, False, "ps2oc")
+        conv_args = (_convert_2d_signal_arg(args[0]), *args[1:]) if len(args) > 0 else args
+        return _with_default_fig_name(
+            "Horace surface plot",
+            lambda: _dispatch_plot_method("ps2oc", IX_dataset_2d(w_checked), *conv_args, **kwargs),
+        )
+
+    # ------------------------------------------------------------------
+    # 3D plotting methods
+    # ------------------------------------------------------------------
+    def sliceomatic(self, *args: Any, **kwargs: Any) -> Any:
+        w_in = _extract_input_items(self, kwargs)
+        w_checked = dnd_plot_interface.check_data(w_in, 3, True, "sliceomatic")
+        rem_args, adjust_aspect = dnd_plot_interface.strip_aspect_option(*args)
+        pax_dax = [int(w_checked.pax[int(d) - 1]) for d in w_checked.dax]
+        ulabel = [w_checked.label[p_idx - 1] for p_idx in pax_dax]
+        res = _dispatch_plot_method(
+            "sliceomatic",
+            IX_dataset_3d(w_checked),
+            "x_axis",
+            ulabel[0],
+            "y_axis",
+            ulabel[1],
+            "z_axis",
+            ulabel[2],
+            "name",
+            "Horace sliceomatic",
+            *rem_args,
+            **kwargs,
+        )
+        if adjust_aspect:
+            dnd_plot_interface.adjust_aspect_ratio(w_checked)
+        return res
+
+    def sliceomatic_overview(self, *args: Any, **kwargs: Any) -> Any:
+        w_in = _extract_input_items(self, kwargs)
+        w_checked = dnd_plot_interface.check_data(w_in, 3, True, "sliceomatic")
+        rem_args, adjust_aspect = dnd_plot_interface.strip_aspect_option(*args)
+        pax_dax = [int(w_checked.pax[int(d) - 1]) for d in w_checked.dax]
+        ulabel = [w_checked.label[p_idx - 1] for p_idx in pax_dax]
+        res = _dispatch_plot_method(
+            "sliceomatic_overview",
+            IX_dataset_3d(w_checked),
+            "x_axis",
+            ulabel[0],
+            "y_axis",
+            ulabel[1],
+            "z_axis",
+            ulabel[2],
+            "name",
+            "Horace sliceomatic",
+            *rem_args,
+            **kwargs,
+        )
+        if adjust_aspect:
+            dnd_plot_interface.adjust_aspect_ratio(w_checked)
+        return res
+
+
+data_plot_interface = _BaseDataPlotInterface
 
 
 def _bind_array_plot_methods() -> None:
-    """Attach plot methods onto DataOpArray so arrays of DnD objects can call .dd(), .plot(), etc."""
-    _methods_1d = [
-        "dd", "de", "dh", "dl", "dm", "dp",
-        "pd", "pdoc", "pe", "peoc", "ph", "phoc",
-        "pl", "ploc", "pm", "pmoc", "pp", "ppoc",
-    ]
-    _methods_2d = [
-        "da", "ds", "ds2", "pa", "paoc", "ps", "psoc", "ps2", "ps2oc",
-    ]
-    _methods_3d = ["sliceomatic", "sliceomatic_overview"]
-    _methods_nd = ["plot", "plotover"]
+    """Ensure DataOpArray dispatches plot calls through `_dispatch_plot_method`."""
+    for name in (
+        "dd",
+        "de",
+        "dh",
+        "dl",
+        "dm",
+        "dp",
+        "pd",
+        "pdoc",
+        "pe",
+        "peoc",
+        "ph",
+        "phoc",
+        "pl",
+        "ploc",
+        "pm",
+        "pmoc",
+        "pp",
+        "ppoc",
+        "da",
+        "ds",
+        "ds2",
+        "pa",
+        "paoc",
+        "ps",
+        "ps2",
+        "psoc",
+        "ps2oc",
+        "sliceomatic",
+        "sliceomatic_overview",
+        "plot",
+        "plotover",
+    ):
+        def _make_method(m_name: str) -> Callable[..., Any]:
+            def _method(self_arr: Any, *args: Any, **kwargs: Any) -> Any:
+                return _dispatch_plot_method(m_name, self_arr, *args, **kwargs)
+            return _method
 
-    for m_name in _methods_1d:
-        def _make_1d(name: str):
-            def _fn(self: Any, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-                dnd_plot_interface.check_data(self, 1, False, name)
-                return _format_plot_return(nargout=nargout)
-            return _fn
-        setattr(DataOpArray, m_name, _make_1d(m_name))
-
-    for m_name in _methods_2d:
-        def _make_2d(name: str):
-            chk_name = "poc" if name == "paoc" else name
-            def _fn(self: Any, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-                dnd_plot_interface.check_data(self, 2, False, chk_name)
-                return _format_plot_return(nargout=nargout)
-            return _fn
-        setattr(DataOpArray, m_name, _make_2d(m_name))
-
-    for m_name in _methods_3d:
-        def _make_3d(name: str):
-            def _fn(self: Any, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-                dnd_plot_interface.check_data(self, 3, True, "sliceomatic")
-                return _format_plot_return(nargout=nargout)
-            return _fn
-        setattr(DataOpArray, m_name, _make_3d(m_name))
-
-    def _array_plot(self: Any, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        return dnd_plot_interface.plot(self, *args, nargout=nargout, **kwargs)
-
-    def _array_plotover(self: Any, *args: Any, nargout: Optional[int] = None, **kwargs: Any) -> Any:
-        return dnd_plot_interface.plotover(self, *args, nargout=nargout, **kwargs)
-
-    setattr(DataOpArray, "plot", _array_plot)
-    setattr(DataOpArray, "plotover", _array_plotover)
+        setattr(DataOpArray, name, _make_method(name))
 
 
 _bind_array_plot_methods()
 
+
+__all__ = ["data_plot_interface", "dnd_plot_interface"]

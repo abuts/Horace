@@ -1683,7 +1683,7 @@ class PixelDataBase(Serializable, data_op_interface, abc.ABC):
             op_s = np.asarray(operand, dtype=np.float64)
             op_e = np.zeros_like(op_s)
 
-        if op_s.size == 1 and npix is None:
+        if op_s.size == 1 and (npix is None or not isinstance(operand, (DnDBase, IX_dataset))):
             # Scalar operation
             s_val = np.array([[float(op_s.item())]], dtype=np.float64)
             e_val = np.array([[float(op_e.item())]], dtype=np.float64)

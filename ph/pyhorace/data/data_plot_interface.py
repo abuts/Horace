@@ -173,6 +173,17 @@ class data_plot_interface(ABC):
 
     def plot(self, *args: Any, **kwargs: Any) -> tuple[Any, Any, Any]:
         """Plot 1D, 2D or 3D dataset(s) or array of datasets."""
+        items = kwargs.get("_dataset_array")
+        if items is not None and len(items) > 1:
+            dims = [
+                (r[0] if isinstance(r := x.dimensions(), tuple) else int(r))
+                for x in items
+            ]
+            if any(d != dims[0] for d in dims[1:]):
+                raise HoraceError(
+                    "HORACE:graphics:invalid_argument",
+                    "All array of objects to plot have to have the same dimensionality",
+                )
         res = self.dimensions()
         nd = res[0] if isinstance(res, tuple) else int(res)
         if nd == 1:
@@ -188,6 +199,17 @@ class data_plot_interface(ABC):
 
     def plotover(self, *args: Any, **kwargs: Any) -> tuple[Any, Any, Any]:
         """Overplot 1D or 2D dataset(s) or array of datasets."""
+        items = kwargs.get("_dataset_array")
+        if items is not None and len(items) > 1:
+            dims = [
+                (r[0] if isinstance(r := x.dimensions(), tuple) else int(r))
+                for x in items
+            ]
+            if any(d != dims[0] for d in dims[1:]):
+                raise HoraceError(
+                    "HORACE:graphics:invalid_argument",
+                    "All array of objects to plot have to have the same dimensionality",
+                )
         res = self.dimensions()
         nd = res[0] if isinstance(res, tuple) else int(res)
         if nd == 1:
@@ -217,8 +239,8 @@ class data_plot_interface(ABC):
             src_list.append(holder if holder is not None else item)
 
         existing = getattr(fig_h, "UserData", None)
-        if not existing or new_axes:
-            fig_h.UserData = list(src_list)
+        if existing is None or (isinstance(existing, list) and len(existing) == 0) or new_axes:
+            fig_h.UserData = src_list[0] if len(src_list) == 1 else list(src_list)
         else:
             if isinstance(existing, list):
                 fig_h.UserData = list(existing) + list(src_list)

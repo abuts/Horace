@@ -12,16 +12,18 @@ from __future__ import annotations
 import dis
 import inspect
 import math
+import sys
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import matplotlib
 import numpy as np
 
 # Use non-interactive Agg backend by default if no display or in headless test runs
-#try:
-#    matplotlib.use("Agg")
-#except Exception:
-#    pass
+if "pytest" in sys.modules:
+    try:
+        matplotlib.use("Agg")
+    except Exception:
+        pass
 
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
@@ -32,16 +34,19 @@ from matplotlib.patches import Polygon
 
 from pyhorace.core.configurations import HoraceConfigError, graph_config, hor_config
 from pyhorace.core.data_op_interface import DataOpArray
+from pyhorace.core.exceptions import HoraceError as _CoreHoraceError
 
 
-class HoraceError(ValueError):
+class HoraceError(_CoreHoraceError, ValueError):
     """Exception raised for invalid Horace/Herbert graphics or data arguments."""
 
     def __init__(self, err_id: str, message: str = "") -> None:
         self.err_id = err_id
+        self.error_id = err_id
         self.msg = message
+        self.message = message
         full_msg = f"{err_id}: {message}" if message else err_id
-        super().__init__(full_msg)
+        ValueError.__init__(self, full_msg)
 
 
 # Alias genieplot to graph_config
@@ -284,6 +289,11 @@ class PlotHandle:
         self.YErr = np.asarray(yerr, dtype=float) if yerr is not None else None
         self._is_deleted = False
 
+    @property
+    def Type(self) -> str:
+        """MATLAB graphics handle Type ('line', 'errorbar', 'patch', 'surface')."""
+        return self.kind
+
 
 class PlotHandleArray(list):
     """1D sequence of `PlotHandle` objects supporting both 0-based Python
@@ -383,6 +393,8 @@ def _ensure_ax_attrs(ax: Axes) -> None:
         ax._horace_yscale: str = "linear"
         ax._horace_zscale: str = "linear"
         ax._horace_xticklabel: List[str] = []
+        ax._horace_data_aspect_ratio: List[float] = [1.0, 1.0, 1.0]
+        ax._horace_data_aspect_ratio_mode: str = "auto"
 
 
 def _sync_raw_mpl_artists(ax: Axes) -> None:
@@ -667,6 +679,30 @@ def _ax_set_xticklabel(self: Axes, val: Sequence[str]) -> None:
     self._horace_xticklabel = [str(v) for v in val]
 
 
+def _ax_get_data_aspect_ratio(self: Axes) -> np.ndarray:
+    _ensure_ax_attrs(self)
+    return np.array(self._horace_data_aspect_ratio, dtype=float)
+
+
+def _ax_set_data_aspect_ratio(self: Axes, val: Sequence[float]) -> None:
+    _ensure_ax_attrs(self)
+    arr = [float(x) for x in val]
+    while len(arr) < 3:
+        arr.append(1.0)
+    self._horace_data_aspect_ratio = arr[:3]
+    self._horace_data_aspect_ratio_mode = "manual"
+
+
+def _ax_get_data_aspect_ratio_mode(self: Axes) -> str:
+    _ensure_ax_attrs(self)
+    return self._horace_data_aspect_ratio_mode
+
+
+def _ax_set_data_aspect_ratio_mode(self: Axes, val: str) -> None:
+    _ensure_ax_attrs(self)
+    self._horace_data_aspect_ratio_mode = str(val)
+
+
 Axes.XLim = property(_ax_get_xlim, _ax_set_xlim)
 Axes.YLim = property(_ax_get_ylim, _ax_set_ylim)
 Axes.ZLim = property(_ax_get_zlim, _ax_set_zlim)
@@ -675,7 +711,69 @@ Axes.XScale = property(_ax_get_xscale, _ax_set_xscale)
 Axes.YScale = property(_ax_get_yscale, _ax_set_yscale)
 Axes.ZScale = property(_ax_get_zscale, _ax_set_zscale)
 Axes.XTickLabel = property(_ax_get_xticklabel, _ax_set_xticklabel)
+Axes.DataAspectRatio = property(_ax_get_data_aspect_ratio, _ax_set_data_aspect_ratio)
+Axes.DataAspectRatioMode = property(_ax_get_data_aspect_ratio_mode, _ax_set_data_aspect_ratio_mode)
 Axes.Children = property(_get_ax_plot_handles_lifo)
+
+
+def aspect(*args: Any) -> None:
+    """Set aspect ratio of current axes (`aspect.m`)."""
+    if len(args) == 0:
+        raise HoraceError("HERBERT:aspect:invalid_argument", "No arguments given")
+    ax = gca()
+    if ax is None:
+        return
+    a = ax.DataAspectRatio
+    if len(args) == 1 and isinstance(args[0], str):
+        s = args[0].strip().lower()
+        if s and "auto".startswith(s):
+            ax.DataAspectRatioMode = "auto"
+            return
+        if s and "manual".startswith(s):
+            ax.DataAspectRatioMode = "manual"
+            return
+        raise HoraceError(
+            "HERBERT:aspect:invalid_argument",
+            "Input arguments must be unit length along axes or 'auto' or 'manual'",
+        )
+
+    u = np.zeros(3, dtype=float)
+    try:
+        if len(args) == 1:
+            arr = np.asarray(args[0], dtype=float).ravel()
+            if arr.size not in (2, 3):
+                raise ValueError
+            u[0] = arr[0]
+            u[1] = arr[1]
+            if arr.size == 3:
+                u[2] = arr[2]
+        elif len(args) in (2, 3):
+            u[0] = float(args[0])
+            u[1] = float(args[1])
+            if len(args) == 3:
+                u[2] = float(args[2])
+        else:
+            raise ValueError
+    except Exception as exc:
+        raise HoraceError(
+            "HERBERT:aspect:invalid_argument",
+            "Input arguments must be unit lengths along axes",
+        ) from exc
+
+    u = np.abs(u)
+    u[~np.isfinite(u)] = 0.0
+    if np.all(u != 0):
+        aspect_ratio = [1.0 / u[0], 1.0 / u[1], 1.0 / u[2]]
+    elif int(np.sum(u == 0)) == 1:
+        if u[0] == 0:
+            aspect_ratio = [float(a[0] / max(a[1] * u[1], a[2] * u[2])), 1.0 / u[1], 1.0 / u[2]]
+        elif u[1] == 0:
+            aspect_ratio = [1.0 / u[0], float(a[1] / max(a[2] * u[2], a[0] * u[0])), 1.0 / u[2]]
+        else:
+            aspect_ratio = [1.0 / u[0], 1.0 / u[1], float(a[2] / max(a[0] * u[0], a[1] * u[1]))]
+    else:
+        return
+    ax.DataAspectRatio = aspect_ratio
 
 
 # ---------------------------------------------------------------------------
@@ -1929,10 +2027,26 @@ def plot_3d_dataset(
                 "Data points must be equally spaced for sliceomatic.",
             )
 
+    custom_name: Optional[str] = None
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if isinstance(arg, str):
+            low = arg.strip().lower()
+            if low and "name".startswith(low) and i + 1 < len(args):
+                custom_name = str(args[i + 1])
+                i += 2
+                continue
+            elif low in ("x_axis", "y_axis", "z_axis", "isonormals") and i + 1 < len(args):
+                i += 2
+                continue
+        i += 1
+
     fig_h, ax_h, _ = _get_or_create_target_figure_and_axes(
         "Sliceomatic",
         new_axes=True,
         force_current_axes=False,
+        custom_name=custom_name,
     )
     ax_h._horace_plot_dim = 3
     ax_h._horace_has_z = True
@@ -1967,20 +2081,31 @@ def plot_3d_dataset(
     return fig_h, ax_h, plot_h_struct
 
 
+def _format_hkl_vec(vec: np.ndarray) -> str:
+    parts: List[str] = []
+    for val in vec.ravel()[:3]:
+        v = float(val)
+        if abs(v) < 1e-12:
+            parts.append("0")
+        else:
+            parts.append(f"{v:.4g}")
+    return "[" + ", ".join(parts) + "]"
+
+
 def spaghetti_plot(
     wdisp: Union[Any, Sequence[Any]],
     *args: Any,
-) -> Tuple[Any, List[Any], Any, Any, Any]:
+) -> Tuple[Any, Any, Any, Any, Any]:
     """Plot a sequence of 2D dispersion datasets side-by-side (`spaghetti_plot`)."""
     if isinstance(wdisp, DataOpArray):
-        w_list = list(wdisp.flat)
-        w_out = wdisp.copy()
+        w_in_list = list(wdisp.flat)
+        w_in_copy = wdisp.copy()
     elif isinstance(wdisp, (list, tuple, np.ndarray)):
-        w_list = list(np.asarray(wdisp, dtype=object).flat)
-        w_out = DataOpArray([w.copy() for w in w_list])
+        w_in_list = list(np.asarray(wdisp, dtype=object).flat)
+        w_in_copy = DataOpArray([w.copy() for w in w_in_list])
     else:
-        w_list = [wdisp]
-        w_out = wdisp.copy()
+        w_in_list = [wdisp]
+        w_in_copy = wdisp.copy()
 
     noplot = False
     labels: Optional[List[str]] = None
@@ -2005,7 +2130,19 @@ def spaghetti_plot(
         i += 1
 
     if noplot:
-        return w_out, [], [], [], []
+        return w_in_copy, [], [], [], []
+
+    from pyhorace.data.ix_dataset_2d import IX_dataset_2d
+
+    is_ix_dataset = all(isinstance(x, IX_dataset_2d) for x in w_in_list)
+    if is_ix_dataset:
+        w_list = [x.copy() for x in w_in_list]
+        w_out = DataOpArray(w_list) if len(w_list) > 1 else w_list[0]
+        cuts_out: Any = []
+    else:
+        w_list = [IX_dataset_2d(x) for x in w_in_list]
+        w_out = DataOpArray(w_list) if len(w_list) > 1 else w_list[0]
+        cuts_out = w_in_copy
 
     fig_h, ax_h, _ = _get_or_create_target_figure_and_axes(
         "Spaghetti plot",
@@ -2016,13 +2153,18 @@ def spaghetti_plot(
     ax_h._horace_has_c = True
 
     x_offset = 0.0
-    for w in w_list:
+    for idx, w in enumerate(w_list):
         sig = np.asarray(w.signal, dtype=float)
         nx_s, ny_s = sig.shape
         xb = _bin_boundaries_for_plot(w.x, nx_s)
         yb = _bin_boundaries_for_plot(w.y, ny_s)
-        span_x = float(xb[-1] - xb[0]) if xb.size > 1 else 1.0
-        xb_shifted = (xb - xb[0]) + x_offset
+        scale_u = 1.0
+        if not is_ix_dataset and hasattr(w_in_list[idx], "axes"):
+            ulen = getattr(w_in_list[idx].axes, "img_scales", None)
+            if ulen is not None and len(ulen) > 0:
+                scale_u = float(ulen[0])
+        span_x = float(xb[-1] - xb[0]) * scale_u if xb.size > 1 else 1.0
+        xb_shifted = (xb - xb[0]) * scale_u + x_offset
         x_offset += span_x
         mesh = ax_h.pcolormesh(xb_shifted, yb, sig.T, shading="flat")
         ax_h._tracked_mpl_artists.add(id(mesh))
@@ -2039,16 +2181,36 @@ def spaghetti_plot(
 
     if labels is not None:
         ax_h.XTickLabel = labels
-    else:
+    elif is_ix_dataset:
         default_labs: List[str] = []
         for w in w_list:
             if w.title and len(w.title) > 0:
-                default_labs.append(str(w.title[0]))
+                default_labs.append(
+                    str(w.title[0]) if isinstance(w.title, list) else str(w.title)
+                )
             else:
                 default_labs.append("")
         ax_h.XTickLabel = default_labs
+    else:
+        default_labs = [""] * (len(w_in_list) + 1)
+        for idx, w_orig in enumerate(w_in_list):
+            d_obj = w_orig.data if hasattr(w_orig, "data") and not hasattr(w_orig, "u_to_rlu") else w_orig
+            u_to_rlu = np.asarray(d_obj.u_to_rlu, dtype=float)
+            hkldir = u_to_rlu[:3, 0]
+            iax_0 = [int(a) - 1 for a in np.asarray(d_obj.iax).ravel()]
+            iint = np.asarray(d_obj.iint, dtype=float)
+            inthkl = np.kron(iint.T, u_to_rlu[:, iax_0])
+            mean1 = np.mean(inthkl[:3, [0, 2]], axis=1)
+            mean2 = np.mean(inthkl[4:7, [1, 3]], axis=1)
+            hklcen = mean1 + mean2
+            p1 = np.asarray(d_obj.p[0], dtype=float).ravel()
+            hkl_beg = p1[0] * hkldir + hklcen
+            hkl_end = p1[-1] * hkldir + hklcen
+            default_labs[idx] = _format_hkl_vec(hkl_beg)
+            default_labs[idx + 1] = _format_hkl_vec(hkl_end)
+        ax_h.XTickLabel = default_labs
 
-    return w_out, [], fig_h, ax_h, _get_ax_plot_handles_lifo(ax_h)
+    return w_out, cuts_out, fig_h, ax_h, _get_ax_plot_handles_lifo(ax_h)
 
 
 __all__ = [
@@ -2057,6 +2219,7 @@ __all__ = [
     "acolor",
     "aline",
     "amark",
+    "aspect",
     "caxis",
     "clearfigs",
     "figure",
