@@ -81,6 +81,10 @@ for i=1:numel(fig_handle)
     end
 end
 
+try
 if numel(fig_handle)==1
     name = name{1};     % single name, so extract from a cell array
+end
+catch Err
+    disp(Err)
 end

@@ -91,13 +91,13 @@ class sqw(SQWDnDBase, sqw_plot_interface):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         Serializable.__init__(self)
-        self._main_header: main_header_cl = main_header_cl()
-        self._exper_info: Experiment = Experiment()
-        self._data: DnDBase = d0d()
-        self._pix: PixelDataBase = PixelDataBase.create()
-        self._is_tmp_obj: bool = False
-        self._tmp_file_path: str = ""
         if len(args) == 0 and len(kwargs) == 0:
+            self._main_header: main_header_cl = main_header_cl()
+            self._exper_info: Experiment = Experiment()
+            self._data: DnDBase = d0d()
+            self._pix: PixelDataBase = PixelDataBase.create()
+            self._is_tmp_obj: bool = False
+            self._tmp_file_path: str = ""
             return
 
         self.init(*args, **kwargs)
@@ -145,7 +145,7 @@ class sqw(SQWDnDBase, sqw_plot_interface):
                 self._pix = PixelDataMemory()
                 return self
 
-            if hasattr(ds, "get_sqw") or hasattr(ds, "get_data") or hasattr(ds, "get_main_header"):
+            if isinstance(ds,"sqw_binfile_interface"): 
                 return self._init_from_loader(
                     ds,
                     pixel_page_size=parsed["pixel_page_size"],

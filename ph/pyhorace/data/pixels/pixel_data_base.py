@@ -220,8 +220,8 @@ class PixelDataBase(Serializable, data_op_interface, abc.ABC):
                 if PixelDataBase.do_filebacked(tmp_fb.num_pixels):
                     return tmp_fb
                 return PixelDataMemory(tmp_fb)
-            elif hasattr(init_arg, "npix") or hasattr(init_arg, "num_pixels"):
-                num_pix = int(getattr(init_arg, "npix", getattr(init_arg, "num_pixels", 0)) or 0)
+            elif hasattr(init_arg, "npixels") or hasattr(init_arg, "num_pixels"):
+                num_pix = int(getattr(init_arg, "npixels", getattr(init_arg, "num_pixels", 0)) or 0)
             filebacked = PixelDataBase.do_filebacked(num_pix)
 
         if filebacked:
