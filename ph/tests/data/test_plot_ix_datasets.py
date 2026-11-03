@@ -71,7 +71,7 @@ from pyhorace.data import (
     spaghetti_plot,
     src,
 )
-from pyhorace.data import DataPlotInterface
+from pyhorace.data import DataPlotInterface, caxis, xlim, ylim, zlim
 
 
 # ==============================================================================
@@ -906,6 +906,52 @@ class TestPlotIXDataset1And2:
         clear_figures()
         _, axes_h, _ = ds2(self.data2D, np.pi * self.data2D)
         lc("padded")
+        clear_figures()
+        _, axes_h, plot_h = da(self.data2D)
+        zlim_ref = np.array(axes_h.CLim, dtype=float)
+        zlim_new = zlim_ref + np.array([-0.113, 0.633]) * np.abs(zlim_ref)
+        lz(zlim_new)
+        np.testing.assert_allclose(lz(), zlim_new)
+        np.testing.assert_allclose(caxis(), zlim_new)
+        np.testing.assert_allclose(plot_h[0].artist.get_clim(), zlim_new)
+        lz()
+        np.testing.assert_allclose(lz(), zlim_ref)
+        np.testing.assert_allclose(caxis(), zlim_ref)
+        np.testing.assert_allclose(plot_h[0].artist.get_clim(), zlim_ref)
+        lz(float(zlim_new[0]), float(zlim_new[1]))
+        np.testing.assert_allclose(plot_h[0].artist.get_clim(), zlim_new)
+
+        clear_figures()
+        _, axes_h, plot_h = ds(self.data2D)
+        zlim_ref = np.array(axes_h.ZLim, dtype=float)
+        zlim_new = zlim_ref + np.array([-0.113, 0.633]) * np.abs(zlim_ref)
+        lz(zlim_new)
+        np.testing.assert_allclose(lz(), zlim_new)
+        np.testing.assert_allclose(zlim(), zlim_new)
+        np.testing.assert_allclose(plot_h[0].artist.get_clim(), zlim_new)
+        lz()
+        np.testing.assert_allclose(lz(), zlim_ref)
+        np.testing.assert_allclose(plot_h[0].artist.get_clim(), zlim_ref)
+
+        clear_figures()
+        _, axes_h, plot_h = ds2(self.data2D, np.pi * self.data2D)
+        zlim_ref = np.array(axes_h.ZLim, dtype=float)
+        clim_ref = np.array(axes_h.CLim, dtype=float)
+        np.testing.assert_allclose(np.pi * zlim_ref, clim_ref, atol=1e-12)
+        zlim_new = zlim_ref + np.array([-0.113, 0.633]) * np.abs(zlim_ref)
+        clim_new = clim_ref + np.array([-0.23, 0.2633]) * np.abs(clim_ref)
+        lz(zlim_new)
+        lc(clim_new)
+        np.testing.assert_allclose(lz(), zlim_new)
+        np.testing.assert_allclose(lc(), clim_new)
+        np.testing.assert_allclose(zlim(), zlim_new)
+        np.testing.assert_allclose(caxis(), clim_new)
+        np.testing.assert_allclose(plot_h[0].artist.get_clim(), clim_new)
+        lz()
+        lc()
+        np.testing.assert_allclose(lz(), zlim_ref)
+        np.testing.assert_allclose(lc(), clim_ref)
+        np.testing.assert_allclose(plot_h[0].artist.get_clim(), clim_ref)
 
     # ------------------------------------------------------------------
     # 1D plot tests

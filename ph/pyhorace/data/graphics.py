@@ -378,6 +378,7 @@ def _ensure_ax_attrs(ax: Axes) -> None:
         ax._horace_plot_dim = 1  # 1, 2, or 3
         ax._horace_has_z = False
         ax._horace_has_c = False
+        ax._horace_surf_type: Optional[str] = None
         ax._horace_xlim: List[float] = [0.0, 1.0]
         ax._horace_ylim: List[float] = [0.0, 1.0]
         ax._horace_zlim: List[float] = [0.0, 1.0]
@@ -417,11 +418,50 @@ def _sync_raw_mpl_artists(ax: Axes) -> None:
     for coll in ax.collections:
         if id(coll) not in ax._tracked_mpl_artists:
             ax._tracked_mpl_artists.add(id(coll))
+            arr = coll.get_array() if hasattr(coll, "get_array") else None
+            cdata = np.asarray(arr, dtype=float) if arr is not None else None
+            if cdata is not None and cdata.size > 0:
+                ax._horace_has_c = True
             ph = PlotHandle(
                 artist=coll,
+                cdata=cdata,
                 kind="surface",
             )
             ax._horace_plot_handles.append(ph)
+
+
+    for img in getattr(ax, "images", []):
+        if id(img) not in ax._tracked_mpl_artists:
+            ax._tracked_mpl_artists.add(id(img))
+            arr = img.get_array() if hasattr(img, "get_array") else None
+            cdata = np.asarray(arr, dtype=float) if arr is not None else None
+            if cdata is not None and cdata.size > 0:
+                ax._horace_has_c = True
+            ph = PlotHandle(
+                artist=img,
+                kind="surface",
+                cdata=cdata,
+            )
+            ax._horace_plot_handles.append(ph)
+
+
+def _apply_mpl_clim(ax: Axes, clim: Sequence[float]) -> None:
+    """Apply colour limits `[lo, hi]` to all colour-mapped Matplotlib artists on `ax`."""
+    lo, hi = float(clim[0]), float(clim[1])
+    if not (math.isfinite(lo) and math.isfinite(hi)) or lo >= hi:
+        return
+    seen: set = set()
+    artists: List[Any] = [h.artist for h in getattr(ax, "_horace_plot_handles", [])]
+    artists.extend(getattr(ax, "collections", []))
+    artists.extend(getattr(ax, "images", []))
+    for artist in artists:
+        if artist is not None and id(artist) not in seen:
+            seen.add(id(artist))
+            if hasattr(artist, "set_clim"):
+                try:
+                    artist.set_clim(lo, hi)
+                except Exception:
+                    pass
 
 
 def _get_ax_plot_handles_lifo(ax: Axes) -> PlotHandleArray:
@@ -572,6 +612,17 @@ def _recompute_ax_auto_limits(ax: Axes) -> None:
             ax.set_xlim(ax._horace_xlim)
         if ax._horace_yscale != "log" or ax._horace_ylim[0] > 0:
             ax.set_ylim(ax._horace_ylim)
+        if hasattr(ax, "set_zlim") and (ax._horace_zscale != "log" or ax._horace_zlim[0] > 0):
+            ax.set_zlim(ax._horace_zlim)
+        if ax._horace_has_c:
+            if (
+                ax._horace_clim_mode == "auto"
+                and ax._horace_zlim_mode == "manual"
+                and getattr(ax, "_horace_surf_type", None) == "s"
+            ):
+                _apply_mpl_clim(ax, ax._horace_zlim)
+            else:
+                _apply_mpl_clim(ax, ax._horace_clim)
     except Exception:
         pass
 
@@ -617,6 +668,11 @@ def _ax_set_zlim(self: Axes, val: Sequence[float]) -> None:
     _ensure_ax_attrs(self)
     self._horace_zlim = [float(val[0]), float(val[1])]
     self._horace_zlim_mode = "manual"
+    try:
+        if hasattr(self, "set_zlim"):
+            self.set_zlim(self._horace_zlim)
+    except Exception:
+        pass
     _recompute_ax_auto_limits(self)
 
 
@@ -629,6 +685,8 @@ def _ax_set_clim(self: Axes, val: Sequence[float]) -> None:
     _ensure_ax_attrs(self)
     self._horace_clim = [float(val[0]), float(val[1])]
     self._horace_clim_mode = "manual"
+    _recompute_ax_auto_limits(self)
+    _apply_mpl_clim(self, self._horace_clim)
 
 
 def _ax_get_xscale(self: Axes) -> str:
@@ -1490,6 +1548,8 @@ def _set_limits(ax_name: str, *args: Any, _expects_output: bool = False) -> Opti
             if ax_upper != "C":
                 setattr(ax, f"_horace_{ax_upper.lower()}limit_method", chosen)
 
+        elif ax_upper != "C":
+            setattr(ax, f"_horace_{ax_upper.lower()}limit_method", "tight")
         setattr(ax, f"_horace_{ax_upper.lower()}lim_mode", "auto")
         _recompute_ax_auto_limits(ax)
         lims = getattr(ax, f"{ax_upper}Lim")
@@ -1531,6 +1591,7 @@ def _set_limits(ax_name: str, *args: Any, _expects_output: bool = False) -> Opti
 
     setattr(ax, f"{ax_upper}Lim", [lo, hi])
     lims = getattr(ax, f"{ax_upper}Lim")
+    fig.canvas.draw_idle()
     return float(lims[0]), float(lims[1])
 
 
@@ -1914,6 +1975,7 @@ def plot_2d_datasets(
             )
 
     ax_h._horace_has_c = True
+    ax_h._horace_surf_type = ptype
     if ptype in ("s", "s2"):
         ax_h._horace_has_z = True
 
