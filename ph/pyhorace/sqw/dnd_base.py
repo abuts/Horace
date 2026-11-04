@@ -970,7 +970,7 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
         """Calculate qh, qk, ql, en for the centres of the bins of an n-dimensional dataset."""
         if nargout is None:
             nargout = _infer_nargout(default=2)
-        pts = self._axes.get_bin_nodes("-bin_centre")
+        pts, _en_nodes = self._axes.get_bin_nodes("-3D", "-bin_centre", nargout=2)
         hkle = self._proj.transform_img_to_hkl(pts)
         q = [
             hkle[0, :].reshape(-1, 1),
@@ -1017,7 +1017,7 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
         elif edges:
             pts = self._axes.get_bin_nodes("-edges")
         else:
-            pts = self._axes.get_bin_nodes("-bin_centre")
+            pts, _en_nodes = self._axes.get_bin_nodes("-3D", "-bin_centre", nargout=2)
         if isinstance(pts, tuple):
             pts = pts[0]
         hkle = self._proj.transform_img_to_hkl(pts)
@@ -1066,6 +1066,21 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
         return val, n
 
     def compact(self) -> "DnDBase":
+        """Squeeze the data range in a DnD object to eliminate empty outer bins."""
+        if self.dimensions == 0:
+            return self.copy()
+        val, n = self.data_bin_limits(nargout=2)
+        if val is None or val.size == 0 or n is None:
+            return self.copy()
+
+        ndim = self.dimensions
+        in_range: List[List[float]] = []
+        for i in range(ndim):
+            pax_idx = int(self._axes.dax[i]) - 1
+            in_range.append([float(val[pax_idx, 0]), float(val[pax_idx, 1])])
+        return self.section(*in_range)
+
+    def _compact_legacy(self) -> "DnDBase":
         """Squeeze the data range in a DnD object to eliminate empty outer bins."""
         wout = self.copy()
         if self.dimensions == 0:
@@ -1122,7 +1137,134 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
         wout.check_combo_arg(False)
         return wout
 
-    def section(self, *args: Any) -> "DnDBase":
+    def section(
+        self,
+        *args: Any,
+        return_irange: bool = False,
+        nargout: int = 1,
+    ) -> Union["DnDBase", Tuple["DnDBase", np.ndarray]]:
+        """Take a section out of an n-dimensional dataset along its display/plot axes."""
+        if len(args) == 0:
+            wout = self.copy()
+            if return_irange or nargout >= 2:
+                return wout, np.zeros((2, 0), dtype=np.int64)
+            return wout
+
+        ndim = self.dimensions
+        if ndim == 0:
+            raise HoraceError(
+                "HORACE:DnDBase:invalid_argument",
+                "Cannot section a zero dimensional object",
+            )
+        if len(args) != ndim:
+            raise HoraceError(
+                "HORACE:DnDBase:invalid_argument",
+                f"Need {ndim} section arguments for a {ndim}D object, got {len(args)}",
+            )
+
+        tol = 4.0 * float(np.finfo(np.float32).eps)
+        irange = np.zeros((2, ndim), dtype=np.int64)
+        slices: List[slice] = [slice(None)] * ndim
+
+        p = self._axes.p
+        nbins_all_dims = self._axes.nbins_all_dims.copy()
+        img_range = self._axes.img_range.copy()
+        cut_range = img_range.copy()
+        p_ind = self._axes.pax.copy()
+        s_ba = self._axes.single_bin_defines_iax.copy()
+        s_ba[self._axes.nbins_all_dims > 1] = True
+
+        for i in range(ndim):
+            req_cut_range = args[i]
+            pax_0 = int(self._axes.dax[i]) - 1
+            p_pax = p[pax_0]
+            sz_pax = len(p_pax) - 1
+
+            is_empty_or_zero = (
+                req_cut_range is None
+                or (isinstance(req_cut_range, str) and len(req_cut_range) == 0)
+                or (isinstance(req_cut_range, (list, tuple, np.ndarray)) and np.asarray(req_cut_range).size == 0)
+                or (
+                    _is_numeric(req_cut_range)
+                    and np.asarray(req_cut_range).size == 1
+                    and float(np.asarray(req_cut_range).flat[0]) == 0.0
+                )
+            )
+            if is_empty_or_zero:
+                irange[0, pax_0] = 1
+                irange[1, pax_0] = sz_pax
+                slices[pax_0] = slice(0, sz_pax)
+            elif _is_numeric(req_cut_range) and np.asarray(req_cut_range).size == 2:
+                arr = np.asarray(req_cut_range, dtype=float).ravel()
+                if arr[0] > arr[1]:
+                    raise HoraceError(
+                        "HORACE:section:invalid_argument",
+                        f"Lower limit larger than upper limit for axis {i + 1}",
+                    )
+                pcent = 0.5 * (p_pax[1:] + p_pax[:-1])
+                lis = np.flatnonzero((pcent >= arr[0] - tol) & (pcent <= arr[1] + tol))
+                if lis.size == 0:
+                    raise HoraceError(
+                        "HORACE:section:invalid_argument",
+                        f"No data along axis {i + 1} in the range [{arr[0]:g}, {arr[1]:g}]",
+                    )
+                i_lo_0 = int(lis[0])
+                i_hi_0 = int(lis[-1])
+                irange[0, pax_0] = i_lo_0 + 1
+                irange[1, pax_0] = i_hi_0 + 1
+                p_ind_0 = int(p_ind[pax_0]) - 1
+                img_range[:, p_ind_0] = [float(p_pax[i_lo_0]), float(p_pax[i_hi_0 + 1])]
+                cut_range[:, p_ind_0] = [float(pcent[i_lo_0]), float(pcent[i_hi_0])]
+                nbins_all_dims[p_ind_0] = i_hi_0 - i_lo_0 + 1
+                slices[pax_0] = slice(i_lo_0, i_hi_0 + 1)
+            else:
+                raise HoraceError(
+                    "HORACE:section:invalid_argument",
+                    f"Limits for axis {i + 1} must be [], [0] or [min, max]",
+                )
+
+        ax_cls = type(self._axes)
+        new_axis_block = ax_cls(
+            nbins_all_dims=nbins_all_dims,
+            img_range=cut_range,
+            single_bin_defines_iax=s_ba,
+            img_scales=self._axes.img_scales,
+        )
+        new_axis_block = self._proj.copy_proj_defined_properties_to_axes(new_axis_block)
+        new_axis_block.title = self._axes.title
+        new_axis_block.filename = self._axes.filename
+        new_axis_block.filepath = self._axes.filepath
+        new_axis_block.label = self._axes.label
+
+        # Preserve display axis order among surviving plot axes
+        new_pax_list = [int(x) for x in new_axis_block.pax]
+        if len(new_pax_list) > 0:
+            orig_axes_in_dax_order = [int(p_ind[int(d) - 1]) for d in self._axes.dax]
+            surviving = [ax for ax in orig_axes_in_dax_order if ax in new_pax_list]
+            if len(surviving) == len(new_pax_list):
+                new_axis_block.dax = np.array(
+                    [new_pax_list.index(ax) + 1 for ax in surviving], dtype=int
+                )
+
+        if ndim == 1 and self._s.ndim == 2 and self._s.shape[1] == 1:
+            idx_tuple: Any = (slices[0], slice(None))
+        elif ndim == 1 and self._s.ndim == 1:
+            idx_tuple = (slices[0],)
+        else:
+            idx_tuple = tuple(slices)
+
+        target_shape = tuple(int(x) for x in new_axis_block.dims_as_ssize)
+        s_sub = self._s[idx_tuple].reshape(target_shape, order="F").copy(order="F")
+        e_sub = self._e[idx_tuple].reshape(target_shape, order="F").copy(order="F")
+        npix_sub = self._npix[idx_tuple].reshape(target_shape, order="F").copy(order="F")
+
+        data = DnDBase.dnd(new_axis_block, self.proj, s_sub, e_sub, npix_sub)
+        data.axes.img_range = img_range
+        if return_irange or nargout >= 2:
+            return data, irange
+        return data
+
+    def _section_legacy(self, *args: Any) -> "DnDBase":
         """Take a section out of an n-dimensional dataset along its plot axes."""
         ndim = self.dimensions
         if ndim == 0:
@@ -1827,7 +1969,53 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
         wout.title = self.title
         return wout
 
-    def replicate(self, wref: Any) -> "DnDBase":
+    def replicate(self, wref: Any, *args: Any) -> Any:
+        """
+        Make a higher dimensional dataset from a lower dimensional dataset by
+        replicating the data along the extra dimensions of a reference dataset ``wref``.
+
+        Ported from ``horace_core/sqw/@DnDBase/replicate.m``.
+        """
+        import warnings
+
+        set_pix = False
+        for a in args:
+            if isinstance(a, str) and a.lower().startswith("-set_pix"):
+                set_pix = True
+            else:
+                raise HoraceError(
+                    "HORACE:sqw:invalid_argument",
+                    f"Unrecognized option to replicate: {a!r}",
+                )
+
+        from pyhorace.sqw.sqw import sqw
+
+        if isinstance(wref, sqw):
+            if set_pix:
+                if wref.has_pixels:
+                    return sqw(self).replicate(wref, "-set_pix")
+                warnings.warn(
+                    "-set_pix key is provided as input of replicate(dnd,sqw_ref_object,'-set_pix'), "
+                    "but sqw_ref_object does not contain pixels",
+                    UserWarning,
+                    stacklevel=2,
+                )
+            return self._replicate_legacy(wref.data)
+        if isinstance(wref, DnDBase):
+            if set_pix:
+                warnings.warn(
+                    "-set_pix key is provided as input of replicate(dnd,sqw_ref_object,'-set_pix'), "
+                    "but sqw_ref_object is dnd object",
+                    UserWarning,
+                    stacklevel=2,
+                )
+            return self._replicate_legacy(wref)
+        raise HoraceError(
+            "HORACE:replicate:invalid_argument",
+            f"The second argument must be a scalar dnd or sqw object, got {type(wref).__name__}",
+        )
+
+    def _replicate_legacy(self, wref: Any) -> "DnDBase":
         """Make a higher dimensional dataset from a lower dimensional dataset by
         replicating the data along the extra dimensions of a reference dataset `wref`.
         """
@@ -2272,6 +2460,266 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
         wout._s = s_new
         wout._e = e_new
         return wout
+
+
+    def func_eval(
+        self,
+        func_handle: Callable[..., Any],
+        pars: Any = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> "DnDBase":
+        """Evaluate a function at the plotting axis bin centres of a DnD object.
+
+        Ported from ``horace_core/sqw/@DnDBase/func_eval.m``.
+        """
+        if not callable(func_handle):
+            raise HoraceError(
+                "HORACE:DnDBase:invalid_argument",
+                "First argument to func_eval must be a callable function handle",
+            )
+        if int(self.dimensions) == 0:
+            raise HoraceError(
+                "HORACE:DnDBase:invalid_argument",
+                "Function evaluation not supported for zero dimensional object",
+            )
+
+        if len(args) == 1 and isinstance(args[0], dict):
+            opts = args[0]
+            all_flag = bool(opts.get("all", False) or opts.get("all_bins", False))
+            outfile = opts.get("outfile", "")
+            if isinstance(outfile, (list, tuple)):
+                outfile = outfile[0] if len(outfile) > 0 else ""
+        else:
+            all_flag = bool(kwargs.get("all", False) or kwargs.get("all_bins", False))
+            outfile = kwargs.get("outfile", "")
+            i = 0
+            while i < len(args):
+                a = args[i]
+                if isinstance(a, str) and a.lower().startswith("-al"):
+                    all_flag = True
+                    i += 1
+                elif isinstance(a, str) and a.lower() in ("all", "-all"):
+                    if i + 1 < len(args) and isinstance(args[i + 1], (bool, int)):
+                        all_flag = bool(args[i + 1])
+                        i += 2
+                    else:
+                        all_flag = True
+                        i += 1
+                elif isinstance(a, str) and a.lower().lstrip("-").startswith("fileback"):
+                    i += 1
+                elif isinstance(a, str) and a.lower() in ("outfile", "-outfile"):
+                    if i + 1 >= len(args):
+                        raise HoraceError(
+                            "HORACE:DnDBase:invalid_argument",
+                            "Missing filename after 'outfile'",
+                        )
+                    outfile = args[i + 1]
+                    i += 2
+                else:
+                    raise HoraceError(
+                        "HORACE:DnDBase:invalid_argument",
+                        f"Unrecognised option to func_eval: {a!r}",
+                    )
+
+        ndim = int(self.dimensions)
+        centres = [0.5 * (pi[:-1] + pi[1:]) for pi in self._axes.p]
+        if ndim == 1:
+            coord_cols = [centres[0].reshape(-1, 1)]
+        else:
+            grids = np.meshgrid(*centres, indexing="ij")
+            coord_cols = [g.ravel(order="F").reshape(-1, 1) for g in grids]
+
+        wout = self.copy()
+        empty_npix = self._npix == 0
+        has_any_pix = not np.all(empty_npix)
+
+        if not all_flag and has_any_pix:
+            ok = (~empty_npix).ravel(order="F")
+            coord_sub = [c[ok].reshape(-1, 1) for c in coord_cols]
+            val_sub = np.asarray(
+                _call_user_func(func_handle, *coord_sub, pars=pars), dtype=float
+            ).ravel(order="F")
+            s_flat = np.zeros(self._s.size, dtype=float)
+            s_flat[ok] = val_sub
+            s_new = s_flat.reshape(self._s.shape, order="F")
+        else:
+            val = np.asarray(
+                _call_user_func(func_handle, *coord_cols, pars=pars), dtype=float
+            )
+            s_new = val.reshape(self._s.shape, order="F").copy()
+            if all_flag and not has_any_pix:
+                wout._npix = np.ones_like(self._npix)
+            elif not all_flag and not has_any_pix:
+                s_new[:] = 0.0
+
+        wout._s = s_new
+        wout._e = np.zeros_like(s_new)
+        if outfile:
+            wout.save(outfile)
+        return wout
+
+    def sqw_eval_nopix(
+        self,
+        sqwfunc: Callable[..., Any],
+        pars: Sequence[Any],
+        opts: Dict[str, Any],
+    ) -> "DnDBase":
+        """Evaluate S(Q, w) model function at bin centres of a DnD object.
+
+        Ported from ``horace_core/sqw/@DnDBase/private/sqw_eval_nopix_.m``.
+        """
+        qw = self.calculate_qw_bins()
+        all_bins = bool(opts.get("all_bins", opts.get("all", False)))
+        empty_npix = self._npix == 0
+        has_any_pix = not np.all(empty_npix)
+
+        if not all_bins and has_any_pix:
+            keep = (~empty_npix).ravel(order="F")
+            qw_eval = [q[keep].reshape(-1, 1) for q in qw]
+            val_sub = np.asarray(
+                _call_user_func(sqwfunc, *qw_eval, pars=pars), dtype=float
+            ).ravel(order="F")
+            s_flat = np.zeros(self._s.size, dtype=float)
+            s_flat[keep] = val_sub
+            s_new = s_flat.reshape(self._s.shape, order="F")
+        else:
+            qw_eval = [q.reshape(-1, 1) for q in qw]
+            val = np.asarray(
+                _call_user_func(sqwfunc, *qw_eval, pars=pars), dtype=float
+            )
+            s_new = val.reshape(self._s.shape, order="F").copy()
+
+        self._s = s_new
+        self._e = np.zeros_like(s_new)
+        if all_bins and not has_any_pix:
+            self._npix = np.ones_like(self._npix)
+        return self
+
+    def disp2sqw(
+        self,
+        dispreln: Callable[..., Any],
+        pars: Any,
+        fwhh: Any,
+        *args: Any,
+        **kwargs: Any,
+    ) -> "DnDBase":
+        """Calculate dispersion function on a DnD object.
+
+        Ported from ``horace_core/sqw/@DnDBase/disp2sqw.m``.
+        """
+        all_bins = bool(kwargs.get("all", False) or kwargs.get("all_bins", False))
+        for arg in args:
+            if isinstance(arg, str):
+                a_low = arg.lower().lstrip("-")
+                if "all".startswith(a_low) and len(a_low) >= 2:
+                    all_bins = True
+                elif "average".startswith(a_low) and len(a_low) >= 2:
+                    pass
+                else:
+                    raise HoraceError(
+                        "HORACE:DnDBase:invalid_arguments",
+                        f"Unrecognised option '{arg}'.\n"
+                        "Valid values for optional arguments are '-al[l]'.",
+                    )
+
+        wout = self.copy()
+        q, en = wout.calculate_q_bins(nargout=2)
+        weight = np.asarray(
+            disp2sqw(q, en, dispreln, pars, fwhh), dtype=np.float64
+        ).reshape(wout._s.shape, order="F")
+        if all_bins:
+            if float(np.sum(wout._npix)) == 0.0:
+                wout._npix = np.ones_like(wout._npix)
+        else:
+            omit = wout._npix == 0
+            if np.any(omit):
+                weight = weight.copy()
+                weight[omit] = 0.0
+        wout._s = weight
+        wout._e = np.zeros_like(wout._e)
+        return wout
+
+
+    def calculate_qw_bins(
+        self,
+        *args: str,
+        boundaries: bool = False,
+        edges: bool = False,
+        nargout: Optional[int] = None,
+    ) -> List[np.ndarray]:
+        """Calculate qh, qk, ql, en for the centres (or boundaries/edges) of bins."""
+        norm_args = [
+            a if (isinstance(a, str) and a.startswith("-")) else f"-{a}"
+            for a in args
+        ]
+        ok, mess, flags, _ = _parse_char_options(
+            norm_args, ["-boundaries", "-edges", "-3D"]
+        )
+        if not ok:
+            raise HoraceError("HORACE:DnDBase:invalid_argument", mess)
+        boundaries = boundaries or flags[0]
+        edges = edges or flags[1]
+        do_3d = flags[2]
+        if boundaries and edges:
+            raise HoraceError(
+                "HORACE:DnDBase:invalid_argument",
+                "Cannot specify both '-boundaries' and '-edges'",
+            )
+        node_args: List[str] = []
+        if do_3d:
+            node_args.append("-3D")
+        if boundaries:
+            node_args.append("-boundaries")
+        elif edges:
+            node_args.append("-edges")
+        else:
+            node_args.append("-bin_centre")
+        pts = self._axes.get_bin_nodes(*node_args, nargout=1)
+        if isinstance(pts, tuple):
+            pts = pts[0]
+        hkle = self._proj.transform_img_to_hkl(pts)
+        if do_3d:
+            return [
+                hkle[0, :].reshape(-1, 1),
+                hkle[1, :].reshape(-1, 1),
+                hkle[2, :].reshape(-1, 1),
+            ]
+        return [
+            hkle[0, :].reshape(-1, 1),
+            hkle[1, :].reshape(-1, 1),
+            hkle[2, :].reshape(-1, 1),
+            hkle[3, :].reshape(-1, 1),
+        ]
+
+    @property
+    def img_size_bytes(self) -> int:
+        """Return memory footprint (in bytes) of the s, e, npix image arrays."""
+        return int(self.s.size) * 3 * 8
+
+    def get_se_npix(
+        self, start_pos: int = 1, end_pos: Optional[int] = None
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Return slices of s, e, npix arrays (1-based inclusive indices)."""
+        s_flat = self.s.ravel(order="F")
+        e_flat = self.e.ravel(order="F")
+        npix_flat = self.npix.ravel(order="F")
+        if end_pos is None:
+            end_pos = int(npix_flat.size)
+        return (
+            s_flat[start_pos - 1 : end_pos],
+            e_flat[start_pos - 1 : end_pos],
+            npix_flat[start_pos - 1 : end_pos],
+        )
+
+    def get_npix_block(
+        self, start_pos: int = 1, end_pos: Optional[int] = None
+    ) -> np.ndarray:
+        """Return slice of npix array (1-based inclusive indices)."""
+        npix_flat = self.npix.ravel(order="F")
+        if end_pos is None:
+            end_pos = int(npix_flat.size)
+        return npix_flat[start_pos - 1 : end_pos]
 
 
 def dnd(*args: Any, **kwargs: Any) -> DnDBase:

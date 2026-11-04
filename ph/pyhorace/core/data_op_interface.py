@@ -863,6 +863,41 @@ class data_op_interface(ABC):
                 return wout.binary_op_manager_single(
                     w1, w2, binary_op, ignore_cell_sorting
                 )
+            if page_op_kind == 1:
+                from pyhorace.coord_transf.page_operations.page_op_binary_sqw_double import (
+                    PageOp_binary_sqw_double,
+                )
+
+                op: Any = PageOp_binary_sqw_double()
+            elif page_op_kind == 2:
+                from pyhorace.coord_transf.page_operations.page_op_binary_sqw_img import (
+                    PageOp_binary_sqw_img,
+                )
+
+                op = PageOp_binary_sqw_img()
+            else:
+                from pyhorace.coord_transf.page_operations.page_op_binary_sqw_sqw import (
+                    PageOp_binary_sqw_sqw,
+                )
+
+                op = PageOp_binary_sqw_sqw()
+                op.sort_pixels_in_bins = not bool(ignore_cell_sorting)
+
+            op = op.init(wout, operand, binary_op, flip)
+            if hasattr(wout, "apply_op") and callable(wout.apply_op):
+                return wout.apply_op(wout, op)
+            from pyhorace.sqw.sqw import sqw
+
+            return sqw.apply_op(wout, op)
+        elif False:
+            if (
+                isinstance(wout, data_op_interface)
+                and type(wout).binary_op_manager_single
+                is not data_op_interface.binary_op_manager_single
+            ):
+                return wout.binary_op_manager_single(
+                    w1, w2, binary_op, ignore_cell_sorting
+                )
             if hasattr(wout, "_pix") and hasattr(wout, "has_pixels") and wout.has_pixels():
                 npix_arr = getattr(getattr(wout, "data", wout), "npix", None)
                 op_pix = (
@@ -1172,7 +1207,12 @@ def _invoke_binary_op_manager_single(
     """Dispatch binary_op_manager_single to the leading object operand's class."""
     from pyhorace.data.sigvar import sigvar
 
-    lead = w1 if isinstance(w1, data_op_interface) else (w2 if isinstance(w2, data_op_interface) else None)
+    if isinstance(w1, data_op_interface) and not isinstance(w1, sigvar):
+        lead = w1
+    elif isinstance(w2, data_op_interface) and not isinstance(w2, sigvar):
+        lead = w2
+    else:
+        lead = w1 if isinstance(w1, data_op_interface) else (w2 if isinstance(w2, data_op_interface) else None)
     if isinstance(lead, sigvar):
         return sigvar.binary_op_manager_single(w1, w2, binary_op, ignore_cell_sorting)
     if lead is not None:
@@ -1182,6 +1222,18 @@ def _invoke_binary_op_manager_single(
 
 def _first_object(w1: Any, w2: Any) -> Any:
     """Return the first non-numeric object from (w1, w2) for method dispatch."""
+    from pyhorace.data.sigvar import sigvar
+
+    for w in (w1, w2):
+        obj = None
+        if isinstance(w, data_op_interface):
+            obj = w
+        elif isinstance(w, DataOpArray) and w.size > 0:
+            obj = w.ravel(order="F")[0]
+        elif isinstance(w, (np.ndarray, list, tuple)) and _is_object_or_object_array(w):
+            obj = DataOpArray(w).ravel(order="F")[0]
+        if obj is not None and not isinstance(obj, sigvar):
+            return obj
     for w in (w1, w2):
         if isinstance(w, data_op_interface):
             return w

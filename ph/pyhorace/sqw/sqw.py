@@ -145,7 +145,7 @@ class sqw(SQWDnDBase, sqw_plot_interface):
                 self._pix = PixelDataMemory()
                 return self
 
-            if isinstance(ds,"sqw_binfile_interface"): 
+            if hasattr(ds, "get_sqw") or hasattr(ds, "get_data") or hasattr(ds, "get_main_header"):
                 return self._init_from_loader(
                     ds,
                     pixel_page_size=parsed["pixel_page_size"],
@@ -407,7 +407,7 @@ class sqw(SQWDnDBase, sqw_plot_interface):
             )
 
         if hasattr(loader, "get_sqw") and file_backed is None and pixel_page_size is None:
-            res = loader.get_sqw("-verbatim")
+            res = loader.get_sqw()
             if isinstance(res, sqw):
                 self._copy_from(res)
                 self._trim_old_file_exper_info()
@@ -416,7 +416,7 @@ class sqw(SQWDnDBase, sqw_plot_interface):
             if isinstance(res, dict):
                 return self._init_from_dict(res, pixel_page_size=pixel_page_size, file_backed=file_backed)
 
-        mh = loader.get_main_header("-keep_original") if hasattr(loader, "get_main_header") else main_header_cl()
+        mh = loader.get_main_header() if hasattr(loader, "get_main_header") else main_header_cl()
         exp_info = loader.get_exp_info("-all") if hasattr(loader, "get_exp_info") else Experiment()
         detpar = loader.get_detpar() if hasattr(loader, "get_detpar") else None
         if detpar is not None and exp_info.n_runs > 0 and exp_info.detector_arrays.n_runs == 0:
@@ -436,8 +436,8 @@ class sqw(SQWDnDBase, sqw_plot_interface):
             elif isinstance(detpar, unique_references_container):
                 exp_info.detector_arrays = detpar
 
-        dnd_data_obj = loader.get_dnd("-verbatim") if hasattr(loader, "get_dnd") else (
-            loader.get_data("-verbatim") if hasattr(loader, "get_data") else d0d()
+        dnd_data_obj = loader.get_dnd() if hasattr(loader, "get_dnd") else (
+            loader.get_data() if hasattr(loader, "get_data") else d0d()
         )
         if not isinstance(dnd_data_obj, DnDBase):
             dnd_data_obj = DnDBase.dnd(dnd_data_obj)
@@ -979,7 +979,12 @@ class sqw(SQWDnDBase, sqw_plot_interface):
         """True if ``pix`` contains 0 pixels (usable both as a property and as a 0-arg method)."""
         return _CallableBool(self._pix.num_pixels == 0)
 
-    def has_pixels(self) -> bool:
+    @property
+    def has_pixels(self) -> _CallableBool:
+        """Return True if ``pix`` has at least one pixel (usable as property or 0-arg method)."""
+        return _CallableBool(self._pix.num_pixels > 0)
+
+    def _has_pixels_legacy(self) -> bool:
         """Return True if ``pix`` has at least one pixel."""
         return bool(self._pix.num_pixels > 0)
 
@@ -2026,7 +2031,264 @@ class sqw(SQWDnDBase, sqw_plot_interface):
     def page_op(self, *args: Any, **kwargs: Any) -> Any:
         """Stub for ``@sqw/page_op.m``."""
         # TODO(port-dependency): Port @sqw/page_op.m
-        raise NotImplementedError("sqw.page_op is not yet implemented.")
+        return self.pix.page_op(*args, **kwargs)
+
+    def apply_op(self, *args: Any) -> Any:
+        """Apply a :class:`~pyhorace.coord_transf.page_operations.PageOpBase` operation to this ``sqw`` object.
+
+        Ported from ``@sqw/sqw.m`` (``apply_op``).
+        Can be called as ``wout = w.apply_op(op)`` or ``wout = sqw.apply_op(w, op)``.
+        """
+        operation = args[-1]
+        target = args[0] if len(args) > 1 else self
+        if isinstance(target, (list, tuple, np.ndarray)):
+            if len(target) == 0:
+                return target
+            out = [item.pix.apply_op(item, operation) for item in target]
+            return DataOpArray(out) if isinstance(target, DataOpArray) else out
+        return target.pix.apply_op(target, operation)
+
+    def get_write_handle(self, outfile: str = "", outfile_defined: bool = False) -> Any:
+        """Initialize a :class:`~pyhorace.data.pixels.pix_write_handle.pix_write_handle` for paged output.
+
+        Ported from ``horace_core/sqw/@sqw/get_write_handle.m``.
+        """
+        from pyhorace.data.pixels.pix_write_handle import pix_write_handle
+        from pyhorace.io.sqw_formats_factory import sqw_formats_factory
+
+        if not self.pix.is_filebacked:
+            return None
+        if outfile_defined:
+            op_outfile = str(outfile)
+            move_to_original = False
+        else:
+            op_outfile, move_to_original = PixelDataBase.build_op_filename(
+                self.pix.full_filename, outfile
+            )
+        orig_mh = copy.deepcopy(self._main_header)
+        orig_dmeta = copy.deepcopy(self._data.metadata)
+        ldr = sqw_formats_factory.instance().get_pref_access(self)
+        ldr = ldr.init(self, op_outfile)
+        ldr = ldr.put_sqw("-hold_pix_place")
+        self._main_header = orig_mh
+        self._data.metadata = orig_dmeta
+
+        wh = pix_write_handle(ldr)
+        wh.move_to_original = move_to_original
+        return wh
+
+    def finish_dump(self, page_op: Any) -> "sqw":
+        """Complete writing a file-backed ``sqw`` object after ``PageOp`` execution.
+
+        Ported from ``horace_core/sqw/@sqw/finish_dump.m``.
+        """
+        import shutil
+
+        wh = page_op.write_handle
+        if wh is None:
+            return self
+        if not self.pix.is_filebacked:
+            raise HoraceError(
+                "HORACE:sqw:runtime_error",
+                "Some pixel dump completed in write_handle without sqw pixels been filebacked",
+            )
+        if page_op.outfile:
+            self.full_filename = page_op.outfile
+            out_blocks = ["bl__main_header", "bl_data_metadata", "bl_pix_metadata"]
+        else:
+            self.pix.full_filename = wh.write_file_name
+            out_blocks = ["bl_pix_metadata"]
+
+        pix_meta = wh.finish_pix_dump(self.pix, False)
+        if page_op.outfile:
+            pix_meta.full_filename = page_op.outfile
+        self.pix.metadata = pix_meta
+
+        sqw_ldr = wh.release_pixinit_info(True)
+        if page_op.exp_modified:
+            out_blocks.extend(
+                [
+                    "bl__main_header",
+                    "bl_experiment_info_instruments",
+                    "bl_experiment_info_samples",
+                    "bl_experiment_info_expdata",
+                ]
+            )
+        if not page_op.changes_pix_only:
+            out_blocks.append("bl_data_nd_data")
+        unique_blocks: List[str] = []
+        for b in out_blocks:
+            if b not in unique_blocks:
+                unique_blocks.append(b)
+        sqw_ldr = sqw_ldr.put_new_blocks_values(self, "update", unique_blocks)
+
+        set_as_tmp_obj = False
+        if wh.move_to_original:
+            self.deactivate()
+            page_op.pix.deactivate()
+            sqw_ldr.deactivate()
+            shutil.move(wh.write_file_name, page_op.outfile)
+            if page_op.init_filebacked_output:
+                sqw_ldr.full_filename = page_op.outfile
+                sqw_ldr.activate()
+        elif wh.is_tmp_file and page_op.init_filebacked_output:
+            set_as_tmp_obj = True
+        else:
+            self.tmp_file_holder_ = None
+            self._is_tmp_obj = False
+            self._tmp_file_path = ""
+            self.full_filename = sqw_ldr.full_filename
+
+        if page_op.init_filebacked_output:
+            self.pix = self.pix.init(sqw_ldr)
+            if set_as_tmp_obj:
+                self.set_as_tmp_obj(wh.write_file_name)
+        else:
+            self.pix = PixelDataMemory()
+        sqw_ldr.delete()
+        return self
+
+    def finalize_alignment(self, *args: Any) -> "sqw":
+        """Apply pixel alignment matrix to pixels and recompute bin data if needed.
+
+        Ported from ``horace_core/sqw/@sqw/finalize_alignment.m``.
+        """
+        nopix = any(isinstance(a, str) and a.lower() == "-nopix" for a in args)
+        if not self.pix.is_corrected or nopix:
+            return self
+        return self.recompute_bin_data()
+
+    @staticmethod
+    def generate_cube_sqw(shape: Any, *args: Any) -> "sqw":
+        """Generate an instance of ``sqw`` data with given shape for testing.
+
+        Ported from ``horace_core/sqw/@sqw/generate_cube_sqw.m``.
+        """
+        from pyhorace.coord_transf.a_projection_base import aProjectionBase
+        from pyhorace.coord_transf.axes_block_base import AxesBlockBase
+        from pyhorace.coord_transf.line_axes import line_axes
+        from pyhorace.coord_transf.line_proj import line_proj
+        from pyhorace.data.instr_classes.ix_detector_array import IX_detector_array
+        from pyhorace.data.instr_classes.ix_experiment import IX_experiment
+        from pyhorace.data.instr_classes.ix_null_inst import IX_null_inst
+        from pyhorace.data.instr_classes.ix_sample import IX_sample
+
+        out = sqw()
+        alatt = np.array([2.0 * np.pi, 2.0 * np.pi, 2.0 * np.pi], dtype=np.float64)
+        angdeg = np.array([90.0, 90.0, 90.0], dtype=np.float64)
+
+        if isinstance(shape, (int, float, np.number)) and not isinstance(shape, bool):
+            sh = int(shape)
+            if sh % 2 == 0:
+                minloc = -sh / 2.0
+                maxloc = sh / 2.0
+            else:
+                minloc = -(sh - 1) / 2.0
+                maxloc = (sh - 1) / 2.0
+            img_range = np.vstack([np.ones(4) * minloc, np.ones(4) * maxloc])
+            sqw_axes = line_axes(img_range=img_range, nbins_all_dims=np.ones(4, dtype=int) * sh)
+        elif isinstance(shape, AxesBlockBase):
+            sqw_axes = shape
+            img_range = np.asarray(sqw_axes.img_range, dtype=np.float64)
+        else:
+            raise HoraceError(
+                "HORACE:sqw:not_implemented",
+                f"Currently unsupported input type: {type(shape).__name__}",
+            )
+
+        coord = sqw_axes.get_bin_nodes("-bin_centre")
+        npix = int(coord.shape[1])
+
+        if len(args) > 0 and isinstance(args[0], aProjectionBase):
+            proj = copy.deepcopy(args[0])
+            argi = list(args[1:])
+            if proj.alatt_defined:
+                alatt = np.asarray(proj.alatt, dtype=np.float64)
+            else:
+                proj.alatt = alatt
+            if proj.angdeg_defined:
+                angdeg = np.asarray(proj.angdeg, dtype=np.float64)
+            else:
+                proj.angdeg = angdeg
+        else:
+            argi = list(args)
+            proj = line_proj([1, 0, 0], [0, 1, 0], alatt=alatt, angdeg=angdeg, type="ppr")
+
+        coord = proj.transform_img_to_pix(coord)
+        idx_1_to_npix = np.arange(1, npix + 1, dtype=np.float64)
+        pix_data_arr = np.vstack(
+            [
+                coord,
+                np.ones((1, npix), dtype=np.float64),
+                np.tile(idx_1_to_npix, (4, 1)),
+            ]
+        )
+        pix = PixelDataMemory(pix_data_arr)
+
+        if int(sqw_axes.nbins_all_dims[3]) == 1:
+            en = img_range[:, 3].ravel()
+            efix = float(en[1]) * 1.01
+            if efix <= 0:
+                efix = 1.0
+        else:
+            en = np.asarray(sqw_axes.p[-1], dtype=np.float64).ravel()
+            efix = float(np.max(en)) * 1.01
+
+        samp = IX_sample(alatt, angdeg)
+        expdata_struct = {
+            "filename": "fake",
+            "filepath": "/fake",
+            "efix": efix,
+            "emode": 1,
+            "cu": [1, 0, 0],
+            "cv": [0, 1, 0],
+            "psi": 1,
+            "omega": 1,
+            "dpsi": 1,
+            "gl": 1,
+            "gs": 1,
+            "en": en,
+            "uoffset": [0, 0, 0],
+            "run_id": 1,
+        }
+        detpar_struct = IX_detector_array().get_detpar_representation()
+        detpar_struct["filename"] = "fake"
+        detpar_struct["filepath"] = "/fake"
+
+        samples = samp
+        instruments = IX_null_inst()
+        detector_arrays = IX_detector_array(detpar_struct)
+        expdata = IX_experiment(expdata_struct)
+        expinfo = Experiment(detector_arrays, instruments, samples, expdata)
+
+        ax0 = line_axes(img_range=img_range, nbins_all_dims=[1, 1, 1, 1])
+        ax0 = proj.copy_proj_defined_properties_to_axes(ax0)
+        dnd_0 = DnDBase.dnd(
+            ax0,
+            proj,
+            np.array(float(npix)),
+            np.array(float(npix)),
+            np.array(float(npix)),
+        )
+
+        out._do_check_combo_arg = False
+        out.pix = pix
+        out.experiment_info = expinfo
+        out.data = dnd_0
+        out._do_check_combo_arg = True
+        out.check_combo_arg()
+
+        if len(argi) > 0 and callable(argi[0]):
+            if len(argi) > 1:
+                out = out.sqw_eval(*argi)
+            else:
+                out = out.sqw_eval(argi[0], [])
+            out.pix.variance = np.ones((1, out.pix.num_pixels), dtype=np.float64)
+            out.data.e = np.zeros_like(out.data.s)
+
+        cut_range = sqw_axes.get_cut_range("-full_range")
+        out = out.cut(proj, *cut_range)
+        return out
 
     def parse_pixel_indices(self, *args: Any, **kwargs: Any) -> Any:
         """Stub for ``@sqw/parse_pixel_indices.m``."""
@@ -2036,7 +2298,18 @@ class sqw(SQWDnDBase, sqw_plot_interface):
     def recompute_bin_data(self, *args: Any, **kwargs: Any) -> Any:
         """Stub for ``@sqw/recompute_bin_data.m``."""
         # TODO(port-dependency): Port @sqw/recompute_bin_data.m
-        raise NotImplementedError("sqw.recompute_bin_data is not yet implemented.")
+        from pyhorace.coord_transf.page_operations.page_op_recompute_bins import (
+            PageOp_recompute_bins,
+        )
+
+        outfile = kwargs.get("outfile", args[0] if len(args) > 0 else "")
+        if self.num_pixels == 0:
+            return self
+        op = PageOp_recompute_bins()
+        if outfile:
+            op.outfile = str(outfile)
+        op = op.init(self)
+        return self.apply_op(op)
 
     def refine_crystal(self, *args: Any, **kwargs: Any) -> Any:
         """Stub for ``@sqw/refine_crystal.m``."""
@@ -2326,6 +2599,949 @@ class sqw(SQWDnDBase, sqw_plot_interface):
         """Stub for ``@sqw/xydata.m``."""
         # TODO(port-dependency): Port @sqw/xydata.m
         raise NotImplementedError("sqw.xydata is not yet implemented.")
+
+
+    def apply(
+        self,
+        func_handle: Any,
+        args: Any = None,
+        recompute_bins: bool = True,
+        compute_variance: bool = False,
+    ) -> "sqw":
+        """Apply a function (``func_handle``) to pixels of this ``sqw`` object and recompute the DnD image if requested.
+
+        Ported from ``horace_core/sqw/@sqw/apply.m``.
+        """
+        from pyhorace.coord_transf.page_operations.page_op_apply import PageOp_apply
+
+        if args is None or (isinstance(args, (list, tuple)) and len(args) == 0):
+            args = [[]]
+        page_op = PageOp_apply()
+        page_op = page_op.init(
+            self, func_handle, args, bool(compute_variance), bool(recompute_bins)
+        )
+        return self.apply_op(page_op)
+
+    def func_eval(
+        self,
+        func_handle: Callable[..., Any],
+        pars: Any = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> "sqw":
+        """Evaluate a function at the plotting bin centres of an ``sqw`` object.
+
+        Ported from ``horace_core/sqw/@sqw/func_eval.m``.
+        """
+        func_handle_parsed, pars_cell, opts = self.parse_eval_args(
+            func_handle, pars, *args, **kwargs
+        )
+        if int(self.dimensions()) == 0:
+            raise HoraceError(
+                "HORACE:sqw:invalid_argument",
+                "func_eval not supported for zero dimensional objects.",
+            )
+
+        sqw_type = bool(self.has_pixels())
+        if sqw_type:
+            opts["all"] = False
+            opts["all_bins"] = False
+
+        wout = self.copy()
+        opt_dnd = dict(opts)
+        if sqw_type:
+            opt_dnd["outfile"] = ""
+        wout.data = self.data.func_eval(func_handle_parsed, pars_cell, opt_dnd)
+
+        if sqw_type:
+            from pyhorace.coord_transf.page_operations.page_op_func_eval import (
+                PageOp_func_eval,
+            )
+
+            page_op = PageOp_func_eval()
+            outfile_str = (
+                opts["outfile"][0]
+                if isinstance(opts["outfile"], (list, tuple)) and len(opts["outfile"]) > 0
+                else str(opts["outfile"] or "")
+            )
+            if outfile_str:
+                page_op.outfile = outfile_str
+            page_op.init_filebacked_output = bool(
+                opts.get("filebacked", False) or self.is_filebacked
+            )
+            page_op = page_op.init(wout)
+            wout = sqw.apply_op(wout, page_op)
+
+        if bool(opts.get("all", False)):
+            wout.data.npix = np.ones_like(wout.data.npix)
+
+        return wout
+
+    def sqw_eval(
+        self,
+        sqwfunc: Callable[..., Any],
+        pars: Any = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> "sqw":
+        """Calculate sqw for a model scattering function over input sqw object.
+
+        Ported from ``horace_core/sqw/@SQWDnDBase/sqw_eval.m``.
+        """
+        return super().sqw_eval(sqwfunc, pars, *args, **kwargs)
+
+    def sqw_eval_pix(
+        self,
+        sqwfunc: Callable[..., Any],
+        pars: Any,
+        options: Dict[str, Any],
+        *args: Any,
+        **kwargs: Any,
+    ) -> "sqw":
+        """Helper function for ``sqw_eval`` executed on a full ``sqw`` object containing pixels.
+
+        Ported from ``horace_core/sqw/@sqw/sqw_eval_pix.m``.
+        """
+        from pyhorace.coord_transf.page_operations.page_op_sqw_eval import PageOp_sqw_eval
+
+        eval_op = options.get("pageop_processor")
+        if eval_op is None:
+            eval_op = PageOp_sqw_eval()
+        outfile = options.get("outfile", "")
+        if isinstance(outfile, (list, tuple)):
+            outfile = outfile[0] if len(outfile) > 0 else ""
+        if outfile:
+            eval_op.outfile = str(outfile)
+        eval_op.init_filebacked_output = bool(
+            options.get("filebacked", False) or self.is_filebacked
+        )
+        eval_op = eval_op.init(
+            self, sqwfunc, pars, bool(options.get("average", False))
+        )
+        eval_op.do_nopix = bool(options.get("nopix", False))
+        return sqw.apply_op(self, eval_op)
+
+    def disp2sqw_eval(
+        self,
+        dispreln: Callable[..., Any],
+        pars: Any,
+        fwhh: Any,
+        *args: Any,
+        **kwargs: Any,
+    ) -> "sqw":
+        """Calculate sqw for a model dispersion relation.
+
+        Ported from ``horace_core/sqw/@SQWDnDBase/disp2sqw_eval.m``.
+        """
+        return super().disp2sqw_eval(dispreln, pars, fwhh, *args, **kwargs)
+
+    def equal_to_tol(
+        self,
+        other: Any,
+        tol: Any = (0.0, 0.0),
+        *args: Any,
+        **kwargs: Any,
+    ) -> Tuple[bool, str]:
+        """Test equality of two ``sqw`` objects within tolerance.
+
+        Ported from ``horace_core/sqw/@sqw/equal_to_tol_single.m``.
+        """
+        from pyhorace.core.serializable import compare_values
+
+        name_a = str(kwargs.get("name_a", "input_1"))
+        name_b = str(kwargs.get("name_b", "input_2"))
+        nan_equal = bool(kwargs.get("nan_equal", True))
+        ignore_str = bool(kwargs.get("ignore_str", False))
+        ignore_date = bool(kwargs.get("ignore_date", False))
+        reorder = bool(kwargs.get("reorder", True))
+        fraction = float(kwargs.get("fraction", 1.0))
+
+        if isinstance(tol, str):
+            args = (tol, *args)
+            tol = (0.0, 0.0)
+
+        i = 0
+        while i < len(args):
+            a = args[i]
+            if (
+                isinstance(a, (int, float, np.number, list, tuple, np.ndarray))
+                and not isinstance(a, bool)
+                and i == 0
+                and (tol == 0.0 or tol == (0.0, 0.0))
+            ):
+                tol = a
+                i += 1
+                continue
+            if isinstance(a, str):
+                low = a.lower().lstrip("-")
+                if low == "ignore_date":
+                    if i + 1 < len(args) and isinstance(args[i + 1], (bool, np.bool_)):
+                        ignore_date = bool(args[i + 1])
+                        i += 2
+                    else:
+                        ignore_date = True
+                        i += 1
+                    continue
+                if low == "ignore_str":
+                    if i + 1 < len(args) and isinstance(args[i + 1], (bool, np.bool_)):
+                        ignore_str = bool(args[i + 1])
+                        i += 2
+                    else:
+                        ignore_str = True
+                        i += 1
+                    continue
+                if low == "nan_equal" and i + 1 < len(args):
+                    nan_equal = bool(args[i + 1])
+                    i += 2
+                    continue
+                if low == "reorder" and i + 1 < len(args):
+                    reorder = bool(args[i + 1])
+                    i += 2
+                    continue
+                if low == "fraction" and i + 1 < len(args):
+                    fraction = float(args[i + 1])
+                    i += 2
+                    continue
+                if low == "name_a" and i + 1 < len(args):
+                    name_a = str(args[i + 1])
+                    i += 2
+                    continue
+                if low == "name_b" and i + 1 < len(args):
+                    name_b = str(args[i + 1])
+                    i += 2
+                    continue
+            i += 1
+
+        if type(self) is not type(other):
+            return (
+                False,
+                f'Objects have different types. "{name_a}" has class: "{type(self).__name__}" and "{name_b}" class: "{type(other).__name__}"',
+            )
+
+        for field_name in ("main_header", "detpar", "experiment_info", "data"):
+            tmp1 = getattr(self, field_name, None)
+            tmp2 = getattr(other, field_name, None)
+            if ignore_date:
+                if field_name == "main_header" and tmp1 is not None and tmp2 is not None:
+                    tmp1 = copy.deepcopy(tmp1)
+                    tmp1.creation_date = tmp2.creation_date
+                    tmp1.creation_date_defined_privately = (
+                        tmp2.creation_date_defined_privately
+                    )
+                elif field_name == "data" and tmp1 is not None and tmp2 is not None:
+                    tmp1 = tmp1.copy()
+                    tmp1.creation_date = tmp2.creation_date
+            ok, mess = compare_values(
+                tmp1,
+                tmp2,
+                tol=tol,
+                nan_equal=nan_equal,
+                ignore_str=ignore_str,
+                name_a=f"{name_a}.{field_name}",
+                name_b=f"{name_b}.{field_name}",
+            )
+            if not ok:
+                return False, mess
+
+        npix_arg = self.data.npix.ravel(order="F") if reorder else None
+        return self.pix.equal_to_tol(
+            other.pix,
+            tol=tol,
+            nan_equal=nan_equal,
+            ignore_str=ignore_str,
+            reorder=reorder,
+            npix=npix_arg,
+            fraction=fraction,
+            name_a=f"{name_a}.pix",
+            name_b=f"{name_b}.pix",
+        )
+
+    def sigvar_set(self, sigvar_obj: Any) -> "sqw":
+        """Set output object signal and variance fields from input ``sigvar`` object.
+
+        Ported from ``horace_core/sqw/@sqw/sigvar_set.m``.
+        """
+        w = self.copy()
+        w.data = self.data.copy().sigvar_set(sigvar_obj)
+        if w.has_pixels():
+            from pyhorace.coord_transf.page_operations.page_op_sigvar_set import (
+                PageOp_sigvar_set,
+            )
+
+            page_op = PageOp_sigvar_set()
+            page_op = page_op.init(w)
+            w = sqw.apply_op(w, page_op)
+        return w
+
+    def noisify(self, *args: Any, **kwargs: Any) -> "sqw":
+        """Add random noise to the signal(s) of an ``sqw`` object.
+
+        Ported from ``horace_core/sqw/@sqw/noisify.m``.
+        """
+        wout = self.copy()
+        if wout.has_pixels():
+            from pyhorace.coord_transf.page_operations.page_op_noisify import (
+                PageOp_noisify,
+            )
+
+            page_op = PageOp_noisify()
+            page_op = page_op.init(wout, *args, **kwargs)
+            if not page_op.noisify_par["is_poisson"]:
+                if not wout.pix.is_range_valid("signal"):
+                    is_old_file = bool(getattr(wout.pix, "old_file_format", False))
+                    page_op.print_range_warning(wout.full_filename, is_old_file)
+                    wout = wout.recompute_bin_data()
+                sig_col = int(PixelDataBase.field_index("signal")[0]) - 1
+                max_sig = float(wout.pix.data_range[1, sig_col])
+                page_op.noisify_par["ymax"] = max_sig
+            wout = sqw.apply_op(wout, page_op)
+        else:
+            wout.data = self.data.noisify(*args, **kwargs)
+        return wout
+
+    def mask(self, keep_array: Any = None) -> "sqw":
+        """Remove the bins indicated by the mask array.
+
+        Ported from ``horace_core/sqw/@sqw/mask.m``.
+        """
+        if keep_array is None or (
+            isinstance(keep_array, (list, tuple, np.ndarray))
+            and np.asarray(keep_array).size == 0
+        ):
+            return self.copy()
+        if self.has_pixels():
+            return self.mask_pixels(keep_array, True)
+        wout = self.copy()
+        wout.data = wout.data.mask(keep_array)
+        return wout
+
+    def mask_pixels(
+        self, keep_info: Any = None, mask_by_bins: bool = False
+    ) -> "sqw":
+        """Remove the pixels indicated by the mask array or count.
+
+        Ported from ``horace_core/sqw/@sqw/mask_pixels.m``.
+        """
+        if not self.has_pixels():
+            raise HoraceError(
+                "HORACE:sqw:invalid_argument",
+                "Can mask pixels only in an sqw-type object",
+            )
+        if keep_info is None or (
+            isinstance(keep_info, (list, tuple, np.ndarray))
+            and np.asarray(keep_info).size == 0
+        ):
+            return self.copy()
+
+        from pyhorace.coord_transf.page_operations.page_op_mask import PageOp_mask
+        from pyhorace.sqw.sqw_dnd_base import SQWDnDBase
+
+        if isinstance(keep_info, SQWDnDBase):
+            if not keep_info.has_pixels():
+                raise HoraceError(
+                    "HORACE:sqw:invalid_argument",
+                    "If the mask object is a Horace object if must be sqw-type i.e. contain pixel information",
+                )
+            if self.pix.num_pixels != keep_info.pix.num_pixels:
+                raise HoraceError(
+                    "HORACE:sqw:invalid_argument",
+                    "Number of pixels in input and mask object must be the same",
+                )
+        elif isinstance(
+            keep_info, (int, float, np.number, bool, np.bool_, list, tuple, np.ndarray)
+        ) and not isinstance(keep_info, (str, bytes)):
+            ki_arr = np.asarray(keep_info)
+            is_scalar_num = (
+                ki_arr.size == 1
+                and not isinstance(keep_info, (bool, np.bool_))
+                and not np.issubdtype(ki_arr.dtype, np.bool_)
+            )
+            num_bins = int(np.asarray(self.data.npix).size)
+            if ki_arr.size == num_bins and not is_scalar_num:
+                keep_info = ki_arr.astype(bool)
+                mask_by_bins = True
+            elif ki_arr.size == self.num_pixels or is_scalar_num:
+                if is_scalar_num:
+                    num_keep = int(ki_arr.item())
+                else:
+                    num_keep = int(np.sum(ki_arr.astype(bool)))
+                if num_keep <= 0:
+                    raise HoraceError(
+                        "HORACE:sqw:invalid_argument",
+                        f"Can not mask all pixels. Num pixels to keep should be positive number. Provided: {num_keep}",
+                    )
+                if num_keep > self.num_pixels:
+                    raise HoraceError(
+                        "HORACE:sqw:invalid_argument",
+                        f"Can not keep more pixels then available. Num pixels to keep should be smaller or equal to num_pixels ({self.num_pixels}). Provided: {num_keep}",
+                    )
+                if mask_by_bins:
+                    raise HoraceError(
+                        "HORACE:sqw:invalid_argument",
+                        f"Mask by bins requested but the size of mask ({ki_arr.size}) is equal to size of pixel array instead of npix array ({num_bins})",
+                    )
+            else:
+                raise HoraceError(
+                    "HORACE:sqw:invalid_argument",
+                    f"Mask array should define either pix mask with numel {self.num_pixels} or bin mask with numel {num_bins}. Its numel : {ki_arr.size}",
+                )
+            if not is_scalar_num:
+                keep_info = np.asarray(keep_info, dtype=bool)
+        else:
+            raise HoraceError(
+                "HORACE:sqw:invalid_argument",
+                "Mask must provide a numeric or logical array with same number of elements as the data or an SQW with the same projection and axes",
+            )
+
+        page_op = PageOp_mask()
+        page_op = page_op.init(self, keep_info)
+        if mask_by_bins:
+            page_op.mask_by_bins = True
+        return sqw.apply_op(self, page_op)
+
+    def mask_random_pixels(self, npix: Any = None) -> Any:
+        """Reduce the number of pixels randomly in an ``sqw`` object or sequence of ``sqw`` objects.
+
+        Ported from ``horace_core/sqw/@sqw/mask_random_pixels.m``.
+        """
+        if isinstance(self, (list, tuple, np.ndarray)):
+            objs = list(self)
+            is_seq = True
+        else:
+            objs = [self]
+            is_seq = False
+
+        if not all(o.has_pixels() for o in objs):
+            raise HoraceError(
+                "HORACE:sqw:invalid_argument",
+                "Can not mask random pixels on sqw object not containing any pixels",
+            )
+
+        sz = len(objs)
+        npix_arr = np.floor(np.asarray(npix, dtype=np.float64) + 0.5).astype(np.int64).ravel()
+        if npix_arr.size == 1 and sz > 1:
+            npix_arr = np.repeat(npix_arr, sz)
+
+        if npix_arr.size != sz:
+            raise HoraceError(
+                "HORACE:sqw:invalid_argument",
+                "npix must either be scalar or an array of the same size as input sqw object",
+            )
+
+        if np.any(npix_arr <= 0):
+            raise HoraceError(
+                "HORACE:sqw:invalid_argument",
+                "Cannot mask every pixel",
+            )
+
+        if any(objs[i].num_pixels < int(npix_arr[i]) for i in range(sz)):
+            raise HoraceError(
+                "HORACE:sqw:invalid_argument",
+                "Cannot retain greater number of pixels than data contains",
+            )
+
+        wout = [objs[i].mask_pixels(int(npix_arr[i])) for i in range(sz)]
+        if not is_seq:
+            return wout[0]
+        return DataOpArray(wout) if isinstance(self, DataOpArray) else wout
+
+    def mask_random_fraction_pixels(self, npix_frac: Any = None) -> Any:
+        """Reduce the number of pixels randomly to a fraction ``npix_frac`` in an ``sqw`` object.
+
+        Ported from ``horace_core/sqw/@sqw/mask_random_fraction_pixels.m``.
+        """
+        if isinstance(self, (list, tuple, np.ndarray)):
+            objs = list(self)
+            is_seq = True
+        else:
+            objs = [self]
+            is_seq = False
+
+        sz = len(objs)
+        frac_arr = np.asarray(npix_frac, dtype=np.float64).ravel()
+        if frac_arr.size == 1 and sz > 1:
+            frac_arr = np.repeat(frac_arr, sz)
+
+        if frac_arr.size != sz:
+            raise HoraceError(
+                "HORACE:sqw:invalid_argument",
+                "npix must either be scalar or an array of the same size as input sqw object",
+            )
+
+        npix_keep = np.zeros(sz, dtype=np.int64)
+        for i in range(sz):
+            fval = float(frac_arr[i])
+            if fval <= 0.0:
+                raise HoraceError(
+                    "HORACE:sqw:invalid_argument",
+                    "Cannot mask every pixel, or have negative fraction of pixels retained",
+                )
+            if fval > 1.0:
+                raise HoraceError(
+                    "HORACE:sqw:invalid_argument",
+                    "Can not have pixel fraction larger then 1",
+                )
+            n_keep = int(np.floor(objs[i].num_pixels * fval + 0.5))
+            if n_keep < 1:
+                n_keep = 1
+            npix_keep[i] = n_keep
+
+        return sqw.mask_random_pixels(self, npix_keep if is_seq else int(npix_keep[0]))
+
+    def slim(self, reduce: Any = None) -> Any:
+        """Slim an ``sqw`` object by removing random pixels by factor ``reduce``.
+
+        Ported from ``horace_core/sqw/@sqw/slim.m``.
+        """
+        red_arr = np.asarray(reduce, dtype=np.float64)
+        if np.any(red_arr < 1.0):
+            raise HoraceError(
+                "HORACE:sqw:invalid_argument",
+                f"reduce factor has to be greater than or equal to 1. It is {reduce}",
+            )
+        return sqw.mask_random_fraction_pixels(self, 1.0 / red_arr)
+
+    def coordinates_calc(self, name: Any = None) -> Any:
+        """Replace the ``sqw`` signal and variance data with coordinate values.
+
+        Ported from ``horace_core/sqw/@sqw/coordinates_calc.m``.
+        """
+        from pyhorace.coord_transf.page_operations.page_op_coord_calc import (
+            PageOp_coord_calc,
+        )
+
+        if name is None:
+            raise HoraceError(
+                "HORACE:coordinates_calc:invalid_argument",
+                "this function requires two input arguments",
+            )
+        if not isinstance(name, str) or len(name) == 0:
+            raise HoraceError(
+                "HORACE:coordinates_calc:invalid_argument",
+                f"Second argument of this function should be char string selected from input list. "
+                f"Its type is {type(name).__name__}",
+            )
+
+        page_op = PageOp_coord_calc()
+        if name not in page_op.xname:
+            raise HoraceError(
+                "HORACE:sqw:invalid_argument",
+                f"Input parameter must be one or group of parameters from list {page_op.xname}\n"
+                f". It is: {name}",
+            )
+        ind = page_op.xname.index(name) + 1
+
+        is_seq = isinstance(self, (list, tuple, np.ndarray))
+        in_objs = list(np.asarray(self, dtype=object).ravel(order="F")) if is_seq else [self]
+        wout = [o.copy() for o in in_objs]
+
+        invalid_dim = [ind <= 4 and ind > w.NUM_DIMS for w in wout]
+        if any(invalid_dim):
+            invalid_nums = [idx + 1 for idx, inv in enumerate(invalid_dim) if inv]
+            invalid_dims = [w.NUM_DIMS for w, inv in zip(wout, invalid_dim) if inv]
+            raise HoraceError(
+                "HORACE:sqw:invalid_argument",
+                f"Coordinate name {page_op.xname[ind - 1]} for object(s) N:{invalid_nums} "
+                f"request axes numbers higher then the dimensionality of sqw object(s): {invalid_dims}",
+            )
+
+        for i in range(len(wout)):
+            page_op = page_op.init(wout[i], ind)
+            wout[i] = sqw.apply_op(wout[i], page_op)
+
+        if not is_seq:
+            return wout[0]
+        if isinstance(self, np.ndarray):
+            out = np.empty(len(wout), dtype=object)
+            for idx, item in enumerate(wout):
+                out[idx] = item
+            return out.reshape(self.shape, order="F")
+        return wout
+
+    def signal(self, xname: Any = None) -> Any:
+        """Set the signal of an ``sqw`` object to the values for the specified coordinate.
+
+        Ported from ``horace_core/sqw/@sqw/signal.m``.
+        """
+        return sqw.coordinates_calc(self, xname)
+
+    def compact(self) -> Any:
+        """Squeeze the data range in the dnd image of an ``sqw`` object to eliminate empty border bins.
+
+        Ported from ``horace_core/sqw/@sqw/compact.m``.
+        """
+        from pyhorace.core.data_op_interface import DataOpArray
+
+        is_seq = isinstance(self, (list, tuple, np.ndarray, DataOpArray))
+        in_objs = list(np.asarray(self, dtype=object).ravel(order="F")) if is_seq else [self]
+        wout = [o.copy() for o in in_objs]
+        for n in range(len(in_objs)):
+            wout[n]._data = in_objs[n]._data.compact()
+        if not is_seq:
+            return wout[0]
+        if isinstance(self, np.ndarray):
+            out = np.empty(len(wout), dtype=object)
+            for idx, item in enumerate(wout):
+                out[idx] = item
+            return out.reshape(self.shape, order="F")
+        if isinstance(self, DataOpArray):
+            return DataOpArray(wout)
+        return wout
+
+    def section(self, *args: Any, nargout: Optional[int] = None) -> Any:
+        """Take a section out of an ``sqw`` object along its existing plot axes.
+
+        Ported from ``horace_core/sqw/@sqw/section.m``.
+        """
+        from pyhorace.coord_transf.bmatrix import _infer_nargout
+        from pyhorace.coord_transf.page_operations.page_op_section import PageOp_section
+        from pyhorace.core.data_op_interface import DataOpArray
+
+        if nargout is None:
+            nargout = _infer_nargout(default=1)
+
+        is_seq = isinstance(self, (list, tuple, np.ndarray, DataOpArray))
+        in_objs = list(np.asarray(self, dtype=object).ravel(order="F")) if is_seq else [self]
+        wout = [o.copy() for o in in_objs]
+
+        if len(args) == 0:
+            res = wout[0] if not is_seq else (DataOpArray(wout) if isinstance(self, DataOpArray) else wout)
+            return (res, np.empty((0, 0), dtype=int)) if nargout == 2 else res
+
+        ndim = int(in_objs[0].dimensions)
+        if ndim == 0:
+            raise HoraceError(
+                "HORACE:sqw:invalid_argument",
+                "Cannot section a zero dimensional object",
+            )
+        if len(in_objs) > 1 and any(int(o.dimensions) != ndim for o in in_objs[1:]):
+            raise HoraceError(
+                "HORACE:sqw:invalid_argument",
+                "All objects must have same dimensionality for sectioning to work",
+            )
+        if len(args) != ndim:
+            raise HoraceError(
+                "HORACE:sqw:invalid_argument",
+                "Check number of arguments",
+            )
+
+        page_op = PageOp_section()
+        irange = np.empty((0, 0), dtype=int)
+        for n in range(len(in_objs)):
+            img, irange = wout[n].data.section(*args, nargout=2)
+            if bool(in_objs[n].has_pixels):
+                page_op = page_op.init(wout[n], img, irange)
+                wout[n] = sqw.apply_op(wout[n], page_op)
+            else:
+                wout[n].data = img
+
+        if not is_seq:
+            res = wout[0]
+        elif isinstance(self, np.ndarray):
+            out = np.empty(len(wout), dtype=object)
+            for idx, item in enumerate(wout):
+                out[idx] = item
+            res = out.reshape(self.shape, order="F")
+        elif isinstance(self, DataOpArray):
+            res = DataOpArray(wout)
+        else:
+            res = wout
+
+        if nargout == 2:
+            return res, irange
+        return res
+
+    def replicate(self, wref: Any, *args: Any) -> Any:
+        """Make a higher-dimensional dataset from a lower-dimensional dataset by replicating along extra axes.
+
+        Ported from ``horace_core/sqw/@sqw/replicate.m``.
+        """
+        import warnings
+        from pyhorace.coord_transf.page_operations.page_op_sigvar_set import (
+            PageOp_sigvar_set,
+        )
+        from pyhorace.core.data_op_interface import DataOpArray
+
+        is_seq = isinstance(self, (list, tuple, np.ndarray, DataOpArray))
+        in_objs = list(np.asarray(self, dtype=object).ravel(order="F")) if is_seq else [self]
+
+        ndim = int(in_objs[0].dimensions)
+        for o in in_objs[1:]:
+            if int(o.dimensions) != ndim:
+                raise HoraceError(
+                    "HORACE:replicate:invalid_argument",
+                    "Check first input argument - an array of sqw objects must all have the same dimensionality",
+                )
+
+        set_pix = False
+        for a in args:
+            if isinstance(a, str) and a.lower().startswith("-set_pix"):
+                set_pix = True
+            else:
+                raise HoraceError(
+                    "HORACE:sqw:invalid_argument",
+                    f"Unrecognized option to replicate: {a!r}",
+                )
+
+        if not isinstance(wref, (sqw, DnDBase)):
+            raise HoraceError(
+                "HORACE:replicate:invalid_argument",
+                f"The second argument must be a scalar dnd or sqw object, actually its type is {type(wref).__name__}",
+            )
+
+        wref_dnd_type = wref.data if isinstance(wref, sqw) else wref
+        wref_has_pix = bool(isinstance(wref, sqw) and bool(wref.has_pixels))
+
+        wout: List[Any] = []
+        for i in range(len(in_objs)):
+            dnd_obj = in_objs[i].dnd() if isinstance(in_objs[i], sqw) else in_objs[i]
+            rep_obj = dnd_obj.replicate(wref_dnd_type)
+            if set_pix:
+                if wref_has_pix:
+                    w_item = wref.copy()
+                    w_item.data.s = rep_obj.s
+                    w_item.data.e = rep_obj.e
+                    page_op = PageOp_sigvar_set()
+                    page_op.in_replicate = True
+                    page_op = page_op.init(w_item)
+                    w_item = sqw.apply_op(w_item, page_op)
+                    wout.append(w_item)
+                else:
+                    if isinstance(wref, DnDBase):
+                        explanation = "sqw_ref_object is a dnd object"
+                    else:
+                        explanation = "sqw_ref_object is sqw object without pixels"
+                    warnings.warn(
+                        f"-set_pix key is provided as input of replicate(sqw_rep,sqw_ref_object,\"-set_pix\"), but {explanation}",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+                    wout.append(rep_obj)
+            else:
+                wout.append(rep_obj)
+
+        if not is_seq:
+            return wout[0]
+        if isinstance(self, np.ndarray):
+            out = np.empty(len(wout), dtype=object)
+            for idx, item in enumerate(wout):
+                out[idx] = item
+            return out.reshape(self.shape, order="F")
+        if isinstance(self, DataOpArray):
+            return DataOpArray(wout)
+        return wout
+
+    @property
+    def img_size_bytes(self) -> int:
+        """Return memory footprint (in bytes) of the s, e, npix image arrays."""
+        return self._data.img_size_bytes
+
+    def get_se_npix(
+        self, start_pos: int = 1, end_pos: Optional[int] = None
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Return slices of s, e, npix arrays (1-based inclusive indices)."""
+        return self._data.get_se_npix(start_pos, end_pos)
+
+    def get_npix_block(
+        self, start_pos: int = 1, end_pos: Optional[int] = None
+    ) -> np.ndarray:
+        """Return slice of npix array (1-based inclusive indices)."""
+        return self._data.get_npix_block(start_pos, end_pos)
+
+    def get_dnd_metadata(self) -> Any:
+        """Return dnd_metadata from the underlying DnD object."""
+        return self._data.metadata
+
+    def split(self, *args: Any, **kwargs: Any) -> Any:
+        """Split an ``sqw`` object into an array of ``sqw`` objects (or files), one per contributing run.
+
+        Ported from ``horace_core/sqw/@sqw/split.m``.
+        """
+        from pyhorace.coord_transf.page_operations.page_op_split_sqw import (
+            PageOp_split_sqw,
+        )
+        from pyhorace.core.configurations.hpc_config import hpc_config
+        from pyhorace.core.data_op_interface import DataOpArray
+
+        if isinstance(self, (list, tuple, np.ndarray, DataOpArray)):
+            if len(self) > 1:
+                raise HoraceError(
+                    "HORACE:split:not_implemented",
+                    "split currently works with only one sqw object",
+                )
+            self = self[0]
+
+        return_files = False
+        split_filebacked = False
+        argi: List[Any] = []
+        for a in args:
+            if isinstance(a, str) and a.startswith("-"):
+                a_low = a.lower()
+                if "-files".startswith(a_low) and len(a_low) >= 5 and a_low != "-filebacked"[:len(a_low)]:
+                    return_files = True
+                elif a_low == "-files":
+                    return_files = True
+                elif "-filebacked".startswith(a_low):
+                    split_filebacked = True
+                else:
+                    raise HoraceError(
+                        "HORACE:split:invalid_arguments",
+                        f"Unrecognised option: {a}",
+                    )
+            else:
+                argi.append(a)
+
+        if len(argi) > 0:
+            folder_for_parts = str(argi[0])
+            if not os.path.isdir(folder_for_parts):
+                try:
+                    os.makedirs(folder_for_parts, exist_ok=True)
+                except Exception as exc:
+                    raise HoraceError(
+                        "HORACE:split:invalid_argument",
+                        f"folder {folder_for_parts} does not exist and can not be created. Reason: {exc}",
+                    ) from exc
+        else:
+            folder_for_parts = ""
+
+        nfiles = int(self.main_header.nfiles)
+        if nfiles == 1:
+            return self.copy()
+
+        if self.pix.is_filebacked and (return_files or split_filebacked):
+            self.pix.keep_precision = True
+
+        split_img_size = self.img_size_bytes
+        split_pix_size = int(self.pix.num_pixels) * int(self.pix.pix_byte_size)
+        total_size = split_img_size * nfiles + split_pix_size
+
+        mem_available = hpc_config().phys_mem_available
+
+        page_op = PageOp_split_sqw()
+        pix_filebacked = False
+        img_filebacked = False
+        if total_size > mem_available or split_filebacked or return_files:
+            pix_filebacked = True
+            img_filebacked = (split_img_size * nfiles > mem_available) or return_files
+
+        page_op.outfile = folder_for_parts
+        page_op = page_op.init(self, pix_filebacked, img_filebacked)
+        page_op.init_filebacked_output = (
+            bool(page_op.init_filebacked_output) or split_filebacked
+        )
+        if img_filebacked:
+            page_op.init_filebacked_output = False
+        wout = sqw.apply_op(self, page_op)
+        return wout
+
+    def run_inspector(self, *args: Any, **kwargs: Any) -> Tuple[Dict[str, Any], int, Any]:
+        """Inspect individual contributing runs of a 1D or 2D ``sqw`` object.
+
+        Ported from ``horace_core/sqw/@sqw/run_inspector.m``.
+        """
+        from pyhorace.core.data_op_interface import DataOpArray
+
+        if isinstance(self, (list, tuple, np.ndarray, DataOpArray)):
+            if len(self) != 1:
+                raise HoraceError(
+                    "HORACE:run_inspector:invalid_argument",
+                    "Input dataset must be a single sqw object",
+                )
+            self = self[0]
+        if not isinstance(self, sqw):
+            raise HoraceError(
+                "HORACE:run_inspector:invalid_argument",
+                "Input dataset must be a single sqw object",
+            )
+
+        all_args: List[Any] = list(args)
+        for k, v in kwargs.items():
+            all_args.extend([k, v])
+
+        pr: Dict[str, Any] = {
+            "obj": self,
+            "col": np.empty(0, dtype=np.float64),
+            "ax": np.empty(0, dtype=np.float64),
+            "test_parser": False,
+            "test_videofig": False,
+        }
+
+        short_par = ("ax", "col", "test_parser", "test_videofig")
+        idx = 0
+        while idx < len(all_args):
+            raw_k = all_args[idx]
+            if not isinstance(raw_k, str):
+                raise HoraceError(
+                    "HORACE:run_inspector:invalid_argument",
+                    f"Expected parameter name string, got {type(raw_k).__name__}",
+                )
+            k_low = raw_k.lower()
+            matched_k = None
+            for sp in short_par:
+                if k_low.startswith(sp):
+                    matched_k = sp
+                    break
+            if matched_k is None:
+                raise HoraceError(
+                    "HORACE:run_inspector:invalid_argument",
+                    f"Unrecognized parameter name: {raw_k}",
+                )
+            if idx + 1 >= len(all_args):
+                raise HoraceError(
+                    "HORACE:run_inspector:invalid_argument",
+                    f"Parameter '{raw_k}' is missing a value",
+                )
+            val = all_args[idx + 1]
+            idx += 2
+
+            if matched_k == "col":
+                val_arr = np.asarray(val, dtype=np.float64).ravel()
+                if val_arr.size != 2 or not (val_arr[0] < val_arr[1]):
+                    raise HoraceError(
+                        "HORACE:run_inspector:invalid_argument",
+                        "Invalid 'col' parameter: must be [c_lo, c_hi] with c_lo < c_hi",
+                    )
+                pr["col"] = val_arr
+            elif matched_k == "ax":
+                val_arr = np.asarray(val, dtype=np.float64).ravel()
+                if (
+                    val_arr.size != 4
+                    or not (val_arr[0] < val_arr[1])
+                    or not (val_arr[2] < val_arr[3])
+                ):
+                    raise HoraceError(
+                        "HORACE:run_inspector:invalid_argument",
+                        "Invalid 'ax' parameter: must be [x_lo, x_hi, y_lo, y_hi] with x_lo < x_hi and y_lo < y_hi",
+                    )
+                pr["ax"] = val_arr
+            elif matched_k == "test_parser":
+                if not isinstance(val, (bool, np.bool_)):
+                    raise HoraceError(
+                        "HORACE:run_inspector:invalid_argument",
+                        "Invalid 'test_parser' parameter: must be logical",
+                    )
+                pr["test_parser"] = bool(val)
+            elif matched_k == "test_videofig":
+                if not isinstance(val, (bool, np.bool_)):
+                    raise HoraceError(
+                        "HORACE:run_inspector:invalid_argument",
+                        "Invalid 'test_videofig' parameter: must be logical",
+                    )
+                pr["test_videofig"] = bool(val)
+
+        nd = int(self.dimensions()[0]) if isinstance(self.dimensions(), tuple) else int(self.dimensions())
+        if nd < 1 or nd > 2:
+            raise HoraceError(
+                "HORACE:run_inspector:invalid_argument",
+                f"***  Input dataset must be an sqw object with 1 or 2-dimensions image.\n"
+                f"     The image of the provided object has: {nd}-dimensions.",
+            )
+
+        if pr["test_parser"]:
+            return pr, nd, []
+
+        split_array = self.split()
+        return pr, nd, split_array
 
 
 def symmetrise_sqw(win: Any, *args: Any, **kwargs: Any) -> sqw:

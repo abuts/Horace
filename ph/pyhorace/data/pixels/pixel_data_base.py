@@ -933,6 +933,32 @@ class PixelDataBase(Serializable, data_op_interface, abc.ABC):
         self._page_num = 1
         return self
 
+    def set_pix_page_chunks(self, chunks: Sequence[np.ndarray]) -> "PixelDataBase":
+        """Set pixel page chunks used to return appropriate blocks of pixels per page."""
+        if not isinstance(chunks, (list, tuple)):
+            raise HoraceError(
+                f"HORACE:PixelDataBase:invalid_argument - "
+                f"pixel chunks have to be defined by a list of pixel blocks to read. Provided {type(chunks).__name__}"
+            )
+        chunk_list = [np.asarray(c) for c in chunks]
+        if len(chunk_list) == 0:
+            self._pix_page_chunks = []
+            self._pix_page_idx_start = np.array([], dtype=np.intp)
+            return self
+        chunk_sizes = np.array([int(np.sum(c)) for c in chunk_list], dtype=np.intp)
+        pix_pos_end = np.cumsum(chunk_sizes)
+        if int(pix_pos_end[-1]) != self.num_pixels:
+            raise HoraceError(
+                f"HORACE:PixelDataBase:invalid_argument - "
+                f"Number of pixels in chunks ({int(pix_pos_end[-1])}) does not equal total number of pixels ({self.num_pixels})"
+            )
+        self._pix_page_chunks = chunk_list
+        self._pix_page_idx_start = np.concatenate(([1], pix_pos_end[:-1] + 1)).astype(np.intp)
+        return self
+        """Move to the first page of pixels."""
+        self._page_num = 1
+        return self
+
     @property
     def page_num(self) -> int:
         return self.get_page_num()
@@ -1097,7 +1123,7 @@ class PixelDataBase(Serializable, data_op_interface, abc.ABC):
                 low = a.lower()
                 if low == "-ignore_range":
                     ignore_range = True
-                elif low == "-raw_data":
+                elif low in ("-raw_data", "-raw"):
                     raw_data = True
                 elif low == "-keep_precision":
                     keep_precision = True
@@ -1519,7 +1545,29 @@ class PixelDataBase(Serializable, data_op_interface, abc.ABC):
         self.variance = sv.e
         return self
 
+    def apply(
+        self,
+        func_handles: Union[Callable[..., Any], Sequence[Callable[..., Any]]],
+        args: Any = None,
+        compute_variance: bool = True,
+        npix: Any = None,
+    ) -> "PixelDataBase":
+        """Apply one or more function handles to pixel data using ``PageOp_apply``."""
+        from pyhorace.coord_transf.page_operations.page_op_apply import PageOp_apply
+
+        op = PageOp_apply()
+        op = op.init(self, func_handles, args, compute_variance, npix)
+        return self.apply_op(self, op)
+
     def do_unary_op(self, unary_op: Callable[..., Any]) -> "PixelDataBase":
+        """Apply ``unary_op`` (a ``sigvar`` unary operation) across all pixel pages."""
+        from pyhorace.coord_transf.page_operations.page_op_unary_op import PageOp_unary_op
+
+        op = PageOp_unary_op()
+        op = op.init(self, unary_op)
+        return self.apply_op(self, op)
+
+    def _do_unary_op_legacy(self, unary_op: Callable[..., Any]) -> "PixelDataBase":
         """Apply ``unary_op`` (a ``sigvar`` unary operation) across all pixel pages."""
         out_obj = self.copy()
         if out_obj.num_pixels == 0:
@@ -1879,8 +1927,24 @@ class PixelDataBase(Serializable, data_op_interface, abc.ABC):
             else:
                 npix_flat = np.asarray(npix, dtype=np.intp).ravel(order="F")
             bin_ids = np.repeat(np.arange(npix_flat.size, dtype=np.intp), npix_flat)
-            d1 = self.get_pixels(np.arange(1, self.num_pixels + 1), "-raw_data")
-            d2 = other.get_pixels(np.arange(1, other.num_pixels + 1), "-raw_data")
+            if 0.0 < fraction < 1.0:
+                spacing = max(1, int(math.floor(1.0 / fraction)))
+                bin_end = np.cumsum(npix_flat)
+                bin_start = bin_end - npix_flat + 1
+                non_empty_bins = np.flatnonzero(npix_flat > 0)
+                selected_bins = non_empty_bins[::spacing]
+                pix_chunks = [
+                    np.arange(bin_start[b], bin_end[b] + 1, dtype=np.intp)
+                    for b in selected_bins
+                ]
+                pix_ind = np.concatenate(pix_chunks) if pix_chunks else np.empty(0, dtype=np.intp)
+                bin_ids = np.repeat(selected_bins, npix_flat[selected_bins])
+            else:
+                pix_ind = np.arange(1, self.num_pixels + 1, dtype=np.intp)
+            if pix_ind.size == 0:
+                return True, ""
+            d1 = self.get_pixels(pix_ind, "-raw_data")
+            d2 = other.get_pixels(pix_ind, "-raw_data")
             order1 = np.lexsort((d1[6, :], d1[5, :], d1[4, :], bin_ids))
             order2 = np.lexsort((d2[6, :], d2[5, :], d2[4, :], bin_ids))
             return _cmp_arrays(d1[:, order1], d2[:, order2], "data")
@@ -1939,6 +2003,27 @@ class PixelDataBase(Serializable, data_op_interface, abc.ABC):
                     det[:, sel.astype(int) - 1] = -det[:, sel.astype(int) - 1]
         self.set_prop("detector_idx", det)
         return self
+
+    def get_write_handle(self, *args: Any) -> Any:
+        """Return a write handle for storing modified pixel pages (None for in-memory)."""
+        return None
+
+    def store_page_data(
+        self, page_data: np.ndarray, write_handle: Any = None
+    ) -> "PixelDataBase":
+        """Store modified pixel page data."""
+        self.set_raw_data(page_data)
+        return self
+
+    def finish_dump(self, page_op: Any = None) -> "PixelDataBase":
+        """Finalize pixel dump after page operations."""
+        if page_op is not None and hasattr(page_op, "pix_data_range_"):
+            self.set_data_range(page_op.pix_data_range_)
+        return self
+
+    def page_op(self, op: Any) -> Any:
+        """Run a PageOpBase operation on this PixelDataBase instance."""
+        return self.apply_op(self, op)
 
     def untag(self, selected: Any = None) -> "PixelDataBase":
         """Untag pixels by restoring positive detector_idx."""

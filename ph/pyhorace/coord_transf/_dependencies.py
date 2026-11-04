@@ -267,6 +267,11 @@ class crystal_alignment_info(Serializable):
             return np.linalg.solve(b0 @ q_to_img, self.rotmat)
 
 
+class _CallableArray(np.ndarray):
+    def __call__(self) -> np.ndarray:
+        return np.asarray(self)
+
+
 class fast_map(Serializable):
     """Fast key-value map for integer/double run IDs and indices."""
 
@@ -302,7 +307,7 @@ class fast_map(Serializable):
 
     @property
     def keys(self) -> np.ndarray:
-        return self._keys.copy()
+        return self._keys.copy().view(_CallableArray)
 
     @keys.setter
     def keys(self, val: Any) -> None:
@@ -310,7 +315,7 @@ class fast_map(Serializable):
 
     @property
     def values(self) -> np.ndarray:
-        return self._values.copy()
+        return self._values.copy().view(_CallableArray)
 
     @values.setter
     def values(self, val: Any) -> None:
@@ -370,6 +375,9 @@ class fast_map(Serializable):
         return self
 
     def get(self, key: Any) -> Any:
+        return self.get_values_for_keys(key)
+
+    def __getitem__(self, key: Any) -> Any:
         return self.get_values_for_keys(key)
 
     def get_values_for_keys(

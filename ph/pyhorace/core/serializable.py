@@ -842,6 +842,20 @@ def compare_values(
     if isinstance(val1, str) and isinstance(val2, str):
         if ignore_str or val1 == val2:
             return True, ""
+        if len(val1) == 19 and len(val2) == 19 and val1[10:11] == "T" and val2[10:11] == "T":
+            try:
+                from datetime import datetime
+
+                dt1 = datetime.fromisoformat(val1)
+                dt2 = datetime.fromisoformat(val2)
+                if abs((dt1 - dt2).total_seconds()) <= 60.0:
+                    return True, ""
+                return (
+                    False,
+                    f"Object {name_a} with Time={dt1.strftime('%d-%b-%Y %H:%M:%S')}  and object {name_b}, with Time={dt2.strftime('%d-%b-%Y %H:%M:%S')} are different for more than a minute",
+                )
+            except ValueError:
+                pass
         return False, f"{name_a} and {name_b} strings differ: '{val1}' != '{val2}'"
 
     # Lists / Tuples
@@ -916,6 +930,8 @@ def compare_values(
                     return False, f"{name_a} and {name_b}: NaN patterns differ"
                 valid_mask = ~nan_mask1
             else:
+                if np.any(np.isnan(arr1)) or np.any(np.isnan(arr2)):
+                    return False, f"{name_a} and {name_b}: NaN elements present"
                 valid_mask = np.ones(arr1.shape, dtype=bool)
 
             denom = np.maximum(np.abs(arr1), np.abs(arr2))

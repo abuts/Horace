@@ -235,6 +235,9 @@ class PixelDataFileBacked(PixelDataBase):
             self._offset = self._facc_offset(facc)
             self._tail = self._facc_tail(facc)
             self._full_filename = getattr(facc, "full_filename", "") or getattr(arg, "full_filename", "")
+            if self._tmp_file_holder is not None and self._tmp_file_holder.file_name != self._full_filename:
+                self._tmp_file_holder.release()
+                self._tmp_file_holder = None
             self._page_num = 1
 
             if hasattr(arg, "faccess_version"):
@@ -378,6 +381,18 @@ class PixelDataFileBacked(PixelDataBase):
         out._page_num = 1
         return out
 
+    def __copy__(self) -> "PixelDataFileBacked":
+        return self.copy()
+
+    def __deepcopy__(self, memo: Optional[Any] = None) -> "PixelDataFileBacked":
+        return self.copy()
+
+    def _unused_copy_marker(self) -> None:
+        out = PixelDataFileBacked()
+        out.init(self)
+        out._page_num = 1
+        return out
+
     def delete(self) -> None:
         """Close the file accessor and delete temporary file if owned."""
         if self._f_accessor is not None:
@@ -446,7 +461,15 @@ class PixelDataFileBacked(PixelDataBase):
         self._tmp_file_holder = _TmpFileHolder(fn)
         return self
 
-    def get_write_handle(self, targ_filename: str = "") -> pix_write_handle:
+    def get_write_handle(self, targ_filename: str = "", *args: Any) -> pix_write_handle:
+        targ_fn, move_to_orig = PixelDataBase.build_op_filename(
+            self.full_filename, targ_filename, *args
+        )
+        wh = pix_write_handle(targ_fn, keep_precision=self.keep_precision)
+        wh.move_to_original = move_to_orig
+        return wh
+
+    def _get_write_handle_legacy(self, targ_filename: str = "") -> pix_write_handle:
         targ_fn, _ = PixelDataBase.build_op_filename(self.full_filename, targ_filename)
         return pix_write_handle(targ_fn, keep_precision=self.keep_precision)
 
@@ -455,19 +478,37 @@ class PixelDataFileBacked(PixelDataBase):
         return self
 
     def finish_dump(self, wh_or_op: Any) -> "PixelDataFileBacked":
+        """Complete paged write from a :class:`pix_write_handle` or :class:`PageOpBase`."""
+        is_page_op = hasattr(wh_or_op, "pix_data_range_")
+        wh: pix_write_handle = wh_or_op if isinstance(wh_or_op, pix_write_handle) else getattr(wh_or_op, "write_handle", wh_or_op)
+        if is_page_op and not getattr(wh, "move_to_original", False):
+            target = PixelDataFileBacked()
+            target._keep_precision = self._keep_precision
+            target._base_page_size = self._base_page_size
+            target.finish_dump(wh)
+            target._data_range = wh_or_op.pix_data_range_.copy()
+            return target
+        return self._finish_dump_inplace(wh_or_op)
+
+    def _finish_dump_inplace(self, wh_or_op: Any) -> "PixelDataFileBacked":
         """Complete paged write from a :class:`pix_write_handle` and activate new accessor."""
-        wh: pix_write_handle = getattr(wh_or_op, "write_handle", wh_or_op)
+        wh: pix_write_handle = wh_or_op if isinstance(wh_or_op, pix_write_handle) else getattr(wh_or_op, "write_handle", wh_or_op)
         if self._tmp_file_holder is not None:
             self._tmp_file_holder.release()
             self._tmp_file_holder = None
 
         self._f_accessor = wh.f_accessor
+        wh.delete_target_file_ = False
         self._f_accessor_activated = True
         self._num_pixels = wh.num_pixels
         self._offset = self._facc_offset(wh.f_accessor)
         self._tail = self._facc_tail(wh.f_accessor)
         self._full_filename = wh.write_FileName
-        self._data_range = wh.pix_range.copy()
+        self._data_range = (
+            wh_or_op.pix_data_range_.copy()
+            if hasattr(wh_or_op, "pix_data_range_")
+            else wh.pix_range.copy()
+        )
         self._page_num = 1
         if hasattr(self._f_accessor, "put_pix_metadata"):
             try:
@@ -832,7 +873,8 @@ class PixelDataFileBacked(PixelDataBase):
         if val.full_filename and os.path.isfile(val.full_filename) and self._f_accessor is None:
             self._f_accessor = _open_faccess_for_file(val.full_filename)
             self._f_accessor_activated = True
-            self._num_pixels = self._facc_num_pixels(self._f_accessor)
+            if self._num_pixels == 0:
+                self._num_pixels = self._facc_num_pixels(self._f_accessor)
         return self
 
     @staticmethod
@@ -845,6 +887,51 @@ class PixelDataFileBacked(PixelDataBase):
             page_op.common_op(pg)
             page_op.update_img_accumulators()
         return page_op.finish_op(obj_in)
+
+
+    @staticmethod
+    def apply_op(obj_in: "PixelDataFileBacked", page_op: Any) -> Any:
+        """Apply a ``PageOpBase`` across all pages of a file-backed pixel dataset."""
+        if hasattr(page_op, "common_op") and not hasattr(page_op, "common_page_op"):
+            npix_chunks = [obj_in.get_page_size()]
+            for pg in range(1, obj_in.num_pages + 1):
+                obj_in.page_num = pg
+                page_op.get_page_data(pg, npix_chunks)
+                page_op.common_op(pg)
+                page_op.update_img_accumulators()
+            return page_op.finish_op(obj_in)
+
+        if not getattr(page_op, "_initialized", False):
+            page_op = page_op.init(obj_in)
+        pix = page_op.pix
+        if pix.num_pixels == 0:
+            fin = page_op.finish_op(obj_in)
+            return fin[0] if isinstance(fin, tuple) else fin
+
+        mem_chunk_size = pix.base_page_size
+        npix = page_op.npix
+        npix_chunks, npix_idx, page_op = page_op.split_into_pages(npix, mem_chunk_size)
+        if isinstance(pix, PixelDataFileBacked) and type(page_op).__name__ not in ("PageOp_join_sqw", "PageOp_section"):
+            pix.set_pix_page_chunks(npix_chunks)
+
+        n_chunks = len(npix_chunks)
+        for i in range(1, n_chunks + 1):
+            page_op = page_op.get_page_data(i, npix_chunks)
+            if isinstance(page_op, tuple):
+                page_op = page_op[0]
+            res = page_op.apply_op(npix_chunks[i - 1], npix_idx[:, i - 1])
+            if isinstance(res, tuple):
+                page_op = res[0]
+            else:
+                page_op = res
+            page_op = page_op.common_page_op()
+
+        fin = page_op.finish_op(obj_in)
+        out_obj = fin[0] if isinstance(fin, tuple) else fin
+        pix.page_num = 1
+        pix._pix_page_chunks = []
+        pix._pix_page_idx_start = np.array([], dtype=np.intp)
+        return out_obj
 
 
 register_serializable(PixelDataFileBacked)

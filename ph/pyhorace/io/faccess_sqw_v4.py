@@ -994,6 +994,9 @@ class faccess_sqw_v4(binfile_v4_common, sqw_file_interface):
                     update = True
                 elif s == "nopix":
                     nopix = True
+                elif s == "hold_pix_place":
+                    nopix = True
+                    reserve = True
                 elif s == "reserve":
                     reserve = True
             elif isinstance(a, (int, np.integer)) and not isinstance(a, bool):
@@ -1038,6 +1041,9 @@ class faccess_sqw_v4(binfile_v4_common, sqw_file_interface):
                     verbatim = True
                 elif s == "nopix":
                     nopix = True
+                elif s == "hold_pix_place":
+                    nopix = True
+                    reserve = True
                 elif s == "reserve":
                     reserve = True
                 elif s == "update":

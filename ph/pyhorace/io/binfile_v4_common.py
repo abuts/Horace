@@ -227,7 +227,11 @@ class binfile_v4_common(horace_binfile_interface):
         self.check_combo_arg()
 
         facc_mode = other_obj.io_mode
-        if write_mode and (facc_mode == "rb" or (facc_mode == "wb+" and other_obj.data_in_file)):
+        facc_mode = other_obj.io_mode
+        if facc_mode == "wb+" and other_obj.data_in_file:
+            self.data_in_file_ = True
+            facc_mode = "rb+" if write_mode else "rb"
+        elif write_mode and (facc_mode == "rb" or (facc_mode == "wb+" and other_obj.data_in_file)):
             self.data_in_file_ = True
             facc_mode = "rb+"
 

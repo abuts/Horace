@@ -200,6 +200,41 @@ class ExpDataList(list):
         """Return 1D numpy array of ``run_id`` values across all ``IX_experiment`` objects."""
         return np.array([float(x.run_id) for x in self], dtype=float)
 
+    def __init__(self, iterable: Iterable[Any] = (), owner: Optional["Experiment"] = None) -> None:
+        super().__init__(iterable)
+        self._owner: Optional["Experiment"] = owner
+
+    def __setitem__(self, idx: Any, val: Any) -> None:
+        if isinstance(val, dict):
+            val = IX_experiment(val)
+        if isinstance(idx, (int, np.integer)) and int(idx) == len(self):
+            super().append(val)
+        else:
+            super().__setitem__(idx, val)
+        if getattr(self, "_owner", None) is not None:
+            self._owner.expdata = list(self)
+
+    def append(self, val: Any) -> None:
+        if isinstance(val, dict):
+            val = IX_experiment(val)
+        super().append(val)
+        if getattr(self, "_owner", None) is not None:
+            self._owner.expdata = list(self)
+
+    @property
+    def run_id(self) -> Any:
+        """Return scalar ``run_id`` when list has 1 element, or array of ``run_id`` values."""
+        if len(self) == 1:
+            return float(self[0].run_id)
+        return self.get_run_ids()
+
+    @run_id.setter
+    def run_id(self, val: Any) -> None:
+        if len(self) == 1 and np.isscalar(val):
+            self[0].run_id = float(val)
+        else:
+            self.set_run_ids(np.atleast_1d(val))
+
     def set_run_ids(self, ids: Sequence[float]) -> "ExpDataList":
         """Set ``run_id`` values across all ``IX_experiment`` objects."""
         ids_arr = np.asarray(ids, dtype=float).ravel()
@@ -547,6 +582,8 @@ class Experiment(Serializable):
 
     @property
     def expdata(self) -> ExpDataList:
+        self._expdata._owner = self
+        return self._expdata
         return self._expdata
 
     @expdata.setter
@@ -563,6 +600,15 @@ class Experiment(Serializable):
 
     @runid_map.setter
     def runid_map(self, val: Any) -> None:
+        if isinstance(val, (list, tuple, range, np.ndarray)) and not isinstance(val, fast_map):
+            k_arr = np.asarray(val, dtype=float).ravel()
+            if k_arr.size == len(self._expdata):
+                v_arr = (
+                    np.asarray(self._runid_map.values, dtype=int).ravel()
+                    if self._runid_map.n_members == k_arr.size
+                    else np.arange(1, k_arr.size + 1, dtype=int)
+                )
+                val = fast_map(k_arr, v_arr)
         if not isinstance(val, fast_map):
             raise ValueError(
                 f"HORACE:Experiment:invalid_argument: runid_map must be a fast_map instance, got {type(val).__name__}"
@@ -1377,6 +1423,14 @@ class Experiment(Serializable):
             single = copy.deepcopy(non_empty[0])
             if nout == 1:
                 return single
+            if not keep_runid and single.n_runs > 0:
+                ids = np.arange(1, single.n_runs + 1, dtype=int)
+                single.runid_map = fast_map(ids, ids)
+                single._runid_recalculated = True
+            if nout == 3:
+                nspe = np.array([single.n_runs], dtype=int)
+                run_id_array = np.array([float(x.run_id) for x in single._expdata], dtype=float)
+                return single, nspe, run_id_array
             return single, [None]
 
         first = non_empty[0]
@@ -1423,6 +1477,16 @@ class Experiment(Serializable):
 
         if nout == 1:
             return exp_out
+        if nout == 3:
+            nspe = np.array([e.n_runs for e in all_exps], dtype=int)
+            file_id_list: List[float] = []
+            for e in all_exps:
+                file_id_list.extend(float(x.run_id) for x in e._expdata)
+            if not keep_runid:
+                run_id_array = np.arange(1, len(file_id_list) + 1, dtype=float)
+            else:
+                run_id_array = np.array(file_id_list, dtype=float)
+            return exp_out, nspe, run_id_array
         return exp_out, nsqw_change_runid
 
     # ------------------------------------------------------------------

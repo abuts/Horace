@@ -165,6 +165,15 @@ class sigvar(data_op_interface, Serializable):
             self.check_combo_arg()
 
     @property
+    def mask(self) -> np.ndarray:
+        """Return mask array (alias for ``msk``)."""
+        return self.msk
+
+    @mask.setter
+    def mask(self, val: Any) -> None:
+        self.msk = val
+
+    @property
     def msk(self) -> np.ndarray:
         """Return mask array, expanding [] as true(size(s)) as required."""
         if self._mask.size == 0:

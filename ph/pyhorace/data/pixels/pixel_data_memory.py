@@ -406,5 +406,65 @@ class PixelDataMemory(PixelDataBase):
         return page_op.finish_op(obj_in)
 
 
+    def store_page_data(
+        self, page_data: np.ndarray, write_handle: Any = None
+    ) -> "PixelDataMemory":
+        """Store modified pixel page data into memory or to a write_handle."""
+        if write_handle is not None:
+            write_handle.save_data(page_data)
+            return self
+        self.set_raw_data(page_data)
+        return self
+
+    def finish_dump(self, page_op: Any = None) -> "PixelDataBase":
+        """Finalize pixel dump after page operations."""
+        wh = getattr(page_op, "write_handle", None) if page_op is not None else None
+        if wh is None:
+            if page_op is not None and hasattr(page_op, "pix_data_range_"):
+                self.set_data_range(page_op.pix_data_range_)
+            return self
+        from pyhorace.data.pixels.pixel_data_file_backed import PixelDataFileBacked
+
+        fb = PixelDataFileBacked()
+        return fb.finish_dump(page_op)
+
+    @staticmethod
+    def apply_op(obj_in: Any, page_op: Any) -> Any:
+        """Apply a ``PageOpBase`` instance to ``obj_in``."""
+        if hasattr(page_op, "common_op") and not hasattr(page_op, "common_page_op"):
+            page_op.get_page_data(1, [1])
+            page_op.common_op(1)
+            page_op.update_img_accumulators()
+            return page_op.finish_op(obj_in)
+
+        if not getattr(page_op, "_initialized", False):
+            page_op = page_op.init(obj_in)
+
+        if page_op.pix.num_pixels == 0:
+            fin = page_op.finish_op(obj_in)
+            return fin[0] if isinstance(fin, tuple) else fin
+
+        npix = page_op.npix
+        mem_chunk_size = max(1, int(np.sum(npix)))
+        npix_chunks, npix_idx, page_op = page_op.split_into_pages(npix, mem_chunk_size)
+
+        page_op = page_op.get_page_data(1, npix_chunks)
+        if isinstance(page_op, tuple):
+            page_op = page_op[0]
+        idx_arg = (
+            npix_idx[:, 0]
+            if npix_idx.ndim == 2 and npix_idx.shape[1] > 0
+            else npix_idx
+        )
+        res = page_op.apply_op(npix, idx_arg)
+        if isinstance(res, tuple):
+            page_op = res[0]
+        else:
+            page_op = res
+        page_op = page_op.common_page_op()
+        fin = page_op.finish_op(obj_in)
+        return fin[0] if isinstance(fin, tuple) else fin
+
+
 register_serializable(PixelDataMemory)
 
