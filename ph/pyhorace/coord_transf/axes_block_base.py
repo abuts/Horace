@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import re
 from abc import ABC
 from typing import Any, ClassVar, List, Optional, Sequence, Tuple, Union
 
@@ -20,6 +21,41 @@ from pyhorace.core.configurations.config_store import config_store
 from pyhorace.core.serializable import Serializable
 
 EPS_SINGLE = float(np.finfo(np.float32).eps)
+
+_TEX_COMMANDS = (
+    "varepsilon|vartheta|varpi|varrho|varsigma|varphi|"
+    "alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|"
+    "Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|"
+    "AA|leq|geq|neq|approx|equiv|sim|pm|mp|times|cdot|div|infty|partial|nabla|perp|parallel|hbar|ell|circ|langle|rangle"
+)
+_TEX_TOKEN_RE = re.compile(
+    r"(?:[A-Za-z0-9]+(?=[_\^]))?"
+    r"(?:"
+    r"\\(?:" + _TEX_COMMANDS + r")(?![A-Za-z])(?:[_\^](?:\{[^}]*\}|\\(?:" + _TEX_COMMANDS + r")(?![A-Za-z])|[A-Za-z0-9+-]))*"
+    r"|"
+    r"(?:[_\^](?:\{[^}]*\}|\\(?:" + _TEX_COMMANDS + r")(?![A-Za-z])))+"
+    r")"
+)
+_WIN_PATH_RE = re.compile(r"^[A-Za-z]:[\\/]")
+
+
+def tex_to_mathtext(text: str) -> str:
+    """Convert MATLAB-style TeX expressions (e.g. ``\\zeta``, ``\\AA^{-1}``,
+    ``Q_{\\perp}``, ``\\leq``) into Matplotlib mathtext (``$...$``) while
+    preserving already-wrapped ``$...$`` blocks and Windows file paths.
+    """
+    if not text or ("\\" not in text and "^" not in text and "_{" not in text):
+        return text
+    out_lines: List[str] = []
+    for line in text.split("\n"):
+        if _WIN_PATH_RE.match(line.strip()):
+            out_lines.append(line)
+            continue
+        parts = line.split("$")
+        for i in range(0, len(parts), 2):
+            parts[i] = _TEX_TOKEN_RE.sub(lambda m: f"${m.group(0)}$", parts[i])
+        out_lines.append("$".join(parts))
+    return "\n".join(out_lines)
 
 
 def normalize_signal(
@@ -2604,9 +2640,9 @@ class AxesBlockBase(Serializable, ABC):
             else:
                 prefix = ""
             if u_str:
-                title_pax.append(f"{prefix}{lbl} ({u_str})")
+                title_pax.append(tex_to_mathtext(f"{prefix}{lbl} ({u_str})"))
             else:
-                title_pax.append(f"{prefix}{lbl}")
+                title_pax.append(tex_to_mathtext(f"{prefix}{lbl}"))
 
         title_iax: List[str] = []
         for idx_i, ax_num in enumerate(self.iax):
@@ -2615,13 +2651,13 @@ class AxesBlockBase(Serializable, ABC):
             r0 = float(self._img_range[0, idx]) + off
             r1 = float(self._img_range[1, idx]) + off
             lbl = self._label[idx]
-            title_iax.append(f"{r0:.3g} \\leq {lbl} \\leq {r1:.3g}")
+            title_iax.append(tex_to_mathtext(f"{r0:.3g} \\leq {lbl} \\leq {r1:.3g}"))
 
         main_lines = []
         if self._filename:
             main_lines.append(self._filename)
         if self._title:
-            main_lines.append(self._title)
+            main_lines.append(tex_to_mathtext(self._title))
         if title_iax:
             main_lines.append(", ".join(title_iax))
         title_main = "\n".join(main_lines) if main_lines else ""

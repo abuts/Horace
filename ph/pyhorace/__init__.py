@@ -22,7 +22,7 @@ from pyhorace.core.hashable import (
 from pyhorace.core.serializable import Serializable
 from pyhorace.data.sigvar import SigVar, sigvar
 from pyhorace.io import main_header_cl, parse_full_filename
-import pyhorace.coord_transf as coord_transf  # Ensure coord_transf initializes before sqw
+import pyhorace.coord_transf as ctr  # Ensure coord_transf initializes before sqw
 from pyhorace.sqw import (
     DnDBase,
     SQWDnDBase,

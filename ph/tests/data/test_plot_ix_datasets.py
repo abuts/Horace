@@ -476,6 +476,25 @@ class TestPlotSingleton:
                 genieplot.set(prop, bad_val)
             assert "invalid_argument" in str(excinfo.value)
 
+    def test_tex_greek_letters_rendered_as_mathtext(self):
+        from pyhorace.data.ix_axis import IX_axis
+
+        _, _, _, w2_h, *_ = make_data()
+        w2 = w2_h[0].copy()
+        w2.x_axis = IX_axis("[1-\\zeta, 1+\\zeta, 0] in 2.19 \\AA^{-1}")
+        w2.y_axis = IX_axis("En (meV)")
+        w2.title = [
+            "e:\\SHARE\\Fe\\Data\\sqw\\sqw2024\\Fe_ei200_align_sym3.sqw",
+            "-0.1 \\leq [1+\\xi, 1+\\xi, 0] \\leq 0.1, -0.1 \\leq [0, 0, 1+\\eta] \\leq 0.1",
+        ]
+        fig_h, ax_h, _ = da(w2)
+        assert ax_h.get_xlabel() == "[1-$\\zeta$, 1+$\\zeta$, 0] in 2.19 $\\AA^{-1}$"
+        assert "$\\leq$" in ax_h.get_title()
+        assert "$\\xi$" in ax_h.get_title()
+        assert "$\\eta$" in ax_h.get_title()
+        assert "e:\\SHARE\\Fe\\Data\\sqw\\sqw2024\\Fe_ei200_align_sym3.sqw" in ax_h.get_title()
+        fig_h.canvas.draw()
+
     def test_setterGetterSyntax_interoperability(self):
         genieplot.reset()
         a = genieplot.instance()
@@ -1084,3 +1103,22 @@ class TestPlotIXDataset1And2:
             with pytest.raises(HoraceError) as excinfo:
                 meth(self.T)
             assert "invalid_argument" in str(excinfo.value)
+
+    def test_tex_greek_letters_rendered_as_mathtext(self):
+        from pyhorace.data.ix_axis import IX_axis
+
+        _, _, _, w2_h, *_ = make_data()
+        w2 = w2_h[0].copy()
+        w2.x_axis = IX_axis("[1-\\zeta, 1+\\zeta, 0] in 2.19 \\AA^{-1}")
+        w2.y_axis = IX_axis("En (meV)")
+        w2.title = [
+            "e:\\SHARE\\Fe\\Data\\sqw\\sqw2024\\Fe_ei200_align_sym3.sqw",
+            "-0.1 \\leq [1+\\xi, 1+\\xi, 0] \\leq 0.1, -0.1 \\leq [0, 0, 1+\\eta] \\leq 0.1",
+        ]
+        fig_h, ax_h, _ = da(w2)
+        assert ax_h.get_xlabel() == "[1-$\\zeta$, 1+$\\zeta$, 0] in 2.19 $\\AA^{-1}$"
+        assert "$\\leq$" in ax_h.get_title()
+        assert "$\\xi$" in ax_h.get_title()
+        assert "$\\eta$" in ax_h.get_title()
+        assert "e:\\SHARE\\Fe\\Data\\sqw\\sqw2024\\Fe_ei200_align_sym3.sqw" in ax_h.get_title()
+        fig_h.canvas.draw()

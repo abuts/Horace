@@ -32,6 +32,7 @@ from matplotlib.collections import PolyCollection
 from matplotlib.figure import Figure
 from matplotlib.patches import Polygon
 
+from pyhorace.coord_transf.axes_block_base import tex_to_mathtext
 from pyhorace.core.configurations import HoraceConfigError, graph_config, hor_config
 from pyhorace.core.data_op_interface import DataOpArray
 from pyhorace.core.exceptions import HoraceError as _CoreHoraceError
@@ -1743,13 +1744,13 @@ def plot_1d_datasets(
         ax_h.XScale = graph_config.get("XScale")
         ax_h.YScale = graph_config.get("YScale")
         xlab, slab = datasets[0].make_label()
-        ax_h.set_xlabel("\n".join(xlab) if isinstance(xlab, list) else str(xlab))
-        ax_h.set_ylabel("\n".join(slab) if isinstance(slab, list) else str(slab))
+        ax_h.set_xlabel(tex_to_mathtext("\n".join(xlab) if isinstance(xlab, list) else str(xlab)))
+        ax_h.set_ylabel(tex_to_mathtext("\n".join(slab) if isinstance(slab, list) else str(slab)))
         if datasets[0].title:
             ax_h.set_title(
-                "\n".join(datasets[0].title)
+                tex_to_mathtext("\n".join(datasets[0].title))
                 if isinstance(datasets[0].title, list)
-                else str(datasets[0].title)
+                else tex_to_mathtext(str(datasets[0].title))
             )
 
     colors = _ensure_list(graph_config.get("colors"))
@@ -1965,13 +1966,13 @@ def plot_2d_datasets(
         ax_h.YScale = graph_config.get("YScale")
         ax_h.ZScale = graph_config.get("ZScale")
         xlab, ylab, _ = datasets[0].make_label()
-        ax_h.set_xlabel("\n".join(xlab) if isinstance(xlab, list) else str(xlab))
-        ax_h.set_ylabel("\n".join(ylab) if isinstance(ylab, list) else str(ylab))
+        ax_h.set_xlabel(tex_to_mathtext("\n".join(xlab) if isinstance(xlab, list) else str(xlab)))
+        ax_h.set_ylabel(tex_to_mathtext("\n".join(ylab) if isinstance(ylab, list) else str(ylab)))
         if datasets[0].title:
             ax_h.set_title(
-                "\n".join(datasets[0].title)
+                tex_to_mathtext("\n".join(datasets[0].title))
                 if isinstance(datasets[0].title, list)
-                else str(datasets[0].title)
+                else tex_to_mathtext(str(datasets[0].title))
             )
 
     ax_h._horace_has_c = True

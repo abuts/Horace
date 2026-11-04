@@ -80,3 +80,21 @@ class TestProjCaptions:
         _, pax_cr, _ = cax.data_plot_titles()
         assert "rad" in pax_cr[1]
 
+    def test_line_axes_offset_rlu_and_mathtext(self):
+        lp = line_proj(
+            [-1, 1, 0],
+            [1, 1, 0],
+            "offset",
+            [1, 1, 0],
+            alatt=[2.87, 2.87, 2.87],
+            angdeg=[90, 90, 90],
+        )
+        ax = line_axes([-1, 0.02, 1], [-0.1, 0.1], [-0.1, 0.1], [0, 2, 100])
+        ax = lp.copy_proj_defined_properties_to_axes(ax)
+        title_main, title_pax, title_iax = ax.data_plot_titles()
+        assert title_pax[0].startswith("[1-$\\zeta$, 1+$\\zeta$, 0] in ")
+        assert "$\\AA^{-1}$" in title_pax[0]
+        assert "[1+$\\xi$, 1+$\\xi$, 0]" in title_iax[0]
+        assert "$\\leq$" in title_iax[0]
+        assert "Offset: [1, 1, 0]" in title_main
+

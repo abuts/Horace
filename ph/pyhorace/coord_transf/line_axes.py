@@ -7,7 +7,7 @@ from typing import Any, List, Optional, Tuple
 import numpy as np
 
 from pyhorace.coord_transf._dependencies import HoraceError
-from pyhorace.coord_transf.axes_block_base import EPS_SINGLE, AxesBlockBase
+from pyhorace.coord_transf.axes_block_base import EPS_SINGLE, AxesBlockBase, tex_to_mathtext
 from pyhorace.coord_transf.expand_box import expand_box
 
 
@@ -124,7 +124,7 @@ class line_axes(AxesBlockBase):
         pax_ordered = self.pax[self.dax - 1] if self.pax.size > 0 else np.array([], dtype=int)
 
         # Compute base offset in hkl from offset + integrated Q axes midpoints
-        base_hkl_off = dirs[:3, :3] @ self._offset[:3]
+        base_hkl_off = self._offset[:3].astype(float).copy()
         for iax_num in self.iax:
             idx_i = int(iax_num) - 1
             if idx_i < 3:
@@ -138,11 +138,11 @@ class line_axes(AxesBlockBase):
             if idx < 3:
                 dir_vec = dirs[:3, idx]
                 vec_str = _fmt_vec_with_var(base_hkl_off, dir_vec, lbl)
-                title_pax.append(f"{vec_str} in {u_val:.3g} \\AA^{{-1}}")
+                title_pax.append(tex_to_mathtext(f"{vec_str} in {u_val:.3g} \\AA^{{-1}}"))
             else:
                 off_e = float(self._offset[3])
                 prefix = f"{_fmt_num(off_e)} + " if abs(off_e) > 1e-6 else ""
-                title_pax.append(f"{prefix}{lbl} (meV)")
+                title_pax.append(tex_to_mathtext(f"{prefix}{lbl} (meV)"))
 
         title_iax: List[str] = []
         for ax_num in self.iax:
@@ -152,12 +152,12 @@ class line_axes(AxesBlockBase):
             r1 = float(self._img_range[1, idx])
             if idx < 3:
                 dir_vec = dirs[:3, idx]
-                vec_str = _fmt_vec_with_var(np.zeros(3), dir_vec, lbl)
-                title_iax.append(f"{r0:.3g} \\leq {vec_str} \\leq {r1:.3g}")
+                vec_str = _fmt_vec_with_var(self._offset[:3], dir_vec, lbl)
+                title_iax.append(tex_to_mathtext(f"{r0:.3g} \\leq {vec_str} \\leq {r1:.3g}"))
             else:
                 off_e = float(self._offset[3])
                 title_iax.append(
-                    f"{r0 + off_e:.3g} \\leq {lbl} \\leq {r1 + off_e:.3g} (meV)"
+                    tex_to_mathtext(f"{r0 + off_e:.3g} \\leq {lbl} \\leq {r1 + off_e:.3g} (meV)")
                 )
 
         main_lines = []
@@ -167,7 +167,7 @@ class line_axes(AxesBlockBase):
             else:
                 main_lines.append(self._filename)
         if self._title:
-            main_lines.append(self._title)
+            main_lines.append(tex_to_mathtext(self._title))
         if not np.allclose(self._offset[:3], 0.0):
             off_terms = [_fmt_num(x) for x in base_hkl_off]
             main_lines.append("Offset: [" + ", ".join(off_terms) + "]")
