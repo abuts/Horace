@@ -123,7 +123,10 @@ Create `<class_name>.py` adhering to idiomatic Python and NumPy best practices:
 
 #### 3. Properties, Encapsulation, & `persistent` State
 - **Public stored properties**: Standard instance attributes or Pydantic fields `field_name: Type = default`. Keep property names matching `saveable_fields()` if MAT-file / struct compatibility is required.
-- **Private properties (`Access = private/protected`)**: Use single leading underscore `_prop` or Pydantic `PrivateAttr()`.
+- **Protected & Private properties and methods (`prop_` -> `_prop`)**:
+  - MATLAB Horace/Herbert code marks protected/private properties and helper methods with a trailing underscore (e.g., `property_name_`, `helper_method_`).
+  - In Python, **always convert trailing-underscore protected/private names to a single leading underscore** (`_property_name`, `_helper_method`) and strip the trailing underscore. On `Serializable` (Pydantic `BaseModel`) classes, leading-underscore attributes are automatically treated as `PrivateAttr()` and excluded from public `model_fields`.
+  - Apply the same `_property_name` / `_helper_method` renaming consistently across subclasses and white-box unit tests (`test_*.py`).
 - **Dependent properties (`Dependent`)**: Use `@property` only for genuinely computed properties (derived on the fly from other fields):
   ```python
   @property
