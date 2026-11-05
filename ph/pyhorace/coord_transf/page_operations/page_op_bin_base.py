@@ -37,8 +37,8 @@ class PageOp_bin_Base(PageOpBase):
         self.op_handle: Optional[Callable[..., Any]] = None
         self.operand: Any = None
         self.flip: bool = False
-        self.sigvar_idx_: np.ndarray = PixelDataBase.field_index("sig_var") - 1
-        self.all_idx_: np.ndarray = PixelDataBase.field_index("all_indexes") - 1
+        self._sigvar_idx: np.ndarray = PixelDataBase.field_index("sig_var") - 1
+        self._all_idx: np.ndarray = PixelDataBase.field_index("all_indexes") - 1
         self.sigvar1: sigvar = sigvar()
         self.sigvar2: sigvar = sigvar()
         self._last_pix_idx: np.ndarray = np.array([], dtype=np.intp)
@@ -59,25 +59,25 @@ class PageOp_bin_Base(PageOpBase):
         self.operand = operand
         self.flip = bool(flip)
 
-        if self.img_ is None:
+        if self._img is None:
             name1_obj = "pix"
         else:
             name1_obj = "sqw"
 
         if npix is not None and np.asarray(npix).size > 0:
             npix_arr = np.asarray(npix, dtype=np.int64).ravel(order="F")
-            if self.pix_.num_pixels != int(np.sum(npix_arr)):
+            if self._pix.num_pixels != int(np.sum(npix_arr)):
                 raise HoraceError(
                     f"HORACE:PageOp_bin_Base:invalid_argument - "
-                    f"Number of pixels of the first operand ({self.pix_.num_pixels}) inconsistent "
+                    f"Number of pixels of the first operand ({self._pix.num_pixels}) inconsistent "
                     f"with their bin-distribution, provided as #5-th argument npix ({int(np.sum(npix_arr))})"
                 )
             self.npix = npix_arr
 
         if not self.changes_pix_only:
-            self.var_acc_ = np.zeros(self.npix.size, dtype=np.float64)
+            self._var_acc = np.zeros(self.npix.size, dtype=np.float64)
 
-        self.pix_idx_start_ = 1
+        self._pix_idx_start = 1
         if nargout == 2:
             return self, name1_obj
         return self
@@ -95,16 +95,16 @@ class PageOp_bin_Base(PageOpBase):
         """
         npix_block = np.asarray(npix_blocks[idx - 1])
         npix_count = int(np.sum(npix_block))
-        pix_idx_end = self.pix_idx_start_ + npix_count - 1
+        pix_idx_end = self._pix_idx_start + npix_count - 1
 
         if npix_count > 0:
-            pix_idx = np.arange(self.pix_idx_start_, pix_idx_end + 1, dtype=np.intp)
+            pix_idx = np.arange(self._pix_idx_start, pix_idx_end + 1, dtype=np.intp)
         else:
             pix_idx = np.array([], dtype=np.intp)
-        self.page_data_ = np.asarray(
-            self.pix_.get_pixels(pix_idx, "-raw", "-align"), dtype=np.float64
+        self._page_data = np.asarray(
+            self._pix.get_pixels(pix_idx, "-raw", "-align"), dtype=np.float64
         )
-        self.pix_idx_start_ = pix_idx_end + 1
+        self._pix_idx_start = pix_idx_end + 1
         self.page_num = idx
         self._last_pix_idx = pix_idx
 
@@ -120,6 +120,6 @@ class PageOp_bin_Base(PageOpBase):
         else:
             name1 = obj1_name
             name2 = obj2_name
-        self.op_name_ = f"binary op: {_func_to_str(self.op_handle)} between {name1} and {name2}"
+        self._op_name = f"binary op: {_func_to_str(self.op_handle)} between {name1} and {name2}"
         return self
 

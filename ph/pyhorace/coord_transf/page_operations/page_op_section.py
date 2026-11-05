@@ -27,10 +27,10 @@ class PageOp_section(PageOpBase):
 
     def __init__(self, *args: Any) -> None:
         super().__init__(*args)
-        self.op_name_ = "section"
-        self.block_starts_: np.ndarray = np.empty(0, dtype=np.int64)
-        self.block_sizes_: np.ndarray = np.empty(0, dtype=np.int64)
-        self.block_chunks_: List[Tuple[np.ndarray, np.ndarray]] = []
+        self._op_name = "section"
+        self._block_starts: np.ndarray = np.empty(0, dtype=np.int64)
+        self._block_sizes: np.ndarray = np.empty(0, dtype=np.int64)
+        self._block_chunks: List[Tuple[np.ndarray, np.ndarray]] = []
         self.unique_runid_holder: np.ndarray = np.empty(0, dtype=np.int64)
         self.check_runid: bool = True
 
@@ -49,11 +49,11 @@ class PageOp_section(PageOpBase):
         if sqw_obj is None:
             return self
         super().init(sqw_obj)
-        self.block_starts_, self.block_sizes_ = self.find_section(
-            self.img_.npix, ind_ranges
+        self._block_starts, self._block_sizes = self.find_section(
+            self._img.npix, ind_ranges
         )
-        self.block_chunks_ = [(self.block_starts_, self.block_sizes_)]
-        self.img_ = new_img
+        self._block_chunks = [(self._block_starts, self._block_sizes)]
+        self._img = new_img
         self.unique_runid_holder = np.empty(0, dtype=np.int64)
         self.check_runid = True
         return self
@@ -62,17 +62,17 @@ class PageOp_section(PageOpBase):
         self, npix: np.ndarray, chunk_size: Union[int, float]
     ) -> Tuple[List[Tuple[np.ndarray, np.ndarray]], np.ndarray, "PageOp_section"]:
         """
-        Split ``block_starts_`` and ``block_sizes_`` into pages of maximum pixel count
+        Split ``_block_starts`` and ``_block_sizes`` into pages of maximum pixel count
         ``chunk_size``.
         """
         size_chunks, pos_chunks = split_data_blocks(
-            self.block_starts_, self.block_sizes_, chunk_size
+            self._block_starts, self._block_sizes, chunk_size
         )
-        self.block_chunks_ = [
+        self._block_chunks = [
             (pos_ch, sz_ch) for pos_ch, sz_ch in zip(pos_chunks, size_chunks)
         ]
-        npix_idx = np.ones((2, len(self.block_chunks_)), dtype=np.int64)
-        return self.block_chunks_, npix_idx, self
+        npix_idx = np.ones((2, len(self._block_chunks)), dtype=np.int64)
+        return self._block_chunks, npix_idx, self
 
     def get_page_data(
         self, idx: int = 1, npix_blocks: Optional[Sequence[Any]] = None
@@ -81,13 +81,13 @@ class PageOp_section(PageOpBase):
         Load a page of sectioned pixel data for 1-based page index ``idx``.
         """
         self.page_num = idx
-        if len(self.block_chunks_) == 0:
-            self.page_data_ = np.empty((9, 0), dtype=np.float64)
+        if len(self._block_chunks) == 0:
+            self._page_data = np.empty((9, 0), dtype=np.float64)
             return self
-        bl_start, bl_size = self.block_chunks_[idx - 1]
+        bl_start, bl_size = self._block_chunks[idx - 1]
         ind = get_ind_from_ranges(bl_start, bl_size)
-        self.page_data_ = np.asarray(
-            self.pix_.get_pixels(ind, "-raw", "-align"), dtype=np.float64
+        self._page_data = np.asarray(
+            self._pix.get_pixels(ind, "-raw", "-align"), dtype=np.float64
         )
         return self
 
@@ -107,13 +107,13 @@ class PageOp_section(PageOpBase):
         modifications to the target ``sqw`` object.
         """
         n_runs = int(getattr(out_obj.experiment_info, "n_runs", 0))
-        if self.unique_run_id_.size == n_runs:
+        if self._unique_run_id.size == n_runs:
             self.check_runid = False
         else:
-            if self.unique_run_id_.size < n_runs:
+            if self._unique_run_id.size < n_runs:
                 out_obj = out_obj.copy()
                 out_obj.experiment_info = out_obj.experiment_info.get_subobj(
-                    self.unique_run_id_
+                    self._unique_run_id
                 )
             else:
                 self.check_runid = False
@@ -123,7 +123,7 @@ class PageOp_section(PageOpBase):
     # Protected methods
     # ------------------------------------------------------------------
     def get_exp_modified(self) -> bool:
-        return bool(self.old_file_format_ or self.check_runid)
+        return bool(self._old_file_format or self.check_runid)
 
     def get_changes_pix_only(self) -> bool:
         return True
@@ -134,7 +134,7 @@ class PageOp_section(PageOpBase):
                 config_store.instance().get_value("log_config", "section_split_ratio")
             )
         except Exception:
-            return self.split_log_ratio_
+            return self._split_log_ratio
 
     def set_info_split_log_ratio(self, val: Union[int, float]) -> None:
         super().set_info_split_log_ratio(val)

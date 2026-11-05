@@ -31,12 +31,12 @@ class PageOp_mask(PageOpBase):
         self.npix_acc: np.ndarray = np.empty(0, dtype=np.int64)
         self.check_runid: bool = False
         super().__init__(*args, **kwargs)
-        self.op_name_ = "masking"
+        self._op_name = "masking"
 
     @property
     def num_pix_original(self) -> int:
         """Number of pixels in the masked dataset."""
-        return int(self.pix_.num_pixels)
+        return int(self._pix.num_pixels)
 
     @property
     def num_bins(self) -> int:
@@ -58,9 +58,9 @@ class PageOp_mask(PageOpBase):
         else:
             self.keep_info_obj = np.asarray(keep_info).ravel(order="F")
 
-        if self.img_ is not None:
-            nb = int(np.asarray(self.img_.npix).size)
-            self.var_acc_ = np.zeros(nb, dtype=np.float64, order="F")
+        if self._img is not None:
+            nb = int(np.asarray(self._img.npix).size)
+            self._var_acc = np.zeros(nb, dtype=np.float64, order="F")
             self.npix_acc = np.zeros(nb, dtype=np.int64, order="F")
             self.check_runid = True
         else:
@@ -86,9 +86,9 @@ class PageOp_mask(PageOpBase):
                 self.mask_by_num = True
                 self.split_at_bin_edges = False
                 num_keep_val = int(ki_arr.item())
-                if self.pix_.num_pages > 1:
+                if self._pix.num_pages > 1:
                     self.keep_info_obj = self.calc_page_share(
-                        num_keep_val, self.num_pix_original, self.pix_.page_size
+                        num_keep_val, self.num_pix_original, self._pix.page_size
                     )
                 else:
                     self.keep_info_obj = np.array([num_keep_val], dtype=np.int64)
@@ -146,15 +146,15 @@ class PageOp_mask(PageOpBase):
             ).ravel(order="F")
             keep_pix = mask_data >= 1.0
         else:
-            if hasattr(self.pix_, "get_page_idx_"):
-                pix_idx_start, pix_idx_end = self.pix_.get_page_idx_()
+            if hasattr(self._pix, "get_page_idx_"):
+                pix_idx_start, pix_idx_end = self._pix.get_page_idx_()
             else:
-                pix_idx_start, pix_idx_end = 1, int(self.pix_.num_pixels)
+                pix_idx_start, pix_idx_end = 1, int(self._pix.num_pixels)
             keep_pix = np.asarray(
                 self.keep_info_obj[pix_idx_start - 1 : pix_idx_end], dtype=bool
             ).ravel(order="F")
 
-        self.page_data_ = self.page_data_[:, keep_pix]
+        self._page_data = self._page_data[:, keep_pix]
         if self.changes_pix_only:
             return self
 
@@ -162,8 +162,8 @@ class PageOp_mask(PageOpBase):
         ibin = np.repeat(np.arange(nbins, dtype=np.int64), counts)
         npix_block_new = np.bincount(ibin[keep_pix], minlength=nbins).astype(np.int64)
 
-        signal = self.page_data_[self.signal_idx, :]
-        error = self.page_data_[self.var_idx, :]
+        signal = self._page_data[self.signal_idx, :]
+        error = self._page_data[self.var_idx, :]
         self.update_img_accumulators(npix_block_new, npix_idx, signal, error)
 
         idx0 = int(npix_idx[0]) - 1
@@ -176,13 +176,13 @@ class PageOp_mask(PageOpBase):
         self.npix = self.npix_acc
         if not self.changes_pix_only:
             n_runs = int(getattr(out_obj.experiment_info, "n_runs", 0))
-            if self.unique_run_id_.size == n_runs:
+            if self._unique_run_id.size == n_runs:
                 self.check_runid = False
-            elif self.unique_run_id_.size < n_runs and hasattr(
+            elif self._unique_run_id.size < n_runs and hasattr(
                 out_obj.experiment_info, "get_subobj"
             ):
                 out_obj.experiment_info = out_obj.experiment_info.get_subobj(
-                    self.unique_run_id_
+                    self._unique_run_id
                 )
         res_obj, _ = super().finish_op(out_obj)
         return res_obj, self
@@ -213,7 +213,7 @@ class PageOp_mask(PageOpBase):
         return pieces
 
     def get_exp_modified(self) -> bool:
-        return bool(self.old_file_format_ or self.check_runid)
+        return bool(self._old_file_format or self.check_runid)
 
     def get_info_split_log_ratio(self) -> float:
         return float(

@@ -27,9 +27,9 @@ class PageOp_recompute_bins(PageOpBase):
 
     def __init__(self, *args: Any) -> None:
         super().__init__()
-        self.op_name_ = "recompute_bin_data_and_ranges"
+        self._op_name = "recompute_bin_data_and_ranges"
         self.split_at_bin_edges = True
-        self.changes_pix_only_: bool = False
+        self._changes_pix_only: bool = False
         self.img_range: Any = None
         if len(args) > 0:
             self.init(*args)
@@ -39,7 +39,7 @@ class PageOp_recompute_bins(PageOpBase):
         if in_obj is None:
             return self
         if not self.changes_pix_only:
-            self.var_acc_ = np.zeros(np.asarray(self.npix).size, dtype=np.float64)
+            self._var_acc = np.zeros(np.asarray(self.npix).size, dtype=np.float64)
         return self
 
     def apply_op(
@@ -47,8 +47,8 @@ class PageOp_recompute_bins(PageOpBase):
     ) -> "PageOp_recompute_bins":
         if self.changes_pix_only:
             return self
-        signal = self.page_data_[self.signal_idx_, :]
-        error = self.page_data_[self.var_idx_, :]
+        signal = self._page_data[self._signal_idx, :]
+        error = self._page_data[self._var_idx, :]
         self.update_img_accumulators(npix_block, np.asarray(npix_idx), signal, error)
         return self
 
@@ -57,10 +57,10 @@ class PageOp_recompute_bins(PageOpBase):
     # =========================================================================
 
     def get_changes_pix_only(self) -> bool:
-        return bool(self.changes_pix_only_ or self.img_ is None)
+        return bool(self._changes_pix_only or self._img is None)
 
     def set_changes_pix_only(self, val: bool) -> "PageOp_recompute_bins":
-        self.changes_pix_only_ = bool(val)
+        self._changes_pix_only = bool(val)
         return self
 
     def get_do_missing_range_warning(self) -> bool:

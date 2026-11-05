@@ -479,14 +479,14 @@ class PixelDataFileBacked(PixelDataBase):
 
     def finish_dump(self, wh_or_op: Any) -> "PixelDataFileBacked":
         """Complete paged write from a :class:`pix_write_handle` or :class:`PageOpBase`."""
-        is_page_op = hasattr(wh_or_op, "pix_data_range_")
+        is_page_op = hasattr(wh_or_op, "_pix_data_range")
         wh: pix_write_handle = wh_or_op if isinstance(wh_or_op, pix_write_handle) else getattr(wh_or_op, "write_handle", wh_or_op)
         if is_page_op and not getattr(wh, "move_to_original", False):
             target = PixelDataFileBacked()
             target._keep_precision = self._keep_precision
             target._base_page_size = self._base_page_size
             target.finish_dump(wh)
-            target._data_range = wh_or_op.pix_data_range_.copy()
+            target._data_range = wh_or_op._pix_data_range.copy()
             return target
         return self._finish_dump_inplace(wh_or_op)
 
@@ -508,8 +508,8 @@ class PixelDataFileBacked(PixelDataBase):
         self._tail = self._facc_tail(facc)
         self._full_filename = wh.write_FileName
         self._data_range = (
-            wh_or_op.pix_data_range_.copy()
-            if hasattr(wh_or_op, "pix_data_range_")
+            wh_or_op._pix_data_range.copy()
+            if hasattr(wh_or_op, "_pix_data_range")
             else wh.pix_range.copy()
         )
         self._page_num = 1

@@ -27,13 +27,13 @@ class PageOp_cat_pix(PageOpBase):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.op_name_ = "cat_pixels"
-        self.split_at_bin_edges_ = False
+        self._op_name = "cat_pixels"
+        self._split_at_bin_edges = False
         self.in_objects: List[PixelDataBase] = []
         self.npix_tot: int = 0
         self.force_cat_in_memory: bool = False
-        self.pix_block_start_: np.ndarray = np.empty(0, dtype=np.int64)
-        self.block_idx_: np.ndarray = np.empty((2, 0), dtype=np.int64)
+        self._pix_block_start: np.ndarray = np.empty(0, dtype=np.int64)
+        self._block_idx: np.ndarray = np.empty((2, 0), dtype=np.int64)
 
     @property
     def in_pix(self) -> List[PixelDataBase]:
@@ -62,10 +62,10 @@ class PageOp_cat_pix(PageOpBase):
             in_obj = PixelDataMemory()
             self.inform_about_target_file = False
 
-        saved_npix = self.npix_.copy() if self.npix_ is not None else None
+        saved_npix = self._npix.copy() if self._npix is not None else None
         super().init(in_obj)
         if saved_npix is not None:
-            self.npix_ = saved_npix
+            self._npix = saved_npix
         return self
 
     def split_into_pages(
@@ -73,14 +73,14 @@ class PageOp_cat_pix(PageOpBase):
     ) -> Tuple[List[np.ndarray], np.ndarray, "PageOp_cat_pix"]:
         """Overload of ``split_into_pages`` as we also need ``npix_idx`` to process pages."""
         npix_flat = np.asarray(npix, dtype=np.int64).ravel(order="F")
-        if isinstance(self.pix_, PixelDataMemory):
+        if isinstance(self._pix, PixelDataMemory):
             npix_chunks = [npix_flat]
             npix_idx = np.array([[1], [npix_flat.size]], dtype=np.int64)
         else:
             npix_chunks, npix_idx, _ = super().split_into_pages(
                 npix_flat, chunk_size
             )
-        self.block_idx_ = npix_idx
+        self._block_idx = npix_idx
         return npix_chunks, npix_idx, self
 
     def get_page_data(
@@ -89,38 +89,38 @@ class PageOp_cat_pix(PageOpBase):
         """Return block of data used in page operation.
 
         Here each ``npix`` element contains the number of pixels in an input
-        pixel dataset and ``block_idx_`` defines how many datasets the page of
+        pixel dataset and ``_block_idx`` defines how many datasets the page of
         pixels occupies.
         """
         chunks = np.asarray(npix_blocks[page_idx - 1], dtype=np.int64).ravel(
             order="F"
         )
         n_chunks = chunks.size
-        npix_idx = self.block_idx_[:, page_idx - 1]
+        npix_idx = self._block_idx[:, page_idx - 1]
 
         if n_chunks == 1:
             obj_idx = int(npix_idx[0]) - 1
             c0 = int(chunks[0])
-            pix_idx_start = int(self.pix_block_start_[obj_idx])
+            pix_idx_start = int(self._pix_block_start[obj_idx])
             pix_idx_end = pix_idx_start + c0 - 1
             if c0 == 0:
-                self.page_data_ = np.empty(
+                self._page_data = np.empty(
                     (PixelDataBase.DEFAULT_NUM_PIX_FIELDS, 0), dtype=np.float64
                 )
             else:
                 indices_1based = np.arange(
                     pix_idx_start, pix_idx_end + 1, dtype=np.int64
                 )
-                self.page_data_ = np.asarray(
+                self._page_data = np.asarray(
                     self.in_objects[obj_idx].get_pixels(
                         indices_1based, "-raw", "-align"
                     ),
                     dtype=np.float64,
                 )
-            self.pix_block_start_[obj_idx] = pix_idx_end + 1
+            self._pix_block_start[obj_idx] = pix_idx_end + 1
         else:
             this_chunk = int(np.sum(chunks))
-            self.page_data_ = np.zeros(
+            self._page_data = np.zeros(
                 (PixelDataBase.DEFAULT_NUM_PIX_FIELDS, this_chunk),
                 dtype=np.float64,
             )
@@ -129,7 +129,7 @@ class PageOp_cat_pix(PageOpBase):
             for i in range(n_chunks):
                 obj_idx = n_accessor[i]
                 c_i = int(chunks[i])
-                pix_idx_start = int(self.pix_block_start_[obj_idx])
+                pix_idx_start = int(self._pix_block_start[obj_idx])
                 pix_idx_end = pix_idx_start + c_i - 1
                 accessor = self.in_objects[obj_idx]
                 page_idx_end = page_idx_start + c_i
@@ -137,7 +137,7 @@ class PageOp_cat_pix(PageOpBase):
                     indices_1based = np.arange(
                         pix_idx_start, pix_idx_end + 1, dtype=np.int64
                     )
-                    self.page_data_[:, page_idx_start:page_idx_end] = (
+                    self._page_data[:, page_idx_start:page_idx_end] = (
                         np.asarray(
                             accessor.get_pixels(
                                 indices_1based, "-raw", "-align"
@@ -145,7 +145,7 @@ class PageOp_cat_pix(PageOpBase):
                             dtype=np.float64,
                         )
                     )
-                self.pix_block_start_[obj_idx] = pix_idx_end + 1
+                self._pix_block_start[obj_idx] = pix_idx_end + 1
                 page_idx_start = page_idx_end
         return self
 
@@ -162,8 +162,8 @@ class PageOp_cat_pix(PageOpBase):
         n_inputs = len(args)
         self.in_objects = []
         npix_arr = np.zeros(n_inputs, dtype=np.int64)
-        self.pix_block_start_ = np.ones(n_inputs, dtype=np.int64)
-        npix_tot_ = 0
+        self._pix_block_start = np.ones(n_inputs, dtype=np.int64)
+        _npix_tot = 0
         for i, arg in enumerate(args):
             if not isinstance(arg, PixelDataBase):
                 raise HoraceError(
@@ -174,14 +174,14 @@ class PageOp_cat_pix(PageOpBase):
             self.in_objects.append(arg)
             npix = int(arg.num_pixels)
             npix_arr[i] = npix
-            npix_tot_ += npix
+            _npix_tot += npix
         self.npix = npix_arr
-        self.npix_tot = npix_tot_
+        self.npix_tot = _npix_tot
         return self
 
     def get_exp_modified(self) -> bool:
         """Control calculations of unique run_ids during page_op."""
-        return self.img_ is not None
+        return self._img is not None
 
     def get_changes_pix_only(self) -> bool:
         """PageOp calculates pixels only."""

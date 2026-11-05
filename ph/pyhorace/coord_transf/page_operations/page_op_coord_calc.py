@@ -63,10 +63,10 @@ class PageOp_coord_calc(PageOpBase):
 
         self.ind = ind_val
         self.op_type = self.xname[self.ind - 1]
-        self.op_name_ = f'"set signal to {self.op_type}"'
-        self.proj = self.img_.proj
+        self._op_name = f'"set signal to {self.op_type}"'
+        self.proj = self._img.proj
         self.pix_page = PixelDataMemory()
-        self.var_acc_ = np.zeros(
+        self._var_acc = np.zeros(
             int(np.asarray(self.npix).size), dtype=np.float64, order="F"
         )
         return self
@@ -78,7 +78,7 @@ class PageOp_coord_calc(PageOpBase):
         super().get_page_data(idx, npix_blocks)
         if self.pix_page is None:
             self.pix_page = PixelDataMemory()
-        self.pix_page.set_raw_data(self.page_data_)
+        self.pix_page.set_raw_data(self._page_data)
         return self
 
     def update_img_accumulators(
@@ -98,12 +98,12 @@ class PageOp_coord_calc(PageOpBase):
             calc_signal_msd=True,
         )
         if s_msd is not None and s_msd.size > 0:
-            self.page_data_[self.var_idx, :] = s_msd
+            self._page_data[self.var_idx, :] = s_msd
         idx0 = int(npix_idx[0]) - 1
         idx1 = int(npix_idx[1])
-        self.sig_acc_[idx0:idx1] = s_ar.ravel(order="F")
+        self._sig_acc[idx0:idx1] = s_ar.ravel(order="F")
         if v_ar is not None:
-            self.var_acc_[idx0:idx1] = v_ar.ravel(order="F")
+            self._var_acc[idx0:idx1] = v_ar.ravel(order="F")
         return self
 
     def apply_op(
@@ -128,8 +128,8 @@ class PageOp_coord_calc(PageOpBase):
             qq = np.asarray(self.pix_page.q_coordinates, dtype=np.float64)
             signal = np.linalg.norm(qq, ord=2, axis=0)
         elif ctype in ("d1", "d2", "d3", "d4"):
-            pax = np.asarray(self.img_.pax, dtype=np.int64).ravel(order="F")
-            dax = np.asarray(self.img_.dax, dtype=np.int64).ravel(order="F")
+            pax = np.asarray(self._img.pax, dtype=np.int64).ravel(order="F")
+            dax = np.asarray(self._img.dax, dtype=np.int64).ravel(order="F")
             d_idx = (lind - 1) % 4
             get_ind = int(pax[int(dax[d_idx]) - 1]) - 1
             uhkl = this_proj.transform_pix_to_img(self.pix_page.q_coordinates)
@@ -140,7 +140,7 @@ class PageOp_coord_calc(PageOpBase):
                 f"Unsupported coordinate type: {ctype}",
             )
 
-        self.page_data_[self.signal_idx, :] = signal
+        self._page_data[self.signal_idx, :] = signal
         if self.changes_pix_only:
             return self
         self.update_img_accumulators(npix_block, npix_idx, signal)

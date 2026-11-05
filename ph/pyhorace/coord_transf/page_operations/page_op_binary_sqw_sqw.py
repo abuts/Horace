@@ -45,10 +45,10 @@ class PageOp_binary_sqw_sqw(PageOp_bin_Base):
             name_op2 = "pix"
         self.set_op_name(name_op1, name_op2)
 
-        if self.pix_.num_pixels != self.operand.num_pixels:
+        if self._pix.num_pixels != self.operand.num_pixels:
             raise HoraceError(
                 f"HORACE:PageOp_binary_sqw_sqw:invalid_argument - "
-                f"Pixels in {self.op_name_} are inconsistent as obj1 has {self.pix_.num_pixels} "
+                f"Pixels in {self._op_name} are inconsistent as obj1 has {self._pix.num_pixels} "
                 f"pixels and obj2 has {self.operand.num_pixels} pixels"
             )
 
@@ -73,20 +73,20 @@ class PageOp_binary_sqw_sqw(PageOp_bin_Base):
         page_data2 = np.asarray(
             self.operand.get_pixels(pix_idx, "-raw", "-align"), dtype=np.float64
         )
-        if self.sort_pixels_in_bins and self.page_data_.shape[1] > 0:
+        if self.sort_pixels_in_bins and self._page_data.shape[1] > 0:
             npix_block = np.asarray(npix_blocks[idx - 1], dtype=np.int64).ravel(order="F")
             chunk_idx = np.repeat(
                 np.arange(1, npix_block.size + 1, dtype=np.float64), npix_block
             )
-            keys1 = np.vstack([chunk_idx, self.page_data_[self.all_idx_, :]])
-            keys2 = np.vstack([chunk_idx, page_data2[self.all_idx_, :]])
+            keys1 = np.vstack([chunk_idx, self._page_data[self._all_idx, :]])
+            keys2 = np.vstack([chunk_idx, page_data2[self._all_idx, :]])
             idx1 = np.lexsort(keys1[::-1, :])
             idx2 = np.lexsort(keys2[::-1, :])
-            self.page_data_ = self.page_data_[:, idx1]
+            self._page_data = self._page_data[:, idx1]
             page_data2 = page_data2[:, idx2]
 
-        self.sigvar1.sig_var = self.page_data_[self.sigvar_idx_, :]
-        self.sigvar2.sig_var = page_data2[self.sigvar_idx_, :]
+        self.sigvar1.sig_var = self._page_data[self._sigvar_idx, :]
+        self.sigvar2.sig_var = page_data2[self._sigvar_idx, :]
         return self
 
     def apply_op(
@@ -101,7 +101,7 @@ class PageOp_binary_sqw_sqw(PageOp_bin_Base):
             res = data_op_interface.binary_op_manager_single(
                 self.sigvar1, self.sigvar2, self.op_handle
             )
-        self.page_data_[self.sigvar_idx_, :] = res.sig_var
+        self._page_data[self._sigvar_idx, :] = res.sig_var
         if self.changes_pix_only:
             return self
 

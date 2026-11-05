@@ -25,20 +25,20 @@ class PageOp_apply(PageOp_sqw_eval):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.op_name_: str = "apply"
+        self._op_name: str = "apply"
         self.split_at_bin_edges: bool = False
-        self.compute_variance_: bool = True
-        self.change_var_: bool = True
+        self._compute_variance: bool = True
+        self._change_var: bool = True
 
     @property
     def compute_variance(self) -> bool:
         """If True, compute variance of image from pixel variances."""
-        return self.compute_variance_
+        return self._compute_variance
 
     @compute_variance.setter
     def compute_variance(self, val: bool) -> None:
-        self.compute_variance_ = bool(val)
-        self.change_var_ = self.compute_variance_
+        self._compute_variance = bool(val)
+        self._change_var = self._compute_variance
 
     def init(
         self,
@@ -84,11 +84,11 @@ class PageOp_apply(PageOp_sqw_eval):
         if compute_variance is not None:
             self.compute_variance = bool(compute_variance)
 
-        self.does_img_op_ = bool(recompute_bins)
-        if not self.does_img_op_:
-            self.img_ = None
+        self._does_img_op = bool(recompute_bins)
+        if not self._does_img_op:
+            self._img = None
         else:
-            self.var_acc_ = np.zeros(self.img_.npix.size, dtype=np.float64)
+            self._var_acc = np.zeros(self._img.npix.size, dtype=np.float64)
         return self
 
     def apply_op(
@@ -96,7 +96,7 @@ class PageOp_apply(PageOp_sqw_eval):
     ) -> "PageOp_apply":
         """Apply user-defined function(s) to current page wrapped in ``PixelDataMemory``."""
         pix = PixelDataMemory()
-        pix.set_raw_data(self.page_data_)
+        pix.set_raw_data(self._page_data)
         for idx, fn in enumerate(self.op_holder):
             args = self.op_parms[idx] if idx < len(self.op_parms) else []
             if args is None:
@@ -107,16 +107,16 @@ class PageOp_apply(PageOp_sqw_eval):
                 args_seq = [args]
             pix = fn(pix, *args_seq)
 
-        self.page_data_ = pix.data
-        if self.does_img_op_:
+        self._page_data = pix.data
+        if self._does_img_op:
             from pyhorace.coord_transf.page_operations._utils import compute_bin_data
 
             new_signal = np.asarray(pix.signal, dtype=np.float64).ravel(order="F")
-            if self.compute_variance_:
+            if self._compute_variance:
                 img_signal, img_var, sig_variance = compute_bin_data(
                     npix_block, new_signal, None, True
                 )
-                self.page_data_[self.var_idx, :] = sig_variance
+                self._page_data[self.var_idx, :] = sig_variance
             else:
                 new_var = np.asarray(pix.variance, dtype=np.float64).ravel(order="F")
                 img_signal, img_var = compute_bin_data(
@@ -124,16 +124,16 @@ class PageOp_apply(PageOp_sqw_eval):
                 )
             idx0 = int(npix_idx[0]) - 1
             idx1 = int(npix_idx[1])
-            self.sig_acc_[idx0:idx1] = np.asarray(
+            self._sig_acc[idx0:idx1] = np.asarray(
                 img_signal, dtype=np.float64
-            ).reshape(self.sig_acc_[idx0:idx1].shape, order="F")
-            self.var_acc_[idx0:idx1] = np.asarray(
+            ).reshape(self._sig_acc[idx0:idx1].shape, order="F")
+            self._var_acc[idx0:idx1] = np.asarray(
                 img_var, dtype=np.float64
-            ).reshape(self.var_acc_[idx0:idx1].shape, order="F")
+            ).reshape(self._var_acc[idx0:idx1].shape, order="F")
         return self
 
     def finish_op(self, out_obj: Any) -> Tuple[Any, "PageOp_apply"]:
-        """Finalize ``apply`` operation without zeroing ``var_acc_``."""
+        """Finalize ``apply`` operation without zeroing ``_var_acc``."""
         return PageOpBase.finish_op(self, out_obj)
 
     def get_info_split_log_ratio(self) -> float:

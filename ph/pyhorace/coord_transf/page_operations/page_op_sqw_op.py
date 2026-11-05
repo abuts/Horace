@@ -22,7 +22,7 @@ class PageOp_sqw_op(PageOp_sqw_eval):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.op_name_: str = "sqw_op"
+        self._op_name: str = "sqw_op"
         self.op_holder: Callable[..., Any] = lambda obj, *a: []
         self.sigvar_idx = np.array([self.signal_idx, self.var_idx], dtype=np.int64)
 
@@ -59,7 +59,7 @@ class PageOp_sqw_op(PageOp_sqw_eval):
             )
 
         super().init(sqw_obj, operation, op_param, False)
-        self.var_acc_ = np.zeros(self.npix.size, dtype=np.float64)
+        self._var_acc = np.zeros(self.npix.size, dtype=np.float64)
         self.split_at_bin_edges = True
         if pop_options is not None:
             if isinstance(pop_options, dict):
@@ -85,7 +85,7 @@ class PageOp_sqw_op(PageOp_sqw_eval):
         sig_var_arr = np.asarray(sig_var, dtype=np.float64)
         if sig_var_arr.ndim == 1:
             sig_var_arr = sig_var_arr.reshape(2, -1, order="F")
-        self.page_data_[[self.signal_idx, self.var_idx], :] = sig_var_arr
+        self._page_data[[self.signal_idx, self.var_idx], :] = sig_var_arr
         self.update_img_accumulators(
             npix_block, npix_idx, sig_var_arr[0, :], sig_var_arr[1, :]
         )

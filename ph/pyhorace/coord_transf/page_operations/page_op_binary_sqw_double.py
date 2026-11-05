@@ -62,7 +62,7 @@ class PageOp_binary_sqw_double(PageOp_bin_Base):
         self, npix_block: np.ndarray, npix_idx: np.ndarray
     ) -> "PageOp_binary_sqw_double":
         """Perform binary operation between input object and scalar operand."""
-        self.sigvar1.sig_var = self.page_data_[self.sigvar_idx_, :]
+        self.sigvar1.sig_var = self._page_data[self._sigvar_idx, :]
 
         if self.flip:
             res = data_op_interface.binary_op_manager_single(
@@ -73,7 +73,7 @@ class PageOp_binary_sqw_double(PageOp_bin_Base):
                 self.sigvar1, self.sigvar2, self.op_handle
             )
 
-        self.page_data_[self.sigvar_idx_, :] = res.sig_var
+        self._page_data[self._sigvar_idx, :] = res.sig_var
         if self.changes_pix_only:
             return self
 

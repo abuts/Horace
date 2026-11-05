@@ -287,13 +287,13 @@ class PageOp_sqw_binning(PageOp_sqw_eval):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.op_name_: str = "sqw_op_bin_pixels"
+        self._op_name: str = "sqw_op_bin_pixels"
         self.split_at_bin_edges = False
-        self.npix_acc_: np.ndarray = np.empty(0, dtype=np.float64)
-        self.pix_page_: PixelDataMemory = PixelDataMemory()
-        self.pix_combine_info_: Optional[pixfile_combine_info] = None
-        self.targ_axes_: Any = None
-        self.buf_size_: int = 0
+        self._npix_acc: np.ndarray = np.empty(0, dtype=np.float64)
+        self._pix_page: PixelDataMemory = PixelDataMemory()
+        self._pix_combine_info: Optional[pixfile_combine_info] = None
+        self._targ_axes: Any = None
+        self._buf_size: int = 0
 
     def init(
         self,
@@ -321,34 +321,34 @@ class PageOp_sqw_binning(PageOp_sqw_eval):
 
         if nopix and self.init_filebacked_output:
             self.init_filebacked_output = False
-            if self.write_handle_ is not None:
-                if hasattr(self.write_handle_, "delete"):
-                    self.write_handle_.delete()
-                self.write_handle_ = None
+            if self._write_handle is not None:
+                if hasattr(self._write_handle, "delete"):
+                    self._write_handle.delete()
+                self._write_handle = None
 
-        self.targ_axes_ = targ_ax_block
+        self._targ_axes = targ_ax_block
         self.proj = targ_proj
-        self.img_ = DnDBase.dnd(targ_ax_block, targ_proj)
+        self._img = DnDBase.dnd(targ_ax_block, targ_proj)
 
-        self.img_.do_check_combo_arg = False
+        self._img.do_check_combo_arg = False
         sz = tuple(int(x) for x in targ_ax_block.dims_as_ssize)
-        self.npix_acc_ = np.zeros(sz, dtype=np.float64, order="F")
-        self.sig_acc_ = np.zeros(sz, dtype=np.float64, order="F")
-        self.var_acc_ = np.zeros(sz, dtype=np.float64, order="F")
+        self._npix_acc = np.zeros(sz, dtype=np.float64, order="F")
+        self._sig_acc = np.zeros(sz, dtype=np.float64, order="F")
+        self._var_acc = np.zeros(sz, dtype=np.float64, order="F")
 
-        self.pix_page_ = PixelDataMemory()
+        self._pix_page = PixelDataMemory()
         hc = hor_config()
-        self.buf_size_ = int(hc.mem_chunk_size) * int(hc.fb_scale_factor)
+        self._buf_size = int(hc.mem_chunk_size) * int(hc.fb_scale_factor)
         return self
 
     def split_into_pages(
         self, npix: np.ndarray, chunk_size: int
     ) -> Tuple[List[np.ndarray], np.ndarray, "PageOp_sqw_binning"]:
         """Split input ``npix`` array into pages of size ``chunk_size``."""
-        if isinstance(self.pix_, MultipixBase):
+        if isinstance(self._pix, MultipixBase):
             npix_flat = np.asarray(npix, dtype=np.int64).ravel(order="F")
             n_blocks = int(npix_flat.size)
-            self.pix_idx_start_ = np.ones(n_blocks, dtype=np.int64)
+            self._pix_idx_start = np.ones(n_blocks, dtype=np.int64)
             npix_chunks: List[np.ndarray] = []
             idx_list: List[np.ndarray] = []
             for i in range(n_blocks):
@@ -363,13 +363,13 @@ class PageOp_sqw_binning(PageOp_sqw_eval):
                 if idx_list
                 else np.zeros((2, 0), dtype=np.int64)
             )
-            self.init_filebacked_output_ = True
+            self._init_filebacked_output = True
         else:
             npix_chunks, npix_idx = split_vector_fixed_sum(npix, chunk_size)
 
-        self.npix_idx_ = npix_idx
+        self._npix_idx = npix_idx
 
-        if self.do_nopix_ or not self.init_filebacked_output_:
+        if self._do_nopix or not self._init_filebacked_output:
             return npix_chunks, npix_idx, self
 
         _accumulate_pix("cleanup")
@@ -384,18 +384,18 @@ class PageOp_sqw_binning(PageOp_sqw_eval):
         tmp_file_names = _gen_unique_file_paths(
             n_files, "page_op_bin_pixels_part", str(wk_dir or "")
         )
-        nbins = int(self.npix_acc_.size)
-        self.pix_combine_info_ = pixfile_combine_info(tmp_file_names, nbins)
+        nbins = int(self._npix_acc.size)
+        self._pix_combine_info = pixfile_combine_info(tmp_file_names, nbins)
 
         if not self.outfile:
-            if self.write_handle_ is None:
+            if self._write_handle is None:
                 return npix_chunks, npix_idx, self
-            self.outfile_ = self.write_handle_.write_file_name
+            self._outfile = self._write_handle.write_file_name
 
-        if self.write_handle_ is not None:
-            if hasattr(self.write_handle_, "delete"):
-                self.write_handle_.delete()
-            self.write_handle_ = None
+        if self._write_handle is not None:
+            if hasattr(self._write_handle, "delete"):
+                self._write_handle.delete()
+            self._write_handle = None
 
         return npix_chunks, npix_idx, self
 
@@ -404,33 +404,33 @@ class PageOp_sqw_binning(PageOp_sqw_eval):
     ) -> "PageOp_sqw_binning":
         """Load block of pixel data for page ``idx`` (1-based)."""
         self.page_num = idx
-        if isinstance(self.pix_, MultipixBase):
-            assert self.npix_idx_ is not None
-            n_dataset = int(self.npix_idx_[0, idx - 1])
-            pix_ds = self.pix_.infiles[n_dataset - 1]
-            pix_idx_0 = int(np.asarray(self.pix_idx_start_).ravel()[n_dataset - 1])
+        if isinstance(self._pix, MultipixBase):
+            assert self._npix_idx is not None
+            n_dataset = int(self._npix_idx[0, idx - 1])
+            pix_ds = self._pix.infiles[n_dataset - 1]
+            pix_idx_0 = int(np.asarray(self._pix_idx_start).ravel()[n_dataset - 1])
             block_sz = int(np.sum(npix_blocks[idx - 1]))
             pix_idx_1 = pix_idx_0 + block_sz - 1
             if block_sz == 0:
-                self.page_data_ = np.empty((9, 0), dtype=np.float64)
+                self._page_data = np.empty((9, 0), dtype=np.float64)
             else:
                 indices = np.arange(pix_idx_0, pix_idx_1 + 1, dtype=np.int64)
-                self.page_data_ = np.asarray(
+                self._page_data = np.asarray(
                     pix_ds.get_pixels(indices, "-raw", "-align"),
                     dtype=np.float64,
                 )
-            np.asarray(self.pix_idx_start_).ravel()[n_dataset - 1] = pix_idx_1 + 1
+            np.asarray(self._pix_idx_start).ravel()[n_dataset - 1] = pix_idx_1 + 1
         else:
-            self.page_data_ = np.asarray(self.pix_.data, dtype=np.float64).copy()
+            self._page_data = np.asarray(self._pix.data, dtype=np.float64).copy()
         return self
 
     def common_page_op(self) -> "PageOp_sqw_binning":
-        """Update ``pix_data_range_`` and store page data if output is purely in-memory."""
-        self.pix_data_range_ = PixelDataBase.pix_minmax_ranges(
-            self.page_data_, self.pix_data_range_
+        """Update ``_pix_data_range`` and store page data if output is purely in-memory."""
+        self._pix_data_range = PixelDataBase.pix_minmax_ranges(
+            self._page_data, self._pix_data_range
         )
-        if not (self.init_filebacked_output_ or self.do_nopix_):
-            self.pix_ = self.pix_.store_page_data(self.page_data_, self.write_handle_)
+        if not (self._init_filebacked_output or self._do_nopix):
+            self._pix = self._pix.store_page_data(self._page_data, self._write_handle)
         return self
 
     def apply_op(self, *args: Any) -> "PageOp_sqw_binning":
@@ -456,82 +456,82 @@ class PageOp_sqw_binning(PageOp_sqw_eval):
                 raise
 
         if page_data is None or np.size(page_data) == 0:
-            self.page_data_ = np.empty((9, 0), dtype=np.float64)
+            self._page_data = np.empty((9, 0), dtype=np.float64)
             return self
 
-        self.page_data_ = np.asarray(page_data, dtype=np.float64)
-        pix = self.pix_page_
-        pix.set_raw_data(self.page_data_)
+        self._page_data = np.asarray(page_data, dtype=np.float64)
+        pix = self._pix_page
+        pix.set_raw_data(self._page_data)
 
-        if self.do_nopix_:
-            self.npix_acc_, self.sig_acc_, self.var_acc_ = self.proj.bin_pixels(
-                self.img_.axes,
+        if self._do_nopix:
+            self._npix_acc, self._sig_acc, self._var_acc = self.proj.bin_pixels(
+                self._img.axes,
                 pix,
-                self.npix_acc_,
-                self.sig_acc_,
-                self.var_acc_,
+                self._npix_acc,
+                self._sig_acc,
+                self._var_acc,
                 "-nomex",
                 nargout=3,
             )
         else:
             filebacked_processing = bool(
-                self.init_filebacked_output_ and not self.do_nopix_
+                self._init_filebacked_output and not self._do_nopix
             )
             if filebacked_processing:
                 (
-                    self.npix_acc_,
-                    self.sig_acc_,
-                    self.var_acc_,
+                    self._npix_acc,
+                    self._sig_acc,
+                    self._var_acc,
                     pix_ok,
                     unique_runid_l,
                     pix_indx,
                 ) = self.proj.bin_pixels(
-                    self.targ_axes_,
+                    self._targ_axes,
                     pix,
-                    self.npix_acc_,
-                    self.sig_acc_,
-                    self.var_acc_,
+                    self._npix_acc,
+                    self._sig_acc,
+                    self._var_acc,
                     "-nomex",
                     nargout=6,
                 )
             else:
                 (
-                    self.npix_acc_,
-                    self.sig_acc_,
-                    self.var_acc_,
+                    self._npix_acc,
+                    self._sig_acc,
+                    self._var_acc,
                     pix_ok,
                     unique_runid_l,
                 ) = self.proj.bin_pixels(
-                    self.targ_axes_,
+                    self._targ_axes,
                     pix,
-                    self.npix_acc_,
-                    self.sig_acc_,
-                    self.var_acc_,
+                    self._npix_acc,
+                    self._sig_acc,
+                    self._var_acc,
                     "-nomex",
                     nargout=5,
                 )
-            self.page_data_ = np.asarray(pix_ok.data, dtype=np.float64)
+            self._page_data = np.asarray(pix_ok.data, dtype=np.float64)
             if (
                 self.exp_modified
                 and unique_runid_l is not None
                 and np.size(unique_runid_l) > 0
             ):
                 u_l = np.asarray(unique_runid_l, dtype=np.int64).ravel()
-                if self.unique_run_id_.size == 0:
-                    self.unique_run_id_ = np.unique(u_l)
+                if self._unique_run_id.size == 0:
+                    self._unique_run_id = np.unique(u_l)
                 else:
-                    self.unique_run_id_ = np.unique(
-                        np.concatenate([self.unique_run_id_, u_l])
+                    self._unique_run_id = np.unique(
+                        np.concatenate([self._unique_run_id, u_l])
                     )
             if filebacked_processing:
-                assert self.pix_combine_info_ is not None
-                self.pix_combine_info_ = _accumulate_pix(
-                    self.pix_combine_info_,
+                assert self._pix_combine_info is not None
+                self._pix_combine_info = _accumulate_pix(
+                    self._pix_combine_info,
                     False,
                     pix_ok,
                     pix_indx,
-                    self.npix_acc_,
-                    self.buf_size_,
+                    self._npix_acc,
+                    self._buf_size,
                 )
         return self
 
@@ -543,15 +543,15 @@ class PageOp_sqw_binning(PageOp_sqw_eval):
         from pyhorace.core.configurations.hpc_config import hpc_config
         from pyhorace.sqw.sqw import sqw
 
-        self.update_image(self.sig_acc_, self.var_acc_, self.npix_acc_)
+        self.update_image(self._sig_acc, self._var_acc, self._npix_acc)
         pix_cmbn_info: Optional[MultipixBase] = None
-        if self.pix_combine_info_ is not None:
-            self.pix_ = _accumulate_pix(
-                self.pix_combine_info_, True, None, None, self.npix_acc_
+        if self._pix_combine_info is not None:
+            self._pix = _accumulate_pix(
+                self._pix_combine_info, True, None, None, self._npix_acc
             )
-            if isinstance(self.pix_, MultipixBase):
-                pix_cmbn_info = self.pix_
-            self.init_filebacked_output_ = False
+            if isinstance(self._pix, MultipixBase):
+                pix_cmbn_info = self._pix
+            self._init_filebacked_output = False
 
         out_obj, _ = self.finish_core_op(out_obj)
         if self.outfile:
@@ -585,8 +585,8 @@ class PageOp_sqw_binning(PageOp_sqw_eval):
         return False
 
     def set_page_num(self, val: int) -> PageOpBase:
-        if isinstance(self.pix_, MultipixBase):
-            self.pix_._page_num = int(val)
+        if isinstance(self._pix, MultipixBase):
+            self._pix._page_num = int(val)
             return self
         return super().set_page_num(val)
 

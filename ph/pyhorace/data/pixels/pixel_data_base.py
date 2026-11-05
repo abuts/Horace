@@ -278,7 +278,7 @@ class PixelDataBase(Serializable, data_op_interface, abc.ABC):
             return PixelDataFileBacked() if force_fb is True else PixelDataMemory()
         if force_fb is True and not getattr(page_op.pix, "is_filebacked", False):
             in_obj = PixelDataFileBacked()
-            page_op.write_handle_ = in_obj.get_write_handle(page_op.outfile_)
+            page_op._write_handle = in_obj.get_write_handle(page_op._outfile)
             page_op.init_filebacked_output = True
             page_op.pix = in_obj
         return PixelDataFileBacked.apply_op(pix_out, page_op)
@@ -2042,8 +2042,8 @@ class PixelDataBase(Serializable, data_op_interface, abc.ABC):
 
     def finish_dump(self, page_op: Any = None) -> "PixelDataBase":
         """Finalize pixel dump after page operations."""
-        if page_op is not None and hasattr(page_op, "pix_data_range_"):
-            self.set_data_range(page_op.pix_data_range_)
+        if page_op is not None and hasattr(page_op, "_pix_data_range"):
+            self.set_data_range(page_op._pix_data_range)
         return self
 
     def page_op(self, op: Any) -> Any:

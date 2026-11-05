@@ -24,9 +24,9 @@ class PageOp_sigvar_set(PageOpBase):
         self.in_replicate: bool = bool(kwargs.pop("in_replicate", False))
         super().__init__(*args, **kwargs)
         if self.in_replicate:
-            self.op_name_ = "sigvar_set"
+            self._op_name = "sigvar_set"
         else:
-            self.op_name_ = "replicate_with_pix"
+            self._op_name = "replicate_with_pix"
         self.split_at_bin_edges = True
 
     def init(self, sqw_obj: Any = None) -> "PageOp_sigvar_set":
@@ -35,9 +35,9 @@ class PageOp_sigvar_set(PageOpBase):
         if sqw_obj is None:
             return self
         if self.changes_pix_only:
-            self.sig_acc_ = np.empty(0, dtype=np.float64)
+            self._sig_acc = np.empty(0, dtype=np.float64)
         else:
-            self.var_acc_ = np.zeros_like(self.sig_acc_, dtype=np.float64, order="F")
+            self._var_acc = np.zeros_like(self._sig_acc, dtype=np.float64, order="F")
         return self
 
     def apply_op(
@@ -47,12 +47,12 @@ class PageOp_sigvar_set(PageOpBase):
         idx0 = int(npix_idx[0]) - 1
         idx1 = int(npix_idx[1])
         npix = np.asarray(self.npix[idx0:idx1], dtype=np.int64).ravel(order="F")
-        s_bins = np.asarray(self.img_.s, dtype=np.float64).ravel(order="F")[idx0:idx1]
-        e_bins = np.asarray(self.img_.e, dtype=np.float64).ravel(order="F")[idx0:idx1]
+        s_bins = np.asarray(self._img.s, dtype=np.float64).ravel(order="F")[idx0:idx1]
+        e_bins = np.asarray(self._img.e, dtype=np.float64).ravel(order="F")[idx0:idx1]
         s = np.repeat(s_bins, npix)
         e = np.repeat(e_bins * npix, npix)
-        self.page_data_[self.signal_idx, :] = s
-        self.page_data_[self.var_idx, :] = e
+        self._page_data[self.signal_idx, :] = s
+        self._page_data[self.var_idx, :] = e
         if self.changes_pix_only:
             return self
         self.update_img_accumulators(npix_block, npix_idx, s, e)

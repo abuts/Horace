@@ -178,7 +178,7 @@ class PageOp_noisify(PageOpBase):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.op_name_ = "noisify"
+        self._op_name = "noisify"
         self.split_at_bin_edges = False
         self.noisify_par: dict[str, Any] = {}
 
@@ -186,7 +186,7 @@ class PageOp_noisify(PageOpBase):
         """Initialize ``PageOp_noisify`` on ``sqw_obj`` with noisify arguments."""
         super().init(sqw_obj)
         if sqw_obj is not None and not self.changes_pix_only:
-            self.var_acc_ = np.zeros(
+            self._var_acc = np.zeros(
                 int(np.asarray(self.npix).size), dtype=np.float64, order="F"
             )
         _, _, self.noisify_par = noisify([], [], *args, **kwargs)
@@ -197,14 +197,14 @@ class PageOp_noisify(PageOpBase):
     ) -> "PageOp_noisify":
         """Apply ``noisify`` to current pixel page and update image accumulators."""
         signal, var, _ = noisify(
-            self.page_data_[self.signal_idx, :],
-            self.page_data_[self.var_idx, :],
+            self._page_data[self.signal_idx, :],
+            self._page_data[self.var_idx, :],
             self.noisify_par,
         )
         sig_flat = np.asarray(signal, dtype=np.float64).ravel(order="F")
         var_flat = np.asarray(var, dtype=np.float64).ravel(order="F")
-        self.page_data_[self.signal_idx, :] = sig_flat
-        self.page_data_[self.var_idx, :] = var_flat
+        self._page_data[self.signal_idx, :] = sig_flat
+        self._page_data[self.var_idx, :] = var_flat
 
         self.update_img_accumulators(npix_block, npix_idx, sig_flat, var_flat)
         return self

@@ -53,15 +53,15 @@ class PageOp_join_sqw(PageOpBase):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.op_name_ = "join_sqw"
-        self.split_at_bin_edges_ = True
+        self._op_name = "join_sqw"
+        self._split_at_bin_edges = True
         self.pix_combine_info: Optional[MultipixBase] = None
         self.new_runid: np.ndarray = np.empty(0, dtype=np.float64)
         self.use_mex: bool = False
-        self.block_idx_: np.ndarray = np.empty((2, 0), dtype=np.int64)
-        self.page_start_pos_: np.ndarray = np.empty(0, dtype=np.int64)
-        self.npix_page_read_: np.ndarray = np.empty(0, dtype=np.int64)
-        self.pixout_start_pos_: int = 0
+        self._block_idx: np.ndarray = np.empty((2, 0), dtype=np.int64)
+        self._page_start_pos: np.ndarray = np.empty(0, dtype=np.int64)
+        self._npix_page_read: np.ndarray = np.empty(0, dtype=np.int64)
+        self._pixout_start_pos: int = 0
 
     def init(
         self,
@@ -93,7 +93,7 @@ class PageOp_join_sqw(PageOpBase):
         else:
             pix = PixelDataMemory()
 
-        self.pix_ = pix
+        self._pix = pix
         if not self.outfile:
             self.outfile = self._build_file_name_for_join()
 
@@ -115,25 +115,25 @@ class PageOp_join_sqw(PageOpBase):
         else:
             self.new_runid = np.asarray(new_runid, dtype=np.float64).ravel()
 
-        self.sig_acc_ = np.empty(0, dtype=np.float64)
-        self.var_acc_ = np.empty(0, dtype=np.float64)
+        self._sig_acc = np.empty(0, dtype=np.float64)
+        self._var_acc = np.empty(0, dtype=np.float64)
 
         if not self.use_mex:
             res = self.pix_combine_info.init_pix_access()
             if res is not None:
                 self.pix_combine_info = res
-            self.npix_page_read_ = np.zeros(
+            self._npix_page_read = np.zeros(
                 self.pix_combine_info.nfiles, dtype=np.int64
             )
         else:
-            self.pixout_start_pos_ = getattr(self.write_handle_, "pixout_start", 0)
+            self._pixout_start_pos = getattr(self._write_handle, "pixout_start", 0)
 
         return self, in_sqw
 
     def split_into_pages(
         self, npix: np.ndarray, chunk_size: int
     ) -> Tuple[List[np.ndarray], np.ndarray, "PageOp_join_sqw"]:
-        """Split ``npix`` into large chunks at bin edges and record ``block_idx_``."""
+        """Split ``npix`` into large chunks at bin edges and record ``_block_idx``."""
         if self.use_mex:
             npix_flat = np.asarray(npix).ravel(order="F")
             npix_chunks = [npix_flat]
@@ -143,15 +143,15 @@ class PageOp_join_sqw(PageOpBase):
         fb = int(hor_config().fb_scale_factor)
         large_chunk = int(chunk_size) * max(1, fb)
         npix_chunks, npix_idx, _ = super().split_into_pages(npix, large_chunk)
-        self.block_idx_ = npix_idx
+        self._block_idx = npix_idx
         page_sizes = np.array([int(np.sum(c)) for c in npix_chunks], dtype=np.int64)
         page_pos = np.cumsum(page_sizes)
         if page_pos.size > 0:
-            self.page_start_pos_ = np.concatenate(
+            self._page_start_pos = np.concatenate(
                 ([1], page_pos[:-1] + 1)
             ).astype(np.int64)
         else:
-            self.page_start_pos_ = np.array([1], dtype=np.int64)
+            self._page_start_pos = np.array([1], dtype=np.int64)
         return npix_chunks, npix_idx, self
 
     def get_page_data(
@@ -178,27 +178,27 @@ class PageOp_join_sqw(PageOpBase):
         assert multi_data is not None
         n_datasets = multi_data.nfiles
         block_range = (
-            self.block_idx_[:, idx - 1]
-            if self.block_idx_.ndim == 2
-            else self.block_idx_
+            self._block_idx[:, idx - 1]
+            if self._block_idx.ndim == 2
+            else self._block_idx
         )
 
         for i in range(1, n_datasets + 1):
             contr_page_data, page_bin_distr = multi_data.get_dataset_page(
-                i, int(self.npix_page_read_[i - 1]) + 1, block_range
+                i, int(self._npix_page_read[i - 1]) + 1, block_range
             )
             n_page_pix = contr_page_data.shape[1]
-            self.npix_page_read_[i - 1] += n_page_pix
+            self._npix_page_read[i - 1] += n_page_pix
 
             if self.new_runid.size > 0 and n_page_pix > 0:
-                contr_page_data[self.run_idx_, :] = self.new_runid[i - 1]
+                contr_page_data[self._run_idx, :] = self.new_runid[i - 1]
 
             targ_bin_idx = _fill_idx(bin_start, page_bin_distr)
             if targ_bin_idx.size > 0:
                 page_data[:, targ_bin_idx] = contr_page_data
             bin_start = bin_start + np.asarray(page_bin_distr, dtype=np.int64).ravel()
 
-        self.page_data_ = page_data
+        self._page_data = page_data
         return self
 
     def apply_op(
@@ -214,7 +214,7 @@ class PageOp_join_sqw(PageOpBase):
     def common_page_op(self) -> "PageOp_join_sqw":
         if self.use_mex:
             assert self.pix_combine_info is not None
-            self.pix_data_range_ = self.pix_combine_info.data_range.copy()
+            self._pix_data_range = self.pix_combine_info.data_range.copy()
             return self
         return super().common_page_op()
 
@@ -222,7 +222,7 @@ class PageOp_join_sqw(PageOpBase):
         assert self.pix_combine_info is not None
         extern_range = self.pix_combine_info.data_range
         if np.all(extern_range == PixelDataBase.EMPTY_RANGE):
-            self.pix_data_range_ = extern_range.copy()
+            self._pix_data_range = extern_range.copy()
 
         res = self.pix_combine_info.close_faccessors()
         if res is not None:
@@ -267,7 +267,7 @@ class PageOp_join_sqw(PageOpBase):
         if not fb or fb == "combined_":
             fb = "combined_form_mem"
 
-        if self.pix_ is not None and self.pix_.is_filebacked:
+        if self._pix is not None and self._pix.is_filebacked:
             return PixelDataBase.build_tmp_file_name(fb, wkdir)
         return os.path.join(wkdir, f"{fb}.sqw")
 

@@ -420,8 +420,8 @@ class PixelDataMemory(PixelDataBase):
         """Finalize pixel dump after page operations."""
         wh = getattr(page_op, "write_handle", None) if page_op is not None else None
         if wh is None:
-            if page_op is not None and hasattr(page_op, "pix_data_range_"):
-                self.set_data_range(page_op.pix_data_range_)
+            if page_op is not None and hasattr(page_op, "_pix_data_range"):
+                self.set_data_range(page_op._pix_data_range)
             return self
         from pyhorace.data.pixels.pixel_data_file_backed import PixelDataFileBacked
 

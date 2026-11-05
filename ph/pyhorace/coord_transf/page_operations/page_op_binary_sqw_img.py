@@ -61,17 +61,17 @@ class PageOp_binary_sqw_img(PageOp_bin_Base):
                 )
             self.keep_array = np.asarray(self.operand.npix, dtype=bool).ravel(order="F")
             if self.npix.size == 1:
-                if int(np.sum(self.operand.npix)) != self.pix_.num_pixels:
-                    nobj1_elements = self.pix_.num_pixels
+                if int(np.sum(self.operand.npix)) != self._pix.num_pixels:
+                    nobj1_elements = self._pix.num_pixels
                     nobj2_elements = int(np.sum(self.operand.npix))
                     raise HoraceError(
                         f"HORACE:PageOp_binary_sqw_img:invalid_argument - "
-                        f"{self.op_name_} attempted between inconsistent objects.\n"
+                        f"{self._op_name} attempted between inconsistent objects.\n"
                         f"{name1_op} contains {nobj1_elements} pixels and obj {name2_op} addresses {nobj2_elements} pixels"
                     )
                 self.npix = np.asarray(self.operand.npix, dtype=np.int64).ravel(order="F")
                 if not self.changes_pix_only:
-                    self.var_acc_ = np.zeros(self.npix.size, dtype=np.float64)
+                    self._var_acc = np.zeros(self.npix.size, dtype=np.float64)
             nobj2_elements = int(np.asarray(self.operand.npix).size)
         else:
             self.keep_array = np.ones(self.npix.shape, dtype=bool)
@@ -94,7 +94,7 @@ class PageOp_binary_sqw_img(PageOp_bin_Base):
             name2_obj = type(operand).__name__
             raise HoraceError(
                 f"HORACE:PageOp_binary_sqw_img:invalid_argument - "
-                f"{self.op_name_} attempted between inconsistent objects. "
+                f"{self._op_name} attempted between inconsistent objects. "
                 f"Image of operand1: {name1_obj} has {nobj1_elements} elements "
                 f"and img of op2 {name2_obj} has {nobj2_elements} elements"
             )
@@ -112,8 +112,8 @@ class PageOp_binary_sqw_img(PageOp_bin_Base):
         keep_pix = np.repeat(keep_page_bins, npix_blk)
         npix_blk[~keep_page_bins] = 0
 
-        page_data = self.page_data_[:, keep_pix]
-        self.sigvar1.sig_var = page_data[self.sigvar_idx_, :]
+        page_data = self._page_data[:, keep_pix]
+        self.sigvar1.sig_var = page_data[self._sigvar_idx, :]
 
         op_s_flat = np.asarray(self.operand.s, dtype=np.float64).ravel(order="F")
         fp_sig = np.repeat(op_s_flat[idx0:idx1], npix_blk)
@@ -133,8 +133,8 @@ class PageOp_binary_sqw_img(PageOp_bin_Base):
                 self.sigvar1, fake_pix, self.op_handle
             )
 
-        page_data[self.sigvar_idx_, :] = res.sig_var
-        self.page_data_ = page_data
+        page_data[self._sigvar_idx, :] = res.sig_var
+        self._page_data = page_data
         if self.changes_pix_only:
             return self
 
@@ -143,7 +143,7 @@ class PageOp_binary_sqw_img(PageOp_bin_Base):
 
     def finish_op(self, in_obj: Any) -> Tuple[Any, "PageOp_binary_sqw_img"]:
         """Reduce total number of pixels in final image for masked bins."""
-        self.npix_[~self.keep_array] = 0
+        self._npix[~self.keep_array] = 0
         return super().finish_op(in_obj)
 
     def get_info_split_log_ratio(self) -> float:

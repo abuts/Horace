@@ -22,13 +22,13 @@ class PageOp_func_eval(PageOpBase):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.op_name_: str = "func_eval"
+        self._op_name: str = "func_eval"
         self.split_at_bin_edges: bool = True
 
     def init(self, sqw_obj: Any, *args: Any) -> "PageOp_func_eval":
         """Initialize ``PageOp_func_eval`` with target ``sqw`` object whose image was already evaluated."""
         super().init(sqw_obj)
-        self.img_.e = np.zeros_like(self.img_.s)
+        self._img.e = np.zeros_like(self._img.s)
         return self
 
     def apply_op(
@@ -37,11 +37,11 @@ class PageOp_func_eval(PageOpBase):
         """Replicate pre-computed image signal into pixels for the current bin slice."""
         idx0 = int(npix_idx[0]) - 1
         idx1 = int(npix_idx[1])
-        s_flat = np.asarray(self.img_.s, dtype=np.float64).ravel(order="F")
+        s_flat = np.asarray(self._img.s, dtype=np.float64).ravel(order="F")
         npix_flat = np.asarray(self.npix, dtype=np.int64).ravel(order="F")
         s = np.repeat(s_flat[idx0:idx1], npix_flat[idx0:idx1])
-        self.page_data_[self.signal_idx, :] = s
-        self.page_data_[self.var_idx, :] = 0.0
+        self._page_data[self.signal_idx, :] = s
+        self._page_data[self.var_idx, :] = 0.0
         return self
 
     def get_changes_pix_only(self) -> bool:

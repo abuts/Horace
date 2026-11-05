@@ -30,7 +30,7 @@ class PageOp_unary_op(PageOpBase):
         super().init(in_obj)
         self.op_holder = operation
         op_name = getattr(operation, "__name__", str(operation))
-        self.op_name_ = f"unary_op: {op_name}"
+        self._op_name = f"unary_op: {op_name}"
         return self
 
     def apply_op(
@@ -39,18 +39,18 @@ class PageOp_unary_op(PageOpBase):
         """Apply unary operation on signal/variance of current pixel page."""
         pg_result = self.op_holder(
             SigVar(
-                self.page_data_[self.signal_idx, :],
-                self.page_data_[self.var_idx, :],
+                self._page_data[self.signal_idx, :],
+                self._page_data[self.var_idx, :],
             )
         )
-        self.page_data_[self.signal_idx, :] = np.asarray(
+        self._page_data[self.signal_idx, :] = np.asarray(
             pg_result.s, dtype=np.float64
         ).ravel(order="F")
-        self.page_data_[self.var_idx, :] = np.asarray(
+        self._page_data[self.var_idx, :] = np.asarray(
             pg_result.e, dtype=np.float64
         ).ravel(order="F")
 
-        if self.does_img_op_:
+        if self._does_img_op:
             self.update_img_accumulators(
                 npix_block, npix_idx, pg_result.s, pg_result.e
             )
@@ -58,8 +58,8 @@ class PageOp_unary_op(PageOpBase):
 
     def finish_op(self, in_obj: Any) -> Tuple[Any, "PageOp_unary_op"]:
         """Finalize unary operation and zero any negative variance values."""
-        if self.does_img_op_:
-            self.var_acc_[self.var_acc_ < 0] = 0.0
+        if self._does_img_op:
+            self._var_acc[self._var_acc < 0] = 0.0
         return super().finish_op(in_obj)
 
     def get_info_split_log_ratio(self) -> float:

@@ -28,30 +28,30 @@ class PageOp_sqw_eval(PageOpBase):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.op_name_: str = "sqw_eval"
+        self._op_name: str = "sqw_eval"
         self.split_at_bin_edges: bool = True
         self.op_holder: Callable[..., Any] = lambda h, k, l, e: []
         self.average: bool = False
         self.proj: Any = None
         self.op_parms: Any = None
         self.sigvar_idx: np.ndarray = PixelDataBase.field_index("sig_var")
-        self.npix_block_: Optional[np.ndarray] = None
-        self.npix_idx_: Optional[np.ndarray] = None
+        self._npix_block: Optional[np.ndarray] = None
+        self._npix_idx: Optional[np.ndarray] = None
 
     @property
     def img(self) -> Any:
         """Read-only access to internal image holder to use in ``sqw_op``."""
-        return self.img_
+        return self._img
 
     @property
     def npix_idx(self) -> Optional[np.ndarray]:
         """2-element array ``[nbin_min, nbin_max]`` of current image bin indices."""
-        return self.npix_idx_
+        return self._npix_idx
 
     @property
     def npix_block(self) -> Optional[np.ndarray]:
         """Read-only access to current ``npix_block``."""
-        return self.npix_block_
+        return self._npix_block
 
     def init(
         self,
@@ -81,8 +81,8 @@ class PageOp_sqw_eval(PageOpBase):
         img_signal, _ = compute_bin_data(npix_block, new_signal, None, True)
         idx0 = int(npix_idx[0]) - 1
         idx1 = int(npix_idx[1])
-        self.sig_acc_[idx0:idx1] = (
-            self.sig_acc_[idx0:idx1] + img_signal.ravel(order="F")
+        self._sig_acc[idx0:idx1] = (
+            self._sig_acc[idx0:idx1] + img_signal.ravel(order="F")
         )
         return self
 
@@ -90,7 +90,7 @@ class PageOp_sqw_eval(PageOpBase):
         self, npix_block: np.ndarray, npix_idx: Sequence[int]
     ) -> "PageOp_sqw_eval":
         """Apply user-defined ``sqw_eval`` operation over a page of pixels in memory."""
-        qw = self.proj.transform_pix_to_hkl(self.page_data_[self.coord_idx, :])
+        qw = self.proj.transform_pix_to_hkl(self._page_data[self.coord_idx, :])
         qw_pix_coord = [
             qw[0, :].reshape(-1, 1),
             qw[1, :].reshape(-1, 1),
@@ -113,14 +113,14 @@ class PageOp_sqw_eval(PageOpBase):
             )
             new_signal = np.asarray(new_signal, dtype=np.float64).ravel(order="F")
 
-        self.page_data_[self.signal_idx, :] = new_signal
-        self.page_data_[self.var_idx, :] = 0.0
+        self._page_data[self.signal_idx, :] = new_signal
+        self._page_data[self.var_idx, :] = 0.0
         self.update_img_accumulators(npix_block, npix_idx, new_signal)
         return self
 
     def finish_op(self, out_obj: Any) -> Tuple[Any, "PageOp_sqw_eval"]:
         """Finalize ``sqw_eval`` page operation and zero image variance accumulator."""
-        self.var_acc_ = np.zeros_like(self.sig_acc_)
+        self._var_acc = np.zeros_like(self._sig_acc)
         return super().finish_op(out_obj)
 
     def get_info_split_log_ratio(self) -> float:

@@ -245,9 +245,9 @@ class pix_write_handle:
             if res is not None:
                 wh = res
 
-            if hasattr(pix_obj, "pix_data_range_"):
+            if hasattr(pix_obj, "_pix_data_range"):
                 pix_src = pix_obj.pix
-                pix_src.set_data_range(pix_obj.pix_data_range_)
+                pix_src.set_data_range(pix_obj._pix_data_range)
                 meta = pix_src.metadata
             elif hasattr(pix_obj, "metadata"):
                 meta = pix_obj.metadata
@@ -264,9 +264,9 @@ class pix_write_handle:
             return meta
 
         if pix_obj is not None:
-            if hasattr(pix_obj, "pix_data_range_"):
+            if hasattr(pix_obj, "_pix_data_range"):
                 pix_src = pix_obj.pix
-                pix_src.set_data_range(pix_obj.pix_data_range_)
+                pix_src.set_data_range(pix_obj._pix_data_range)
                 meta = pix_src.metadata
             elif hasattr(pix_obj, "metadata"):
                 meta = pix_obj.metadata
