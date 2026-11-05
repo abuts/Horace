@@ -266,7 +266,10 @@ class pixfile_combine_info(MultipixBase):
         self._f_accessors = []
         for idx, fname in enumerate(self._infiles):
             if os.path.isfile(fname):
-                self._f_accessors.append(PixelDataFileBacked(fname))
+                try:
+                    self._f_accessors.append(PixelDataFileBacked(fname))
+                except Exception:
+                    self._f_accessors.append(None)
             else:
                 self._f_accessors.append(None)
         return self
@@ -293,7 +296,26 @@ class pixfile_combine_info(MultipixBase):
         pos_npix = int(self._pos_npixstart[idx]) if self._pos_npixstart.size > idx else 0
         pos_pix = int(self._pos_pixstart[idx]) if self._pos_pixstart.size > idx else 0
 
-        with open(fname, "rb") as f:
+        pix_acc = (
+            self._f_accessors[idx]
+            if idx < len(self._f_accessors) and self._f_accessors[idx] is not None
+            else None
+        )
+        if (
+            pix_acc is not None
+            and getattr(pix_acc, "f_accessor", None) is not None
+            and hasattr(pix_acc.f_accessor, "get_npix_block")
+        ):
+            npix_chunk = np.asarray(
+                pix_acc.f_accessor.get_npix_block(b0, b1), dtype=np.uint64
+            ).ravel()
+            n_pix_to_read = int(np.sum(npix_chunk))
+        else:
+            with open(fname, "rb") as f:
+                f.seek(pos_npix + (b0 - 1) * 8)
+                npix_chunk = np.fromfile(f, dtype=np.uint64, count=n_bins_read)
+                n_pix_to_read = int(np.sum(npix_chunk))
+        if False:
             f.seek(pos_npix + (b0 - 1) * 8)
             npix_chunk = np.fromfile(f, dtype=np.uint64, count=n_bins_read)
             n_pix_to_read = int(np.sum(npix_chunk))
@@ -307,7 +329,7 @@ class pixfile_combine_info(MultipixBase):
             pix_acc is not None
             and getattr(pix_acc, "f_accessor", None) is not None
             and hasattr(pix_acc.f_accessor, "get_pix")
-            and (pos_pix == 0 or pos_pix == getattr(pix_acc, "offset", 0))
+            and (pos_pix == 0 or pos_pix == int(getattr(pix_acc.f_accessor, "pix_position", 0)))
         ):
             if n_pix_to_read == 0:
                 pix_data = np.empty((self.DEFAULT_NUM_PIX_FIELDS, 0), dtype=np.float64)
@@ -327,10 +349,19 @@ class pixfile_combine_info(MultipixBase):
                 pix_data = raw.reshape(
                     (self.DEFAULT_NUM_PIX_FIELDS, n_pix_to_read), order="F"
                 ).astype(np.float64)
+        if False:
+            with open(fname, "rb") as f:
+                f.seek(pos_pix + (int(pix_pos_start) - 1) * self.DEFAULT_NUM_PIX_FIELDS * 4)
+                raw = np.fromfile(
+                    f, dtype=np.float32, count=n_pix_to_read * self.DEFAULT_NUM_PIX_FIELDS
+                )
+                pix_data = raw.reshape(
+                    (self.DEFAULT_NUM_PIX_FIELDS, n_pix_to_read), order="F"
+                ).astype(np.float64)
 
-        if self._run_label == "filenum":
+        if isinstance(self._run_label, str) and self._run_label == "filenum":
             pix_data[4, :] = self.filenum[idx]
-        elif isinstance(self._run_label, np.ndarray):
+        elif False and isinstance(self._run_label, np.ndarray):
             pix_data[4, :] += self._run_label[idx]
 
         return pix_data, npix_chunk
@@ -347,11 +378,28 @@ class pixfile_combine_info(MultipixBase):
         for idx, fname in enumerate(self._infiles):
             if not os.path.isfile(fname):
                 continue
+            try:
+                pix = PixelDataFileBacked(fname)
+                dr = pix.data_range.copy()
+                pix.deactivate()
+                if isinstance(self._run_label, str) and self._run_label == "filenum":
+                    dr[:, 4] = self.filenum[idx]
+                global_range[0, :] = np.minimum(global_range[0, :], dr[0, :])
+                global_range[1, :] = np.maximum(global_range[1, :], dr[1, :])
+            except Exception:
+                continue
+        self.set_data_range(global_range)
+        return self
+        if False:
+            pass
+        for idx, fname in enumerate(self._infiles):
+            if not os.path.isfile(fname):
+                continue
             pix = PixelDataFileBacked(fname)
             dr = pix.data_range.copy()
-            if self._run_label == "filenum":
+            if isinstance(self._run_label, str) and self._run_label == "filenum":
                 dr[:, 4] = self.filenum[idx]
-            elif isinstance(self._run_label, np.ndarray):
+            elif False and isinstance(self._run_label, np.ndarray):
                 dr[:, 4] += self._run_label[idx]
             global_range[0, :] = np.minimum(global_range[0, :], dr[0, :])
             global_range[1, :] = np.maximum(global_range[1, :], dr[1, :])

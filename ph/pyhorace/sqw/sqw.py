@@ -539,7 +539,7 @@ class sqw(SQWDnDBase, sqw_plot_interface):
                 self.main_header = d["main_header"]
             if "exper_info" in d:
                 self.exper_info = d["exper_info"]
-            if detpar is not None and not (isinstance(detpar, (list, tuple, dict)) and len(detpar) == 0):
+            if detpar is not None and not (isinstance(detpar, (list, tuple, dict)) and len(detpar) == 0) and self._exper_info.detector_arrays.n_runs == 0:
                 self.detpar = detpar
             if "data" in d:
                 raw_data = d["data"]
@@ -556,7 +556,10 @@ class sqw(SQWDnDBase, sqw_plot_interface):
                     self.data = raw_data
             if "pix" in d:
                 raw_pix = d["pix"]
-                if isinstance(raw_pix, PixelDataBase):
+                from pyhorace.data.pixels.multipix_base import multipix_base
+                if isinstance(raw_pix, multipix_base):
+                    self.pix = raw_pix
+                elif isinstance(raw_pix, PixelDataBase):
                     if file_backed is not None and raw_pix.is_filebacked != file_backed:
                         self.pix = PixelDataBase.create(raw_pix, filebacked=file_backed)
                     else:
@@ -656,7 +659,13 @@ class sqw(SQWDnDBase, sqw_plot_interface):
             self._pix = PixelDataMemory()
         else:
             self._pix = copy.deepcopy(other._pix)
-        # Do not duplicate temp-file deletion ownership onto copies by default
+        other_holder = getattr(other, "_tmp_file_holder", None)
+        if not exclude_pix and other_holder is not None:
+            self._tmp_file_holder = other_holder.acquire()
+            self._is_tmp_obj = True
+            self._tmp_file_path = other._tmp_file_path
+            return
+        self._tmp_file_holder = None
         self._is_tmp_obj = False
         self._tmp_file_path = ""
 
@@ -692,6 +701,13 @@ class sqw(SQWDnDBase, sqw_plot_interface):
             return self
         target = str(filename) if filename is not None else self._pix.full_filename
         if target:
+            from pyhorace.data.pixels.pixel_data_file_backed import _TmpFileHolder
+
+            cur_holder = getattr(self, "_tmp_file_holder", None)
+            if cur_holder is None or cur_holder.file_name != target:
+                if cur_holder is not None:
+                    cur_holder.release()
+                self._tmp_file_holder = _TmpFileHolder(target)
             self._is_tmp_obj = True
             self._tmp_file_path = target
         return self
@@ -700,24 +716,47 @@ class sqw(SQWDnDBase, sqw_plot_interface):
         """Close open file-backed pixel handles (port of ``@sqw/deactivate.m``)."""
         if self._pix is not None:
             self._pix.deactivate()
+        cur_holder = getattr(self, "_tmp_file_holder", None)
+        if cur_holder is not None:
+            if cur_holder.ref_count > 1:
+                cur_holder.ref_count -= 1
+            self._tmp_file_holder = None
         self._is_tmp_obj = False
         self._tmp_file_path = ""
         return self
 
     def activate(self, new_file: Optional[str] = None) -> "sqw":
         """Re-open file-backed pixel handles (port of ``@sqw/activate.m``)."""
-        target = str(new_file) if new_file is not None else self.full_filename
-        if self._pix is not None and target:
-            self._pix.activate(target)
+        if not self.is_filebacked and new_file is None:
+            return self
+        target = str(new_file) if new_file is not None else (self._pix.full_filename or self.full_filename)
+        if self._pix is not None and target and self._pix.is_filebacked:
+            try:
+                self._pix.activate(target, no_tmp_file=True)
+            except TypeError:
+                self._pix.activate(target)
         if target:
-            self.full_filename = target
             _, ext = os.path.splitext(target)
-            if ext.lower() == ".tmp":
+            if ext.lower() == ".tmp" or ext.lower().startswith(".tmp_"):
                 self.set_as_tmp_obj(target)
+            else:
+                self.full_filename = self._pix.full_filename if (self._pix is not None and self._pix.full_filename) else target
         return self
 
     def delete(self) -> None:
         """Clean up temporary backing file if ``is_tmp_obj`` is True (port of ``@sqw/delete.m``)."""
+        cur_holder = getattr(self, "_tmp_file_holder", None)
+        if cur_holder is not None:
+            if getattr(self, "_pix", None) is not None:
+                try:
+                    self._pix.deactivate()
+                except Exception:
+                    pass
+            self._tmp_file_holder = None
+            self._is_tmp_obj = False
+            self._tmp_file_path = ""
+            cur_holder.release()
+            return
         if getattr(self, "_is_tmp_obj", False):
             tmp_path = getattr(self, "_tmp_file_path", "") or (
                 self._pix.full_filename if getattr(self, "_pix", None) is not None else ""
@@ -734,6 +773,7 @@ class sqw(SQWDnDBase, sqw_plot_interface):
                     pass
             self._is_tmp_obj = False
             self._tmp_file_path = ""
+            return
 
     def __del__(self) -> None:
         """Standard Python destructor cleaning up any temporary backing file."""
@@ -794,6 +834,10 @@ class sqw(SQWDnDBase, sqw_plot_interface):
         if val is None or (isinstance(val, (list, tuple, np.ndarray)) and len(val) == 0):
             self._exper_info = Experiment()
         elif isinstance(val, Experiment):
+            self._exper_info = val
+        elif isinstance(val, tuple) and len(val) > 0 and isinstance(val[0], Experiment):
+            val = val[0]
+            pass
             self._exper_info = val
         elif isinstance(val, IX_experiment):
             self._exper_info = Experiment(val)
@@ -885,7 +929,7 @@ class sqw(SQWDnDBase, sqw_plot_interface):
     def pix(self, val: Any) -> None:
         if val is None or (isinstance(val, (list, tuple)) and len(val) == 0):
             self._pix = PixelDataMemory()
-        elif isinstance(val, PixelDataBase):
+        elif isinstance(val, PixelDataBase) or (hasattr(val, "run_label") and hasattr(val, "pix_position")):
             self._pix = val
         elif isinstance(val, dict) and "serial_name" in val:
             loaded = Serializable.loadobj(val)
@@ -934,7 +978,8 @@ class sqw(SQWDnDBase, sqw_plot_interface):
             )
         self._main_header.full_filename = s_val
         self._data.full_filename = s_val
-        self._pix.full_filename = s_val
+        if isinstance(self._pix, PixelDataBase):
+            self._pix.full_filename = s_val
 
     @property
     def is_tmp_obj(self) -> bool:
@@ -2071,7 +2116,13 @@ class sqw(SQWDnDBase, sqw_plot_interface):
         ldr = ldr.init(self, op_outfile)
         ldr = ldr.put_sqw("-hold_pix_place")
         self._main_header = orig_mh
-        self._data.metadata = orig_dmeta
+        self._main_header = orig_mh
+        old_chk = self._data.do_check_combo_arg
+        self._data.do_check_combo_arg = False
+        try:
+            self._data.metadata = orig_dmeta
+        finally:
+            self._data.do_check_combo_arg = old_chk
 
         wh = pix_write_handle(ldr)
         wh.move_to_original = move_to_original
@@ -3543,6 +3594,120 @@ class sqw(SQWDnDBase, sqw_plot_interface):
         split_array = self.split()
         return pr, nd, split_array
 
+    def join(self, *args: Any) -> Any:
+        """Join an array or sequence of ``sqw`` objects or ``sqw`` files into a single ``sqw`` object.
+
+        Ported from ``horace_core/sqw/@sqw/join.m``.
+        """
+        from pyhorace.algorithms.join_sqw import join_sqw
+
+        return join_sqw(self, *args)
+
+    def combine_sqw(self, *args: Any) -> Any:
+        """Combine two or more ``sqw`` objects in order to improve statistics.
+
+        Ported from ``horace_core/sqw/@sqw/combine_sqw.m``.
+        """
+        from pyhorace.coord_transf._dependencies import expand_box, range_add_border
+        from pyhorace.coord_transf.line_axes import line_axes
+        from pyhorace.core.configurations.hor_config import hor_config
+        from pyhorace.core.data_op_interface import DataOpArray
+        from pyhorace.sqw.d0d import d0d
+
+        if len(args) == 0:
+            if isinstance(self, (list, tuple, np.ndarray, DataOpArray)):
+                inputs = list(np.asarray(self, dtype=object).ravel(order="F"))
+            else:
+                inputs = [self]
+        elif isinstance(args[0], (list, tuple, DataOpArray)) or (
+            isinstance(args[0], np.ndarray) and args[0].dtype == object
+        ):
+            if len(args) > 1:
+                raise HoraceError(
+                    "HORACE:combine_sqw:invalid_argument",
+                    "if second argument is a cellarray of sqw objects, combine_sqw can only accept 2 arguments",
+                )
+            base_list = (
+                list(np.asarray(self, dtype=object).ravel(order="F"))
+                if isinstance(self, (list, tuple, np.ndarray, DataOpArray))
+                else [self]
+            )
+            inputs = base_list + list(np.asarray(args[0], dtype=object).ravel(order="F"))
+        else:
+            base_list = (
+                list(np.asarray(self, dtype=object).ravel(order="F"))
+                if isinstance(self, (list, tuple, np.ndarray, DataOpArray))
+                else [self]
+            )
+            inputs = base_list + list(args)
+
+        right_type = [isinstance(x, sqw) for x in inputs]
+        if not all(right_type):
+            n_empty = len(right_type) - sum(right_type)
+            raise HoraceError(
+                "HORACE:combine_sqw:invalid_argument",
+                f"Input objects must be sqw type with detector pixel information. "
+                f"Input contains {n_empty} non-sqw objects",
+            )
+
+        inputs = [x for x in inputs if x.pix.num_pixels > 0]
+        if len(inputs) == 0:
+            return self
+        if len(inputs) == 1:
+            return inputs[0].copy()
+
+        img_ranges = [np.asarray(x.data.img_range, dtype=np.float64) for x in inputs]
+        full_img_rng = [expand_box(box[0, :], box[1, :]) for box in img_ranges]
+        exper = [sq.experiment_info for sq in inputs]
+        all_proj_block = [ws.data.proj for ws in inputs]
+        full_pix_rng = [
+            proj.transform_img_to_pix(data)
+            for proj, data in zip(all_proj_block, full_img_rng)
+        ]
+
+        proj1 = all_proj_block[0]
+        full_img_rng_1 = np.hstack(
+            [proj1.transform_pix_to_img(data) for data in full_pix_rng]
+        )
+        combine_range = np.vstack(
+            [np.min(full_img_rng_1, axis=1), np.max(full_img_rng_1, axis=1)]
+        )
+        combine_range = range_add_border(combine_range)
+
+        new_range_arg: List[Any] = []
+        nbins = np.asarray(inputs[0].data.axes.nbins_all_dims, dtype=int).ravel()
+        paxis = nbins > 1
+        for i in range(4):
+            rng = combine_range[:, i].copy()
+            if paxis[i]:
+                np_i = int(nbins[i])
+                dist = float(rng[1] - rng[0])
+                step = dist / (np_i - 1) if np_i > 1 else dist
+                new_range_arg.append([float(rng[0]), step, float(rng[1])])
+            else:
+                new_range_arg.append([float(rng[0]), float(rng[1])])
+
+        wout = inputs[0].copy()
+        pix_list = [x.pix for x in inputs]
+
+        hc = hor_config()
+        info_level = hc.log_level
+        try:
+            hc.log_level = -1
+            wout.pix = PixelDataBase.cat(*pix_list)
+        finally:
+            hc.log_level = info_level
+
+        wout.experiment_info = exper[0].combine_experiments(exper[1:], True, True)
+
+        ax = line_axes(nbins_all_dims=np.ones(4, dtype=int), img_range=combine_range)
+        wout.data = d0d(ax, proj1)
+        wout.data.npix = np.full(
+            wout.data.npix.shape, wout.pix.num_pixels, dtype=np.int64
+        )
+        wout = wout.cut(proj1, *new_range_arg)
+        return wout
+
 
 def symmetrise_sqw(win: Any, *args: Any, **kwargs: Any) -> sqw:
     """Symmetrise an ``sqw`` object or file according to ``Symop`` (port of ``symmetrise_sqw.m``)."""
@@ -3566,5 +3731,268 @@ def symmetrise_sqw(win: Any, *args: Any, **kwargs: Any) -> sqw:
     )
 
 
+def _init_sqw_obj_from_file_for_sqw_op(
+    win: Any,
+) -> Tuple[int, List[Any], List[bool]]:
+    """Parse input sequence of files or ``sqw`` objects for ``sqw_op`` / ``sqw_op_bin_pixels``.
+
+    Ported from ``horace_core/algorithms/private/init_sqw_obj_from_file_for_sqw_op_.m``.
+    """
+    from pyhorace.core.data_op_interface import DataOpArray
+    from pyhorace.io.sqw_formats_factory import sqw_formats_factory
+
+    if isinstance(win, (str, os.PathLike, sqw)):
+        win_list = [win]
+    elif isinstance(win, (np.ndarray, DataOpArray)):
+        win_list = list(np.asarray(win, dtype=object).ravel(order="F"))
+    elif isinstance(win, (list, tuple)):
+        win_list = list(win)
+    else:
+        win_list = [win]
+
+    n_inputs = len(win_list)
+    ldrs: List[Any] = []
+    is_sqw_obj: List[bool] = []
+    for i, item in enumerate(win_list):
+        if isinstance(item, (str, os.PathLike)):
+            ldr = sqw_formats_factory.instance().get_loader(str(item))
+            if not bool(getattr(ldr, "sqw_type", False)):
+                ldr.fclose()
+                raise HoraceError(
+                    "HORACE:algorithms:invalid_argument",
+                    f"input file N:{i + 1} with name {item} is not an sqw-type file",
+                )
+            ldrs.append(ldr)
+            is_sqw_obj.append(False)
+        elif isinstance(item, sqw):
+            ldrs.append(item)
+            is_sqw_obj.append(True)
+        else:
+            raise HoraceError(
+                "HORACE:algorithms:invalid_argument",
+                f"Input object N:{i + 1} is not an sqw object. Its class is: {type(item).__name__}",
+            )
+    return n_inputs, ldrs, is_sqw_obj
+
+
+def sqw_op(
+    win: Any,
+    sqwop_func: Any,
+    pars: Any = None,
+    *args: Any,
+    **kwargs: Any,
+) -> Any:
+    """Perform a paged operation over pixels defined by user-provided ``sqwop_func``.
+
+    Ported from ``horace_core/sqw/@sqw/sqw_op.m``, ``horace_core/sqw/@sqw/private/sqw_op_single_.m``,
+    and ``horace_core/algorithms/sqw_op.m``.
+    """
+    from pyhorace.coord_transf.page_operations.page_op_sqw_op import PageOp_sqw_op
+    from pyhorace.core.data_op_interface import DataOpArray
+
+    n_inputs, ldrs, is_sqw_obj = _init_sqw_obj_from_file_for_sqw_op(win)
+    objs: List[sqw] = []
+    for i in range(n_inputs):
+        if is_sqw_obj[i]:
+            objs.append(ldrs[i])
+        else:
+            obj_i = sqw(ldrs[i])
+            if not obj_i.pix.is_filebacked and hasattr(ldrs[i], "fclose"):
+                ldrs[i].fclose()
+            objs.append(obj_i)
+
+    sqwop_func_parsed, pars_cell, opts = objs[0].parse_eval_args(
+        sqwop_func, pars, *args, **kwargs
+    )
+    if bool(opts.get("average", False)):
+        raise HoraceError(
+            "HORACE:PageOp_sqw_op:not_implemented",
+            '"-average" option is not currently implemented for sqw_op.'
+            "Contact HoraceHelp@stfc.ac.uk if you need it with the description of its meaning in your case",
+        )
+    if bool(opts.get("test_input_parsing", False)):
+        return opts
+
+    wout: List[Any] = []
+    for i, obj_i in enumerate(objs):
+        if opts.get("pageop_processor") is None:
+            eval_op: Any = PageOp_sqw_op()
+        else:
+            eval_op = opts["pageop_processor"]
+        outfiles = opts.get("outfile") or []
+        outf_i = (
+            outfiles[i]
+            if i < len(outfiles)
+            else (outfiles[0] if len(outfiles) > 0 else "")
+        )
+        if outf_i:
+            eval_op.outfile = outf_i
+        if bool(opts.get("filebacked", False)):
+            eval_op.init_filebacked_output = True
+        eval_op = eval_op.init(obj_i, sqwop_func_parsed, pars_cell, opts)
+        res_i = sqw.apply_op(obj_i, eval_op)
+        if not is_sqw_obj[i] and hasattr(ldrs[i], "fclose"):
+            ldrs[i].fclose()
+        wout.append(res_i)
+
+    return wout[0] if len(wout) == 1 else DataOpArray(wout)
+
+
+def sqw_op_bin_pixels(
+    win: Any,
+    sqwop_func: Any,
+    pars: Any = None,
+    *args: Any,
+    **kwargs: Any,
+) -> Any:
+    """Perform a paged operation over pixels and rebin into target projection/axes.
+
+    Ported from ``horace_core/sqw/@sqw/sqw_op_bin_pixels.m``,
+    ``horace_core/sqw/@sqw/private/sqw_op_bin_pix_single_.m``,
+    and ``horace_core/algorithms/sqw_op_bin_pixels.m``.
+    """
+    from pyhorace.coord_transf.page_operations.page_op_sqw_binning import (
+        PageOp_sqw_binning,
+    )
+    from pyhorace.coord_transf.page_operations.page_op_sqw_eval import PageOp_sqw_eval
+    from pyhorace.coord_transf.symop import SymopIdentity
+    from pyhorace.core.data_op_interface import DataOpArray
+    from pyhorace.data.pixels.pixobj_combine_info import pixobj_combine_info
+
+    n_inputs, ldrs, is_sqw_obj = _init_sqw_obj_from_file_for_sqw_op(win)
+
+    cut_argi: List[Any] = []
+    eval_argi: List[Any] = []
+    idx = 0
+    while idx < len(args):
+        arg = args[idx]
+        if isinstance(arg, PageOp_sqw_eval):
+            eval_argi.append(arg)
+            idx += 1
+        elif isinstance(arg, str):
+            if arg == "":
+                cut_argi.append([])
+                idx += 1
+            elif arg.startswith("-"):
+                eval_argi.append(arg)
+                idx += 1
+            else:
+                eval_argi.append(arg)
+                if idx + 1 < len(args):
+                    eval_argi.append(args[idx + 1])
+                    idx += 2
+                else:
+                    idx += 1
+        else:
+            cut_argi.append(arg)
+            idx += 1
+
+    first_obj = ldrs[0] if is_sqw_obj[0] else sqw(ldrs[0])
+    num_dims = int(first_obj.data.NUM_DIMS)
+    if len(cut_argi) < num_dims:
+        cut_argi = [[] for _ in range(num_dims)] + cut_argi
+
+    targ_proj, pbin_list, sym, opt = SQWDnDBase.process_and_validate_cut_inputs(
+        first_obj, True, *cut_argi, nargout=4
+    )
+    if len(sym) > 1 or not isinstance(sym[0], SymopIdentity):
+        raise HoraceError(
+            "HORACE:sqw_op_bin_pixels:not_implemented",
+            "sqw_op_bin_pixels does not yet accepts Symop parameters.\n"
+            "Add necessary SymOp to custom operation yourself",
+        )
+
+    targ_ax_block, targ_proj = first_obj.define_target_axes_block(
+        targ_proj, pbin_list[0], sym, nargout=2
+    )
+
+    sqwop_func_parsed, pars_cell, opts = first_obj.parse_eval_args(
+        sqwop_func, pars, *eval_argi, **kwargs
+    )
+    if not bool(opt.get("keep_pix", True)):
+        opts["nopix"] = True
+    for k, v in opt.items():
+        if k not in ("keep_pix", "outfile"):
+            opts[k] = v
+
+    if bool(opts.get("average", False)):
+        raise HoraceError(
+            "HORACE:sqw_op_bin_pixels:not_implemented",
+            '"-average" option is not currently implemented for sqw_op_bin_pixels.'
+            "Contact HoraceHelp@stfc.ac.uk if you really need it implemented which the explanation of its meaning in your case",
+        )
+
+    objs: List[sqw] = [first_obj]
+    for i in range(1, n_inputs):
+        if is_sqw_obj[i]:
+            objs.append(ldrs[i])
+        else:
+            objs.append(sqw(ldrs[i]))
+
+    if bool(opts.get("combine", False)):
+        w_comb = objs[0].copy() if is_sqw_obj[0] else objs[0]
+        if n_inputs > 1:
+            pix_list = [w_comb.pix] + [o.pix for o in objs[1:]]
+            npix_arr = np.array([p.num_pixels for p in pix_list], dtype=np.int64)
+            exper_list = [w_comb.experiment_info] + [o.experiment_info for o in objs[1:]]
+            pix_all = pixobj_combine_info(pix_list, [int(x) for x in npix_arr])
+            w_comb.data.do_check_combo_arg = False
+            w_comb.data.npix = npix_arr.reshape(1, -1)
+            w_comb.data.s = np.zeros((1, n_inputs), dtype=np.float64)
+            w_comb.data.e = np.zeros((1, n_inputs), dtype=np.float64)
+            w_comb.experiment_info = exper_list[0].combine_experiments(
+                exper_list[1:], True, True
+            )
+            w_comb._do_check_combo_arg = False
+            w_comb.pix = pix_all
+            w_comb._do_check_combo_arg = True
+            w_comb.data.do_check_combo_arg = True
+        win_to_process = [w_comb]
+    else:
+        win_to_process = [
+            objs[i].copy() if is_sqw_obj[i] else objs[i] for i in range(n_inputs)
+        ]
+
+    if bool(opts.get("test_input_parsing", False)):
+        opts["targ_proj"] = targ_proj
+        opts["targ_ax_block"] = targ_ax_block
+        opts["input_objects"] = (
+            win_to_process[0] if len(win_to_process) == 1 else win_to_process
+        )
+        return opts
+
+    wout: List[Any] = []
+    for i, w_i in enumerate(win_to_process):
+        if opts.get("pageop_processor") is None:
+            rebin_op: Any = PageOp_sqw_binning()
+        else:
+            rebin_op = opts["pageop_processor"]
+        outfiles = opts.get("outfile") or []
+        outf_i = (
+            outfiles[i]
+            if i < len(outfiles)
+            else (outfiles[0] if len(outfiles) > 0 else "")
+        )
+        if outf_i:
+            rebin_op.outfile = outf_i
+        if bool(opts.get("filebacked", False)) and not bool(opts.get("nopix", False)):
+            rebin_op.init_filebacked_output = True
+        rebin_op = rebin_op.init(
+            w_i, sqwop_func_parsed, pars_cell, targ_ax_block, targ_proj, opts
+        )
+        res_i = sqw.apply_op(w_i, rebin_op)
+        if isinstance(w_i.pix, pixobj_combine_info):
+            w_i.pix.close_faccessors()
+        wout.append(res_i)
+
+    for i in range(n_inputs):
+        if not is_sqw_obj[i] and hasattr(ldrs[i], "fclose"):
+            ldrs[i].fclose()
+
+    return wout[0] if len(wout) == 1 else DataOpArray(wout)
+
+
+sqw.sqw_op = sqw_op  # type: ignore[attr-defined]
+sqw.sqw_op_bin_pixels = sqw_op_bin_pixels  # type: ignore[attr-defined]
 SQW = sqw
 

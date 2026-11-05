@@ -204,6 +204,11 @@ class ExpDataList(list):
         super().__init__(iterable)
         self._owner: Optional["Experiment"] = owner
 
+    def __deepcopy__(self, memo: Any) -> "ExpDataList":
+        new_list = ExpDataList([copy.deepcopy(x, memo) for x in self])
+        memo[id(self)] = new_list
+        return new_list
+
     def __setitem__(self, idx: Any, val: Any) -> None:
         if isinstance(val, dict):
             val = IX_experiment(val)
@@ -1449,13 +1454,30 @@ class Experiment(Serializable):
         det_comb = unique_references_container("IX_detector_array")
 
         has_dets = any(e._detectors.n_runs > 0 for e in non_empty)
-        all_dets = all(e._detectors.n_runs == e.n_runs for e in non_empty)
+        all_dets = all(e._detectors.n_runs in (1, e.n_runs) for e in non_empty)
+        for e in non_empty:
+            if e._instruments.n_runs == e.n_runs:
+                inst_comb._idx.extend(e._instruments._idx)
+            elif e._instruments.n_runs == 1:
+                inst_comb._idx.extend(e._instruments._idx * e.n_runs)
+            if e._samples.n_runs == e.n_runs:
+                samp_comb._idx.extend(e._samples._idx)
+            elif e._samples.n_runs == 1:
+                samp_comb._idx.extend(e._samples._idx * e.n_runs)
+            if has_dets and all_dets:
+                if e._detectors.n_runs == e.n_runs:
+                    det_comb._idx.extend(e._detectors._idx)
+                elif e._detectors.n_runs == 1:
+                    det_comb._idx.extend(e._detectors._idx * e.n_runs)
+                elif e._detectors.n_runs > 0:
+                    for i in range(e._detectors.n_runs):
+                        det_comb.add(copy.deepcopy(e._detectors[i]))
 
         for e in non_empty:
             for i in range(e.n_runs):
-                inst_comb.add(copy.deepcopy(e._instruments[i]))
-                samp_comb.add(copy.deepcopy(e._samples[i]))
-                if has_dets and all_dets:
+        #inst_comb.add(copy.deepcopy(e._instruments[i]))
+                pass #samp_comb.add(copy.deepcopy(e._samples[i]))
+                if False and has_dets and all_dets:
                     det_comb.add(copy.deepcopy(e._detectors[i]))
 
         exp_out = Experiment()

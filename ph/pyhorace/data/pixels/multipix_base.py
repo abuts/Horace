@@ -214,11 +214,11 @@ class MultipixBase(PixelDataBase):
 
     @page_num.setter
     def page_num(self, val: int) -> None:
-        val_int = int(val)
-        if val_int < 1 or (self.nfiles > 0 and val_int > self.nfiles):
+        val_int = int(round(val))
+        if val_int <= 0:
             raise HoraceError(
                 "HORACE:MultipixBase:invalid_argument",
-                f"page_num must be between 1 and {max(1, self.nfiles)}, got {val_int}.",
+                f"number of page has to be positive integer. Provided: {val}",
             )
         self._page_num = val_int
 
@@ -310,3 +310,65 @@ class MultipixBase(PixelDataBase):
                     f"Length of filenum ({self._filenum.size}) must equal nfiles ({nf}).",
                 )
         return self
+
+    def set_data_range(self, val: Any = None) -> MultipixBase:
+        """Set data range (or no-op if called without arguments to satisfy PageOp interface)."""
+        if val is not None:
+            super().set_data_range(val)
+        return self
+
+    def clear_alignment(self) -> MultipixBase:
+        """No-op to satisfy PixelDataBase interface in PageOp."""
+        return self
+
+    @property
+    def relabel_with_fnum(self) -> bool:
+        """Return True if pixel run_idx should be relabeled with filenum or run_label."""
+        if isinstance(self._run_label, str):
+            return self._run_label == "filenum"
+        return True
+
+    @property
+    def change_fileno(self) -> bool:
+        """Return True if pixel run_idx should be modified during combination."""
+        if isinstance(self._run_label, str):
+            return self._run_label == "filenum"
+        return isinstance(self._run_label, np.ndarray) and self._run_label.size > 0
+
+    def clean_up_tmp_files(self) -> None:
+        """Delete temporary files listed in ``infiles``."""
+        import os
+
+        for f in self._infiles:
+            if isinstance(f, str) and os.path.isfile(f):
+                try:
+                    os.remove(f)
+                except OSError:
+                    pass
+
+    @staticmethod
+    def recalc_data_range_from_loaders(
+        ldrs: Sequence[Any], keep_runid: bool = True
+    ) -> np.ndarray:
+        """Extract common pixel data range from a sequence of file loaders."""
+        n_files = len(ldrs)
+        if n_files == 0:
+            return PixelDataBase.EMPTY_RANGE.copy()
+        data_range = np.asarray(ldrs[0].get_data_range(), dtype=np.float64).copy()
+        for i in range(1, n_files):
+            loc_range = np.asarray(ldrs[i].get_data_range(), dtype=np.float64)
+            data_range[0, :] = np.minimum(data_range[0, :], loc_range[0, :])
+            data_range[1, :] = np.maximum(data_range[1, :], loc_range[1, :])
+        if not keep_runid and data_range.shape[1] >= 5:
+            data_range[:, 4] = [1.0, float(n_files)]
+        return data_range
+
+    @staticmethod
+    def apply_op(obj_in: Any, page_op: Any) -> Any:
+        """Delegate PageOp execution to PixelDataFileBacked.apply_op."""
+        from pyhorace.data.pixels.pixel_data_file_backed import PixelDataFileBacked
+
+        return PixelDataFileBacked.apply_op(obj_in, page_op)
+
+
+multipix_base = MultipixBase

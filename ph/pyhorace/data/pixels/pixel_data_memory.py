@@ -440,7 +440,7 @@ class PixelDataMemory(PixelDataBase):
         if not getattr(page_op, "_initialized", False):
             page_op = page_op.init(obj_in)
 
-        if page_op.pix.num_pixels == 0:
+        if page_op.pix.num_pixels == 0 and int(np.sum(page_op.npix)) == 0:
             fin = page_op.finish_op(obj_in)
             return fin[0] if isinstance(fin, tuple) else fin
 

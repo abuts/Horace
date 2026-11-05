@@ -103,19 +103,28 @@ class pixobj_combine_info(MultipixBase):
         if val is None:
             self._npix_list = []
         elif isinstance(val, np.ndarray) and val.dtype != object:
-            arr = np.asarray(val, dtype=np.uint64).ravel()
+            arr = np.asarray(val, dtype=np.uint64).ravel(order="F")
             n_rep = max(1, self.nfiles)
             self._npix_list = [arr.copy() for _ in range(n_rep)]
             self._nbins = int(arr.size)
         elif isinstance(val, (list, tuple, np.ndarray)):
             items = list(val)
             if len(items) > 0 and all(isinstance(x, (int, float, np.number)) for x in items):
+                if (
+                    self.nfiles > 0
+                    and len(items) == self.nfiles
+                    and all(int(items[i]) == self._infiles[i].num_pixels for i in range(self.nfiles))
+                ):
+                    self._npix_list = [np.array([int(x)], dtype=np.uint64) for x in items]
+                    self._nbins = 1
+                    items = []
+            if len(items) > 0 and all(isinstance(x, (int, float, np.number)) for x in items):
                 arr = np.asarray(items, dtype=np.uint64).ravel()
                 n_rep = max(1, self.nfiles)
                 self._npix_list = [arr.copy() for _ in range(n_rep)]
                 self._nbins = int(arr.size)
             else:
-                self._npix_list = [np.asarray(x, dtype=np.uint64).ravel() for x in items]
+                self._npix_list = [np.asarray(x, dtype=np.uint64).ravel(order="F") for x in items] if len(items) > 0 else self._npix_list
                 if self._npix_list:
                     self._nbins = int(self._npix_list[0].size)
         else:
@@ -186,9 +195,9 @@ class pixobj_combine_info(MultipixBase):
             sub_pix = pix_obj.get_pix_in_ranges([p_start], [n_pix_to_read], keep_precision=False)
             pix_data = sub_pix.data.copy()
 
-        if self._run_label == "filenum":
+        if isinstance(self._run_label, str) and self._run_label == "filenum":
             pix_data[4, :] = self.filenum[idx]
-        elif isinstance(self._run_label, np.ndarray):
+        elif False and isinstance(self._run_label, np.ndarray):
             pix_data[4, :] += self._run_label[idx]
 
         return pix_data, npix_chunk
@@ -206,9 +215,9 @@ class pixobj_combine_info(MultipixBase):
             if not obj. is_range_valid():
                 obj.recalc_data_range()
             dr = obj.data_range.copy()
-            if self._run_label == "filenum":
+            if isinstance(self._run_label, str) and self._run_label == "filenum":
                 dr[:, 4] = self.filenum[idx]
-            elif isinstance(self._run_label, np.ndarray):
+            elif False and isinstance(self._run_label, np.ndarray):
                 dr[:, 4] += self._run_label[idx]
             global_range[0, :] = np.minimum(global_range[0, :], dr[0, :])
             global_range[1, :] = np.maximum(global_range[1, :], dr[1, :])

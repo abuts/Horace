@@ -497,12 +497,15 @@ class PixelDataFileBacked(PixelDataBase):
             self._tmp_file_holder.release()
             self._tmp_file_holder = None
 
-        self._f_accessor = wh.f_accessor
+        facc = wh.f_accessor
+        self._f_accessor = facc
         wh.delete_target_file_ = False
+        wh.f_accessor = None
+        wh._closed = True
         self._f_accessor_activated = True
         self._num_pixels = wh.num_pixels
-        self._offset = self._facc_offset(wh.f_accessor)
-        self._tail = self._facc_tail(wh.f_accessor)
+        self._offset = self._facc_offset(facc)
+        self._tail = self._facc_tail(facc)
         self._full_filename = wh.write_FileName
         self._data_range = (
             wh_or_op.pix_data_range_.copy()
@@ -904,7 +907,7 @@ class PixelDataFileBacked(PixelDataBase):
         if not getattr(page_op, "_initialized", False):
             page_op = page_op.init(obj_in)
         pix = page_op.pix
-        if pix.num_pixels == 0:
+        if pix.num_pixels == 0 and int(np.sum(page_op.npix)) == 0:
             fin = page_op.finish_op(obj_in)
             return fin[0] if isinstance(fin, tuple) else fin
 

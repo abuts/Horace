@@ -1613,6 +1613,7 @@ class AxesBlockBase(Serializable, ABC):
         force_mex = False
         selected_only = False
         test_mex_inputs = False
+        raw_data_flag = False
         nosort = False
         extra_inputs = []
         for a in opts:
@@ -1628,6 +1629,8 @@ class AxesBlockBase(Serializable, ABC):
                 test_mex_inputs = True
             elif isinstance(a, str) and a == "-nosort":
                 nosort = True
+            elif isinstance(a, str) and a == "-raw_data":
+                raw_data_flag = True
             else:
                 extra_inputs.append(a)
 
@@ -1717,6 +1720,14 @@ class AxesBlockBase(Serializable, ABC):
                 ok &= (c >= r0[d]) & (c <= r1[d])
             if pix_cand_obj is not None:
                 ok &= np.asarray(pix_cand_obj.detector_idx).ravel() >= 0
+            elif (
+                raw_data_flag
+                and len(extra_inputs) >= 4
+                and isinstance(extra_inputs[3], np.ndarray)
+                and extra_inputs[3].ndim == 2
+                and extra_inputs[3].shape[0] >= 9
+            ):
+                ok &= np.asarray(extra_inputs[3][5, :]).ravel() >= 0
 
             valid_coords = coords[:, ok]
             n_valid = valid_coords.shape[1]
@@ -1807,6 +1818,7 @@ class AxesBlockBase(Serializable, ABC):
                 nosort,
                 unique_runid_in,
                 nargout,
+                raw_data_flag=raw_data_flag,
             )
 
         raise HoraceError(
@@ -1896,6 +1908,7 @@ class AxesBlockBase(Serializable, ABC):
         nosort: bool,
         unique_runid_in: Any,
         nargout: int,
+        raw_data_flag: bool = False,
     ) -> Any:
         npix_out = npix_acc.reshape(grid_shape, order="F") + npix_grid
 
@@ -1999,6 +2012,39 @@ class AxesBlockBase(Serializable, ABC):
             pix_ok = valid_data[:, sort_order].astype(dtype_out, copy=False)
         else:
             pix_ok = valid_data[sort_order].astype(dtype_out, copy=False)
+
+        if raw_data_flag:
+            dtype_out = (
+                np.float64
+                if (force_double or raw_data.dtype == np.float64)
+                else raw_data.dtype
+            )
+            if not np.any(ok):
+                pix_ok = np.empty((9, 0), dtype=dtype_out)
+                unique_runid_out = (
+                    np.array([], dtype=int)
+                    if unique_runid_in is None
+                    else np.asarray(unique_runid_in, dtype=int).ravel()
+                )
+                pix_indx = np.empty((0, 1), dtype=int)
+                selected = np.array([], dtype=bool)
+            else:
+                pix_ok = valid_data.astype(dtype_out, copy=False)
+                loc_unique = np.unique(pix_ok[4, :].astype(int).ravel())
+                if unique_runid_in is not None and np.asarray(unique_runid_in).size > 0:
+                    unique_runid_out = np.unique(
+                        np.concatenate(
+                            [np.asarray(unique_runid_in, dtype=int).ravel(), loc_unique]
+                        )
+                    )
+                else:
+                    unique_runid_out = loc_unique
+                pix_indx = (lin_idx + 1).reshape(-1, 1)
+                selected = ok
+                if nargout < 6 and not nosort:
+                    pix_ok = pix_ok[:, sort_order]
+            outs = (npix_out, s_out, e_out, pix_ok, unique_runid_out, pix_indx, selected)
+            return outs[:nargout]
 
         outs = (npix_out, s_out, e_out, pix_ok, uniq_pos, ok, ix)
         return outs[:nargout]

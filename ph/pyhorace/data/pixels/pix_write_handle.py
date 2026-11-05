@@ -217,6 +217,19 @@ class pix_write_handle:
         """Append a ``9 x N`` page of pixel data to the target file."""
         return self.save_data(page_data)
 
+    def write_pixels(self, page_data: np.ndarray) -> pix_write_handle:
+        """Alias for :meth:`store_page`."""
+        return self.store_page(page_data)
+
+    def finalize(self, target_cls: Any = None) -> Any:
+        """Finalize write handle into a ``PixelDataFileBacked`` instance."""
+        if target_cls is None:
+            from pyhorace.data.pixels.pixel_data_file_backed import PixelDataFileBacked
+
+            target_cls = PixelDataFileBacked
+        obj = target_cls()
+        return obj.finish_dump(self)
+
     def finish_pix_dump(
         self, pix_obj: Any, store_metadata: bool = True
     ) -> Optional[pix_metadata]:
@@ -273,8 +286,10 @@ class pix_write_handle:
         init_info = self.f_accessor
         if self.handle_is_class and init_info is not None:
             _ = getattr(init_info, "eof_position", 0)
-        if not keep_opened:
-            self.close_handles()
+            if not keep_opened:
+                self.close_handles()
+        self.f_accessor = None
+        self._closed = True
         self.delete_target_file_ = False
         return init_info
 

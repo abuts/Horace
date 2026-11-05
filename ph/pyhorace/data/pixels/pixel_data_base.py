@@ -246,6 +246,8 @@ class PixelDataBase(Serializable, data_op_interface, abc.ABC):
                 objs.extend(a)
             elif isinstance(a, np.ndarray) and a.dtype == object:
                 objs.extend(a.ravel(order="F"))
+            elif isinstance(a, str) and a.startswith("-") and "-force_membased".startswith(a.lower()):
+                force_fb = False
             elif isinstance(a, str) and a.lower().lstrip("-") == "filebacked":
                 force_fb = True
             elif isinstance(a, (bool, np.bool_)):
@@ -263,6 +265,23 @@ class PixelDataBase(Serializable, data_op_interface, abc.ABC):
                     f"Can only concatenate PixelDataBase objects, got {type(o).__name__}"
                 )
 
+        if len(objs) == 1 and force_fb is None:
+            return objs[0].copy()
+
+        from pyhorace.coord_transf.page_operations.page_op_cat_pix import PageOp_cat_pix
+
+        pix_out = objs[0].copy()
+        page_op = PageOp_cat_pix()
+        page_op.force_cat_in_memory = bool(force_fb is False)
+        page_op = page_op.init(*objs)
+        if page_op.npix_tot == 0:
+            return PixelDataFileBacked() if force_fb is True else PixelDataMemory()
+        if force_fb is True and not getattr(page_op.pix, "is_filebacked", False):
+            in_obj = PixelDataFileBacked()
+            page_op.write_handle_ = in_obj.get_write_handle(page_op.outfile_)
+            page_op.init_filebacked_output = True
+            page_op.pix = in_obj
+        return PixelDataFileBacked.apply_op(pix_out, page_op)
         total_pix = sum(o.num_pixels for o in objs)
         any_fb = any(o.is_filebacked for o in objs)
         if force_fb is None:
@@ -928,6 +947,15 @@ class PixelDataBase(Serializable, data_op_interface, abc.ABC):
         self._page_num = 1
         return self
 
+    def deactivate(self) -> "PixelDataBase":
+        """No-op for in-memory pixel data (overridden in ``PixelDataFileBacked``)."""
+        return self
+
+    def activate(self, *args: Any, **kwargs: Any) -> "PixelDataBase":
+        """No-op for in-memory pixel data (overridden in ``PixelDataFileBacked``)."""
+        _ = (args, kwargs)
+        return self
+
     def move_to_first_page(self) -> "PixelDataBase":
         """Move to the first page of pixels."""
         self._page_num = 1
@@ -954,9 +982,6 @@ class PixelDataBase(Serializable, data_op_interface, abc.ABC):
             )
         self._pix_page_chunks = chunk_list
         self._pix_page_idx_start = np.concatenate(([1], pix_pos_end[:-1] + 1)).astype(np.intp)
-        return self
-        """Move to the first page of pixels."""
-        self._page_num = 1
         return self
 
     @property

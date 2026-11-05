@@ -631,3 +631,40 @@ def get_ind_from_ranges(
         steps[starts[1:]] = beg_v[1:] - prev_ends
     return np.cumsum(steps)
 
+
+def minmax_ranges(range1: np.ndarray, range2: np.ndarray) -> np.ndarray:
+    """Compute bounding box (2xN min/max range) enclosing ``range1`` and ``range2``."""
+    r1 = np.asarray(range1, dtype=np.float64)
+    r2 = np.asarray(range2, dtype=np.float64)
+    return np.vstack([np.minimum(r1[0, :], r2[0, :]), np.maximum(r1[1, :], r2[1, :])])
+
+
+def parse_char_options(
+    args: Union[Tuple, List], valid_options: List[str]
+) -> Tuple:
+    """Parse character option flags (e.g. ``'-keep_runid'``) from ``args``.
+
+    Ported from ``herbert_core/utilities/general/parse_char_options.m``.
+    Returns ``(ok, mess, *flag_bools, remaining_args)``.
+    """
+    flags = [False] * len(valid_options)
+    rem: List = []
+    opts_lower = [opt.lower() for opt in valid_options]
+
+    for arg in args:
+        if isinstance(arg, str) and arg.startswith("-"):
+            a_low = arg.lower()
+            exact = [i for i, opt in enumerate(opts_lower) if opt == a_low]
+            if len(exact) == 1:
+                flags[exact[0]] = True
+                continue
+            prefix = [i for i, opt in enumerate(opts_lower) if opt.startswith(a_low)]
+            if len(prefix) == 1:
+                flags[prefix[0]] = True
+                continue
+            return (False, f"Unrecognised or ambiguous option: {arg}", *flags, rem)
+        rem.append(arg)
+
+    return (True, "", *flags, rem)
+
+

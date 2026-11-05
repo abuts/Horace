@@ -617,10 +617,11 @@ class PageOpBase(ABC):
             if self.exp_modified and self.exp_info_ is not None:
                 out_obj.experiment_info = out_obj.experiment_info.get_subobj(self.unique_run_id_)
 
-            if was_filebacked and not self.inplace_:
-                from pyhorace.data.pixels.pixel_data_file_backed import (
-                    PixelDataFileBacked,
-                )
+            from pyhorace.data.pixels.pixel_data_file_backed import (
+                PixelDataFileBacked,
+            )
+
+            if isinstance(self.pix_, PixelDataFileBacked) and not self.inplace_:
 
                 self.pix_.keep_precision = False
                 pix = PixelDataFileBacked()
@@ -642,10 +643,11 @@ class PageOpBase(ABC):
                 out_obj = out_obj.finish_dump(self)
                 self._report_on_target_files_(out_obj)
         else:
-            if was_filebacked and not self.inplace_:
-                from pyhorace.data.pixels.pixel_data_file_backed import (
-                    PixelDataFileBacked,
-                )
+            from pyhorace.data.pixels.pixel_data_file_backed import (
+                PixelDataFileBacked,
+            )
+
+            if isinstance(self.pix_, PixelDataFileBacked) and not self.inplace_:
 
                 self.pix_.keep_precision = False
                 pix = PixelDataFileBacked()
