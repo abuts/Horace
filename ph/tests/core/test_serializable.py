@@ -823,3 +823,77 @@ def test_pydantic_range_and_combo_arguments_validation():
     assert struct["inner_radius"] == 10.0
 
 
+def test_serializable_print_basic_and_versioned_fields(capsys):
+    tc = SerializableTester1(10, 20, "new_value")
+    out = tc.print()
+    captured = capsys.readouterr().out.rstrip("\r\n")
+    assert out == captured
+
+    expected_lines = [
+        "Prop_class1_1 : 10",
+        "Prop_class1_2 : 20",
+        "Prop_class1_3 : 'new_value'",
+    ]
+    assert out.splitlines() == expected_lines
+
+    # Verify column width equals max property name length (13) + 1 = 14
+    for line in out.splitlines():
+        prop_col, val_col = line.split(":", 1)
+        assert len(prop_col) == len("Prop_class1_1") + 1
+        assert prop_col == prop_col.lstrip()  # left-aligned
+        assert val_col.startswith(" ")
+
+    # Version 1 has only 2 saveable fields
+    SerializableTester1.ver_holder(1)
+    out_v1 = tc.print()
+    assert out_v1.splitlines() == [
+        "Prop_class1_1 : 10",
+        "Prop_class1_2 : 20",
+    ]
+
+
+def test_serializable_print_alignment_and_types(capsys):
+    tob = SerializableTesterWithInterdepProp(
+        0.5, 1, [1, 2, 3], "partial_match_1", 20, "partial_match_3", "hello"
+    )
+    out = tob.print()
+    captured = capsys.readouterr().out.rstrip("\r\n")
+    assert out == captured
+
+    flds = tob.saveable_fields()
+    expected_col_width = max(len(f) for f in flds) + 1
+    assert expected_col_width == len("partial_match_3_yellow") + 1  # 23
+
+    expected_lines = [
+        "Prop_class2_1          : 0.5",
+        "Prop_class2_2          : 1",
+        "Prop_class2_3          : [1 2 3]",
+        "partial_match_1_blue   : 20",
+        "partial_match_2_green  : []",
+        "partial_match_3_yellow : 'hello'",
+    ]
+    assert out.splitlines() == expected_lines
+    for line, fld in zip(out.splitlines(), flds):
+        prop_part, val_part = line.split(":", 1)
+        assert len(prop_part) == expected_col_width
+        assert prop_part.rstrip(" ") == fld
+
+
+def test_serializable_print_complex_values(capsys):
+    nested = SerializableTester1(1, 2, "abc")
+    arr_2d = np.zeros((3, 4), dtype=np.float64)
+    tc = SerializableTester2(nested, arr_2d, list(range(20)))
+    out = tc.print()
+    captured = capsys.readouterr().out.rstrip("\r\n")
+    assert out == captured
+
+    assert out.splitlines() == [
+        "Prop_class2_1 : [1x1 SerializableTester1]",
+        "Prop_class2_2 : [3x4 double]",
+        "Prop_class2_3 : [1x20 int64]"
+        if np.asarray(list(range(20))).dtype == np.int64
+        else f"Prop_class2_3 : [1x20 {np.asarray(list(range(20))).dtype}]",
+    ]
+
+
+

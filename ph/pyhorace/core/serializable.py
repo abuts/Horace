@@ -5,9 +5,11 @@ Ported from Herbert/Horace MATLAB @serializable class.
 
 from __future__ import annotations
 
+import builtins
 import copy
 import math
 import pickle
+import sys
 import warnings
 from abc import ABC, abstractmethod
 from typing import Any, ClassVar, Dict, List, Optional, Sequence, Tuple, Type, Union
@@ -15,7 +17,8 @@ from typing import Any, ClassVar, Dict, List, Optional, Sequence, Tuple, Type, U
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
-SERIALIZABLE_REGISTRY: Dict[str, Type["Serializable"]] = {}
+if "SERIALIZABLE_REGISTRY" not in globals():
+    SERIALIZABLE_REGISTRY: Dict[str, Type["Serializable"]] = {}
 
 
 def register_serializable(cls: Type["Serializable"]) -> Type["Serializable"]:
@@ -58,10 +61,10 @@ class Serializable(BaseModel, ABC):
         if isinstance(cls_attr, property) and cls_attr.fset is not None:
             cls_attr.fset(self, value)
         elif name in getattr(type(self), "model_fields", {}) or name in getattr(type(self), "__private_attributes__", {}):
-            super().__setattr__(name, value)
+            BaseModel.__setattr__(self, name, value)
         else:
             object.__setattr__(self, name, value)
-        if not is_private_or_flag and type(self).__setattr__ is Serializable.__setattr__:
+        if not is_private_or_flag and getattr(type(self).__setattr__, "__name__", "") == "__setattr__":
             self._notify_container_mutation()
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -77,7 +80,7 @@ class Serializable(BaseModel, ABC):
             for idx, arg in enumerate(args):
                 if idx < len(pos_names):
                     kwargs[pos_names[idx]] = arg
-        super().__init__(**kwargs)
+        BaseModel.__init__(self, **kwargs)
         self._do_check_combo_arg = True
         if has_args:
             self.check_combo_arg()
@@ -141,13 +144,13 @@ class Serializable(BaseModel, ABC):
         Validate interdependent properties. Subclasses override to enforce invariants.
         Should return self.
         """
-        if type(self).check_combo_arguments is not Serializable.check_combo_arguments:
+        if getattr(type(self).check_combo_arguments, "__qualname__", "") != "Serializable.check_combo_arguments":
             return self.check_combo_arguments()
         return self
 
     def check_combo_arguments(self) -> "Serializable":
         """Alias matching check_combo_arguments."""
-        if type(self).check_combo_arg is not Serializable.check_combo_arg:
+        if getattr(type(self).check_combo_arg, "__qualname__", "") != "Serializable.check_combo_arg":
             return self.check_combo_arg()
         return self
 
@@ -326,6 +329,13 @@ class Serializable(BaseModel, ABC):
                 )
             class_name = S["serial_name"]
             target_cls = SERIALIZABLE_REGISTRY.get(class_name)
+            if target_cls is not None:
+                mod = sys.modules.get(target_cls.__module__)
+                if mod is not None:
+                    reloaded_cls = getattr(mod, class_name, None)
+                    if isinstance(reloaded_cls, type) and reloaded_cls is not target_cls:
+                        target_cls = reloaded_cls
+                        SERIALIZABLE_REGISTRY[class_name] = reloaded_cls
             if target_cls is None:
                 if class_name in ("axes_block", "ortho_axes"):
                     from pyhorace.coord_transf.line_axes import line_axes
@@ -343,6 +353,14 @@ class Serializable(BaseModel, ABC):
                         target_cls = sub
                         SERIALIZABLE_REGISTRY[class_name] = sub
                         break
+            if target_cls is None:
+                for mod_name, mod in list(sys.modules.items()):
+                    if mod is not None and mod_name.startswith("pyhorace"):
+                        cand = getattr(mod, class_name, None)
+                        if isinstance(cand, type) and hasattr(cand, "from_bare_struct"):
+                            target_cls = cand
+                            SERIALIZABLE_REGISTRY[class_name] = cand
+                            break
             if target_cls is None:
                 raise ValueError(f"Unknown serializable class: '{class_name}'")
             obj = target_cls()
@@ -797,6 +815,105 @@ class Serializable(BaseModel, ABC):
 
     def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
+
+    @staticmethod
+    def _format_disp_scalar(val: Any) -> str:
+        """Format a scalar numeric/boolean/string value in MATLAB ``disp`` style."""
+        if isinstance(val, (bool, np.bool_)):
+            return str(bool(val))
+        if isinstance(val, (int, np.integer)):
+            return str(int(val))
+        if isinstance(val, (float, np.floating)):
+            return f"{float(val):g}"
+        if isinstance(val, str):
+            return f"'{val}'"
+        return str(val)
+
+    @classmethod
+    def _format_disp_value(cls, val: Any) -> str:
+        """Format a property value similarly to MATLAB ``disp`` applied to a struct."""
+        if val is None:
+            return "[]"
+        if isinstance(val, str):
+            return f"'{val}'"
+        if isinstance(val, (bool, np.bool_, int, np.integer, float, np.floating)):
+            return cls._format_disp_scalar(val)
+        if isinstance(val, Serializable) or hasattr(val, "saveable_fields"):
+            return f"[1x1 {type(val).__name__}]"
+        if isinstance(val, dict):
+            if len(val) == 0:
+                return "{}"
+            return "[1x1 struct]"
+        if isinstance(val, (list, tuple, np.ndarray)):
+            if isinstance(val, (list, tuple)):
+                if len(val) == 0:
+                    return "[]"
+                if all(isinstance(x, Serializable) or hasattr(x, "saveable_fields") for x in val):
+                    return f"[1x{len(val)} {type(val[0]).__name__}]"
+                if all(isinstance(x, str) for x in val) and len(val) <= 10:
+                    inner = ", ".join(f"'{x}'" for x in val)
+                    return f"{{{inner}}}"
+            arr = np.asarray(val, dtype=object if not isinstance(val, np.ndarray) else None)
+            if arr.size == 0:
+                return "[]"
+            try:
+                num_arr = np.asarray(val)
+            except (ValueError, TypeError):
+                num_arr = arr
+            if num_arr.ndim == 0:
+                return cls._format_disp_scalar(num_arr.item())
+            if (
+                num_arr.ndim == 1
+                and num_arr.size <= 10
+                and (
+                    np.issubdtype(num_arr.dtype, np.number)
+                    or np.issubdtype(num_arr.dtype, np.bool_)
+                )
+            ):
+                elems = " ".join(cls._format_disp_scalar(x) for x in num_arr)
+                return f"[{elems}]"
+            shape_dims = num_arr.shape if num_arr.ndim >= 2 else (1, num_arr.size)
+            shape_str = "x".join(str(d) for d in shape_dims)
+            if np.issubdtype(num_arr.dtype, np.floating):
+                dtype_name = "double" if num_arr.dtype == np.float64 else "single"
+            elif np.issubdtype(num_arr.dtype, np.integer):
+                dtype_name = str(num_arr.dtype)
+            elif num_arr.dtype == object and num_arr.size > 0:
+                first = num_arr.flat[0]
+                dtype_name = type(first).__name__ if isinstance(first, Serializable) else "cell"
+            else:
+                dtype_name = str(num_arr.dtype)
+            return f"[{shape_str} {dtype_name}]"
+        return str(val)
+
+    def print(self) -> str:
+        """Print saveable properties in a two-column MATLAB struct ``disp``-like format.
+
+        Loops over ``saveable_fields()`` and prints two left-aligned columns
+        separated by ``:``, where the property name column width equals the
+        length of the longest property name plus 1.
+
+        Returns
+        -------
+        str
+            The formatted multi-line string printed to stdout.
+        """
+        flds = [str(f) for f in self.saveable_fields()]
+        if not flds:
+            builtins.print("")
+            return ""
+        col_width = max(len(f) for f in flds) + 1
+        lines = [
+            f"{fld:<{col_width}}: {self._format_disp_value(getattr(self, fld, None))}"
+            for fld in flds
+        ]
+        out = "\n".join(lines)
+        builtins.print(out)
+        return out
+
+    def disp(self) -> str:
+        """MATLAB ``disp`` alias for :meth:`print`."""
+        return self.print()
 
 
 def compare_values(

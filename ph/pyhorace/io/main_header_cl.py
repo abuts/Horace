@@ -200,7 +200,9 @@ class main_header_cl(Serializable):
 
         if len(args) == 1 and not kwargs:
             arg = args[0]
-            if isinstance(arg, main_header_cl):
+            if isinstance(arg, main_header_cl) or (
+                type(arg).__name__ == "main_header_cl" and hasattr(arg, "_filename")
+            ):
                 self._filename = arg._filename
                 self._filepath = arg._filepath
                 self._title = arg._title

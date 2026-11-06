@@ -2201,99 +2201,6 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
     # ------------------------------------------------------------------
     # Function evaluation & dispersion
     # ------------------------------------------------------------------
-    def func_eval(self, func_handle: Callable[..., Any], pars: Any, *args: Any) -> "DnDBase":
-        """Evaluate a function at the plotting axis bin centres of a DnD object.
-
-        Syntax:
-            >> wout = w.func_eval(func_handle, pars)
-            >> wout = w.func_eval(func_handle, pars, '-all')
-            >> wout = w.func_eval(func_handle, pars, 'outfile', filename)
-        """
-        if not callable(func_handle):
-            raise HoraceError(
-                "HORACE:DnDBase:invalid_argument",
-                "First argument to func_eval must be a callable function handle",
-            )
-        if self.dimensions == 0:
-            raise HoraceError(
-                "HORACE:DnDBase:invalid_argument",
-                "func_eval cannot be called on a zero-dimensional (d0d) object",
-            )
-
-        all_flag = False
-        outfile = None
-        i = 0
-        while i < len(args):
-            a = args[i]
-            if isinstance(a, str) and a.lower().startswith("-al"):
-                all_flag = True
-                i += 1
-            elif isinstance(a, str) and a.lower() in ("all", "-all"):
-                if i + 1 < len(args) and isinstance(args[i + 1], (bool, int)):
-                    all_flag = bool(args[i + 1])
-                    i += 2
-                else:
-                    all_flag = True
-                    i += 1
-            elif isinstance(a, str) and a.lower() in ("outfile", "-outfile"):
-                if i + 1 >= len(args):
-                    raise HoraceError("HORACE:DnDBase:invalid_argument", "Missing filename after 'outfile'")
-                outfile = args[i + 1]
-                i += 2
-            else:
-                raise HoraceError("HORACE:DnDBase:invalid_argument", f"Unrecognised option to func_eval: {a!r}")
-
-        pars_list = list(pars) if isinstance(pars, (list, tuple)) else [pars]
-
-        ndim = self.dimensions
-        centres = [0.5 * (pi[:-1] + pi[1:]) for pi in self._axes.p]
-        if ndim == 1:
-            coord_cols = [centres[0].reshape(-1, 1)]
-        else:
-            grids = np.meshgrid(*centres, indexing="ij")
-            coord_cols = [g.ravel(order="F").reshape(-1, 1) for g in grids]
-
-        val = np.asarray(_call_user_func(func_handle, *coord_cols, pars=pars), dtype=float)
-        wout = self.copy()
-        s_new = val.reshape(self._s.shape, order="F").copy()
-        e_new = np.zeros_like(s_new)
-
-        if all_flag:
-            wout._npix = np.ones_like(self._npix)
-        else:
-            nopix = self._npix == 0
-            s_new[nopix] = 0.0
-
-        wout._s = s_new
-        wout._e = e_new
-        if outfile:
-            wout.save(outfile)
-        return wout
-
-    def sqw_eval_nopix(self, sqwfunc: Callable[..., Any], pars: Sequence[Any], opts: Dict[str, Any]) -> "DnDBase":
-        """Evaluate S(Q, w) model function at bin centres of a DnD object."""
-        qw = self.calculate_qw_bins()
-        all_bins = bool(opts.get("all_bins", opts.get("all", False)))
-        empty_npix = self._npix == 0
-        has_any_pix = not np.all(empty_npix)
-
-        if not all_bins and has_any_pix:
-            keep = (~empty_npix).ravel(order="F")
-            qw_eval = [q[keep] for q in qw]
-            val_sub = np.asarray(_call_user_func(sqwfunc, *qw_eval, pars=pars), dtype=float).ravel(order="F")
-            s_flat = np.zeros(self._s.size, dtype=float)
-            s_flat[keep] = val_sub
-            s_new = s_flat.reshape(self._s.shape, order="F")
-        else:
-            val = np.asarray(_call_user_func(sqwfunc, *qw, pars=pars), dtype=float)
-            s_new = val.reshape(self._s.shape, order="F").copy()
-
-        self._s = s_new
-        self._e = np.zeros_like(s_new)
-        if all_bins:
-            self._npix = np.ones_like(self._npix)
-        return self
-
     def dispersion(
         self, dispreln: Callable[..., Any], pars: Any, nargout: Optional[int] = None
     ) -> Union["DnDBase", DataOpArray, Tuple[Any, Any]]:
@@ -2473,128 +2380,23 @@ class DnDBase(SQWDnDBase, horace3_dnd_interface, dnd_plot_interface, ABC):
 
         Ported from ``horace_core/sqw/@DnDBase/func_eval.m``.
         """
-        if not callable(func_handle):
-            raise HoraceError(
-                "HORACE:DnDBase:invalid_argument",
-                "First argument to func_eval must be a callable function handle",
-            )
-        if int(self.dimensions) == 0:
-            raise HoraceError(
-                "HORACE:DnDBase:invalid_argument",
-                "Function evaluation not supported for zero dimensional object",
-            )
+        from pyhorace.sqw._sqw_methods import func_eval_dnd
 
-        if len(args) == 1 and isinstance(args[0], dict):
-            opts = args[0]
-            all_flag = bool(opts.get("all", False) or opts.get("all_bins", False))
-            outfile = opts.get("outfile", "")
-            if isinstance(outfile, (list, tuple)):
-                outfile = outfile[0] if len(outfile) > 0 else ""
-        else:
-            all_flag = bool(kwargs.get("all", False) or kwargs.get("all_bins", False))
-            outfile = kwargs.get("outfile", "")
-            i = 0
-            while i < len(args):
-                a = args[i]
-                if isinstance(a, str) and a.lower().startswith("-al"):
-                    all_flag = True
-                    i += 1
-                elif isinstance(a, str) and a.lower() in ("all", "-all"):
-                    if i + 1 < len(args) and isinstance(args[i + 1], (bool, int)):
-                        all_flag = bool(args[i + 1])
-                        i += 2
-                    else:
-                        all_flag = True
-                        i += 1
-                elif isinstance(a, str) and a.lower().lstrip("-").startswith("fileback"):
-                    i += 1
-                elif isinstance(a, str) and a.lower() in ("outfile", "-outfile"):
-                    if i + 1 >= len(args):
-                        raise HoraceError(
-                            "HORACE:DnDBase:invalid_argument",
-                            "Missing filename after 'outfile'",
-                        )
-                    outfile = args[i + 1]
-                    i += 2
-                else:
-                    raise HoraceError(
-                        "HORACE:DnDBase:invalid_argument",
-                        f"Unrecognised option to func_eval: {a!r}",
-                    )
-
-        ndim = int(self.dimensions)
-        centres = [0.5 * (pi[:-1] + pi[1:]) for pi in self._axes.p]
-        if ndim == 1:
-            coord_cols = [centres[0].reshape(-1, 1)]
-        else:
-            grids = np.meshgrid(*centres, indexing="ij")
-            coord_cols = [g.ravel(order="F").reshape(-1, 1) for g in grids]
-
-        wout = self.copy()
-        empty_npix = self._npix == 0
-        has_any_pix = not np.all(empty_npix)
-
-        if not all_flag and has_any_pix:
-            ok = (~empty_npix).ravel(order="F")
-            coord_sub = [c[ok].reshape(-1, 1) for c in coord_cols]
-            val_sub = np.asarray(
-                _call_user_func(func_handle, *coord_sub, pars=pars), dtype=float
-            ).ravel(order="F")
-            s_flat = np.zeros(self._s.size, dtype=float)
-            s_flat[ok] = val_sub
-            s_new = s_flat.reshape(self._s.shape, order="F")
-        else:
-            val = np.asarray(
-                _call_user_func(func_handle, *coord_cols, pars=pars), dtype=float
-            )
-            s_new = val.reshape(self._s.shape, order="F").copy()
-            if all_flag and not has_any_pix:
-                wout._npix = np.ones_like(self._npix)
-            elif not all_flag and not has_any_pix:
-                s_new[:] = 0.0
-
-        wout._s = s_new
-        wout._e = np.zeros_like(s_new)
-        if outfile:
-            wout.save(outfile)
-        return wout
+        return func_eval_dnd(self, func_handle, pars, *args, **kwargs)
 
     def sqw_eval_nopix(
         self,
         sqwfunc: Callable[..., Any],
-        pars: Sequence[Any],
-        opts: Dict[str, Any],
+        pars: Any = None,
+        opts: Optional[Dict[str, Any]] = None,
     ) -> "DnDBase":
         """Evaluate S(Q, w) model function at bin centres of a DnD object.
 
         Ported from ``horace_core/sqw/@DnDBase/private/sqw_eval_nopix_.m``.
         """
-        qw = self.calculate_qw_bins()
-        all_bins = bool(opts.get("all_bins", opts.get("all", False)))
-        empty_npix = self._npix == 0
-        has_any_pix = not np.all(empty_npix)
+        from pyhorace.sqw._sqw_methods import sqw_eval_nopix_method
 
-        if not all_bins and has_any_pix:
-            keep = (~empty_npix).ravel(order="F")
-            qw_eval = [q[keep].reshape(-1, 1) for q in qw]
-            val_sub = np.asarray(
-                _call_user_func(sqwfunc, *qw_eval, pars=pars), dtype=float
-            ).ravel(order="F")
-            s_flat = np.zeros(self._s.size, dtype=float)
-            s_flat[keep] = val_sub
-            s_new = s_flat.reshape(self._s.shape, order="F")
-        else:
-            qw_eval = [q.reshape(-1, 1) for q in qw]
-            val = np.asarray(
-                _call_user_func(sqwfunc, *qw_eval, pars=pars), dtype=float
-            )
-            s_new = val.reshape(self._s.shape, order="F").copy()
-
-        self._s = s_new
-        self._e = np.zeros_like(s_new)
-        if all_bins and not has_any_pix:
-            self._npix = np.ones_like(self._npix)
-        return self
+        return sqw_eval_nopix_method(self, sqwfunc, pars, opts)
 
     def disp2sqw(
         self,

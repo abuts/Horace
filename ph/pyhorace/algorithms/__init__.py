@@ -16,6 +16,12 @@ from pyhorace.algorithms.join_sqw import (
     join_sqw,
     write_nsqw_to_sqw,
 )
+from pyhorace.sqw._sqw_methods import (
+    disp2sqw_eval_method as disp2sqw_eval,
+    func_eval,
+    load_sqw_dnd,
+    sqw_eval_method as sqw_eval,
+)
 
 __all__ = [
     "_pack_output",
@@ -27,7 +33,11 @@ __all__ = [
     "cut_horace",
     "cut_sqw",
     "cut_sym",
+    "disp2sqw_eval",
+    "func_eval",
     "join_sqw",
+    "load_sqw_dnd",
+    "sqw_eval",
     "symmetrise_sqw",
     "write_nsqw_to_sqw",
 ]

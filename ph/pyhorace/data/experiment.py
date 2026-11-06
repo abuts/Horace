@@ -443,8 +443,23 @@ class Experiment(Serializable):
 
         if len(args) == 1 and len(kwargs) == 0:
             arg0 = args[0]
-            if isinstance(arg0, Experiment):
+            if isinstance(arg0, Experiment) or (
+                type(arg0).__name__ == "Experiment" and hasattr(arg0, "_expdata")
+            ):
                 self._copy_from(arg0)
+                return self
+            if (
+                isinstance(arg0, tuple)
+                and len(arg0) > 0
+                and (
+                    isinstance(arg0[0], Experiment)
+                    or (
+                        type(arg0[0]).__name__ == "Experiment"
+                        and hasattr(arg0[0], "_expdata")
+                    )
+                )
+            ):
+                self._copy_from(arg0[0])
                 return self
             if isinstance(arg0, IX_experiment):
                 self.expdata = [arg0]

@@ -147,6 +147,9 @@ class TestSqwConstructor:
         assert sqw_obj.pix.num_pixels == DATA_NPIX_1D_1
         assert sqw_obj.pix.page_size == min(mmc, DATA_NPIX_1D_1)
 
+    def test_sqw_constructor_from_dnd(self):
+        s4 = sqw(r'e:\SHARE\Fe\Data\sqw\sqw2024\Fe_ei200_align_sym3.sqw')
+
     @pytest.mark.skipif(
         not os.path.isfile(SQW_1D_1_PATH), reason="sqw_1d_1.sqw test file not found"
     )

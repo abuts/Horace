@@ -90,7 +90,7 @@ class sqw(SQWDnDBase, sqw_plot_interface):
     )
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        Serializable.__init__(self)
+        super().__init__()
         if len(args) == 0 and len(kwargs) == 0:
             self._main_header: main_header_cl = main_header_cl()
             self._exper_info: Experiment = Experiment()
@@ -460,8 +460,17 @@ class sqw(SQWDnDBase, sqw_plot_interface):
         ):
             pix_obj._base_page_size = int(pixel_page_size)
 
-        self._main_header = mh if isinstance(mh, main_header_cl) else main_header_cl(mh)
-        self._exper_info = exp_info if isinstance(exp_info, Experiment) else Experiment(exp_info)
+        self._main_header = (
+            mh
+            if isinstance(mh, main_header_cl) or type(mh).__name__ == "main_header_cl"
+            else main_header_cl(mh)
+        )
+        self._exper_info = (
+            exp_info
+            if isinstance(exp_info, Experiment)
+            or (type(exp_info).__name__ == "Experiment" and hasattr(exp_info, "_expdata"))
+            else Experiment(exp_info)
+        )
         self._data = dnd_data_obj
         self._pix = pix_obj
         self._trim_old_file_exper_info()
@@ -794,12 +803,17 @@ class sqw(SQWDnDBase, sqw_plot_interface):
     def main_header(self, val: Any) -> None:
         if val is None or (isinstance(val, (list, tuple, np.ndarray)) and len(val) == 0):
             self._main_header = main_header_cl()
-        elif isinstance(val, main_header_cl):
+        elif isinstance(val, main_header_cl) or (
+            type(val).__name__ == "main_header_cl" and hasattr(val, "_filename")
+        ):
             self._main_header = copy.deepcopy(val)
         elif isinstance(val, dict):
             if "serial_name" in val:
                 loaded = Serializable.loadobj(val)
-                if not isinstance(loaded, main_header_cl):
+                if not (
+                    isinstance(loaded, main_header_cl)
+                    or type(loaded).__name__ == "main_header_cl"
+                ):
                     raise HoraceError(
                         "HORACE:sqw:invalid_argument",
                         f"Main header has to be an instance of main_header_cl class or struct, got {type(loaded).__name__}",
@@ -833,18 +847,29 @@ class sqw(SQWDnDBase, sqw_plot_interface):
     def exper_info(self, val: Any) -> None:
         if val is None or (isinstance(val, (list, tuple, np.ndarray)) and len(val) == 0):
             self._exper_info = Experiment()
-        elif isinstance(val, Experiment):
+        elif isinstance(val, Experiment) or (
+            type(val).__name__ == "Experiment" and hasattr(val, "_expdata")
+        ):
             self._exper_info = val
-        elif isinstance(val, tuple) and len(val) > 0 and isinstance(val[0], Experiment):
+        elif (
+            isinstance(val, tuple)
+            and len(val) > 0
+            and (
+                isinstance(val[0], Experiment)
+                or (type(val[0]).__name__ == "Experiment" and hasattr(val[0], "_expdata"))
+            )
+        ):
             val = val[0]
-            pass
             self._exper_info = val
         elif isinstance(val, IX_experiment):
             self._exper_info = Experiment(val)
         elif isinstance(val, dict):
             if "serial_name" in val:
                 loaded = Serializable.loadobj(val)
-                if not isinstance(loaded, Experiment):
+                if not (
+                    isinstance(loaded, Experiment)
+                    or type(loaded).__name__ == "Experiment"
+                ):
                     raise HoraceError(
                         "HORACE:sqw:invalid_argument",
                         f"Experiment info can be only an instance of Experiment class, input is {type(loaded).__name__}",
@@ -1438,80 +1463,27 @@ class sqw(SQWDnDBase, sqw_plot_interface):
         Ported from ``@sqw/cut.m``, ``@sqw/private/cut_single_.m``, and
         ``@sqw/private/cut_accumulate_data_.m``.
         """
-        from pyhorace.coord_transf.bmatrix import _infer_nargout
-        from pyhorace.core.configurations.hor_config import hor_config
+        from pyhorace.sqw._sqw_methods import cut_sqw_method
 
-        nargout = kwargs.pop("nargout", None)
-        if nargout is None:
-            nargout = _infer_nargout(default=1)
-        return_cut = bool(nargout > 0)
-
-        if bool(self.dnd_type):
-            return self._data.cut(*args, nargout=nargout, **kwargs)
-
-        log_level = int(hor_config().log_level)
-        targ_proj, pbin_list, sym, opt = self.process_and_validate_cut_inputs(
-            return_cut, *args, nargout=4
-        )
-
-        n_cuts = len(pbin_list)
-        if n_cuts > 1 and opt.get("outfile"):
-            raise HoraceError(
-                "HORACE:cut:invalid_argument",
-                "Guard against single file output with multiple cuts",
-            )
-
-        results: List[Any] = []
-        for pbin in pbin_list:
-            targ_ax_block, cur_proj, cur_sym = self.define_target_axes_block(
-                targ_proj, pbin, sym, nargout=3
-            )
-            wout = self._cut_single(
-                cur_proj,
-                targ_ax_block,
-                opt,
-                log_level,
-                cur_sym,
-                return_cut=return_cut,
-            )
-            if return_cut:
-                results.append(wout)
-
-        if not return_cut:
-            return None
-        return results[0] if len(results) == 1 else DataOpArray(results)
+        return cut_sqw_method(self, *args, **kwargs)
 
     def cut_dnd(self, *args: Any, **kwargs: Any) -> Any:
         """Take a DND cut (no pixels retained) from an ``sqw`` object (port of ``@sqw/cut_dnd.m``)."""
-        from pyhorace.coord_transf.bmatrix import _infer_nargout
+        from pyhorace.sqw._sqw_methods import cut_dnd_method
 
-        nargout = kwargs.pop("nargout", None)
-        if nargout is None:
-            nargout = _infer_nargout(default=1)
-        return self.cut(*args, "-nopix", nargout=nargout, **kwargs)
+        return cut_dnd_method(self, *args, **kwargs)
 
     def cut_sqw(self, *args: Any, **kwargs: Any) -> Any:
         """Take an SQW cut from an ``sqw`` object (port of ``@sqw/cut_sqw.m``)."""
-        from pyhorace.coord_transf.bmatrix import _infer_nargout
+        from pyhorace.sqw._sqw_methods import cut_sqw_only_method
 
-        nargout = kwargs.pop("nargout", None)
-        if nargout is None:
-            nargout = _infer_nargout(default=1)
-        if bool(self.dnd_type):
-            raise HoraceError(
-                "HORACE:cut:invalid_argument",
-                "Cannot call cut_sqw on an sqw object of dnd_type (without pixels)",
-            )
-        return self.cut(*args, nargout=nargout, **kwargs)
+        return cut_sqw_only_method(self, *args, **kwargs)
 
     def cut_sym(self, *args: Any, **kwargs: Any) -> Any:
         """Take a symmetry-enabled cut from an ``sqw`` object (port of ``@sqw/cut_sym.m``)."""
-        from pyhorace.coord_transf.bmatrix import _infer_nargout
+        from pyhorace.sqw._sqw_methods import cut_sym_method
 
-        nargout = kwargs.pop("nargout", None)
-        if nargout is None:
-            nargout = _infer_nargout(default=1)
-        return self.cut(*args, nargout=nargout, **kwargs)
+        return cut_sym_method(self, *args, **kwargs)
 
     def define_target_axes_block(
         self,
@@ -1551,72 +1523,11 @@ class sqw(SQWDnDBase, sqw_plot_interface):
         return_cut: bool = True,
     ) -> Optional[Union["sqw", DnDBase]]:
         """Execute a single cut on this ``sqw`` object (port of ``@sqw/private/cut_single_.m``)."""
-        keep_pix = bool(opt.get("keep_pix", True))
-        outfile = str(opt.get("outfile", "") or "")
+        from pyhorace.sqw._sqw_methods import _cut_single as _cut_single_impl
 
-        s, e, npix, pix_out, runid_contributed = self._cut_accumulate_data(
-            targ_proj, targ_axes, keep_pix, log_level, return_cut, sym
+        return _cut_single_impl(
+            self, targ_proj, targ_axes, opt, log_level, sym, return_cut=return_cut
         )
-
-        proj_0 = (
-            targ_proj[0]
-            if isinstance(targ_proj, (list, tuple, np.ndarray))
-            else targ_proj
-        )
-        data_dnd = DnDBase.dnd(targ_axes, proj_0, s, e, npix)
-        data_dnd.title = self.title
-
-        if not keep_pix:
-            wout: Union[sqw, DnDBase] = data_dnd
-        else:
-            main_header = copy.deepcopy(self._main_header)
-            exp_info = copy.deepcopy(self._exper_info)
-
-            if (
-                not main_header.creation_date_defined
-                and exp_info.n_runs > 0
-                and len(runid_contributed) > 0
-            ):
-                cur_keys = set(int(k) for k in np.asarray(exp_info.runid_map.keys).ravel())
-                contrib_set = set(int(r) for r in np.asarray(runid_contributed).ravel())
-                if not contrib_set.issubset(cur_keys) and self._pix.num_pixels > 0:
-                    from pyhorace.coord_transf._dependencies import fast_map
-
-                    u_ids = np.unique(self._pix.run_idx).astype(float)
-                    if u_ids.size == exp_info.n_runs:
-                        exp_info.runid_map = fast_map(
-                            u_ids, np.arange(1, exp_info.n_runs + 1, dtype=int)
-                        )
-                        exp_info.runid_recalculated = False
-
-            if len(runid_contributed) > 0 and exp_info.n_runs > 0:
-                exp_sub = exp_info.get_subobj(
-                    np.asarray(runid_contributed, dtype=int).ravel()
-                )
-            else:
-                exp_sub = Experiment()
-
-            if self._main_header.nfiles != exp_sub.n_runs:
-                from datetime import datetime
-                main_header.creation_date = datetime.now()
-            main_header.nfiles = exp_sub.n_runs
-            wout_sqw = sqw()
-            wout_sqw._do_check_combo_arg = False
-            wout_sqw._main_header = main_header
-            wout_sqw._exper_info = exp_sub
-            wout_sqw._data = data_dnd
-            wout_sqw._pix = pix_out
-            wout_sqw._do_check_combo_arg = True
-            wout_sqw.check_combo_arg()
-            wout = wout_sqw
-
-        if outfile:
-            wout.save(outfile)
-            wout.full_filename = outfile
-
-        if not return_cut:
-            return None
-        return wout
 
     def _cut_accumulate_data(
         self,
@@ -1627,287 +1538,34 @@ class sqw(SQWDnDBase, sqw_plot_interface):
         return_cut: bool,
         sym: Any,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, PixelDataBase, np.ndarray]:
-        """Accumulate binned signal, error, npix, and pixels for a cut.
-
-        Ported from ``@sqw/private/cut_accumulate_data_.m``.
-        """
-        from pyhorace.coord_transf.axes_block_base import normalize_signal
-        from pyhorace.core.configurations.hor_config import hor_config
-
-        targ_proj_list: List[Any] = (
-            list(targ_proj)
-            if isinstance(targ_proj, (list, tuple, np.ndarray))
-            else [targ_proj]
-        )
-        sym_list: List[Any] = (
-            list(sym) if isinstance(sym, (list, tuple, np.ndarray)) else [sym]
-        )
-        n_sym = len(targ_proj_list)
-        apply_symmetries = n_sym > 1
-
-        sproj = copy.deepcopy(self._data.proj)
-        saxes = self._data.axes
-        data_npix = self._data.npix
-
-        starts_per_sym: List[np.ndarray] = []
-        sizes_per_sym: List[np.ndarray] = []
-        for proj in targ_proj_list:
-            b_starts, b_sizes = sproj.get_nrange(data_npix, saxes, targ_axes, proj)
-            starts_per_sym.append(np.asarray(b_starts, dtype=np.int64).ravel())
-            sizes_per_sym.append(np.asarray(b_sizes, dtype=np.int64).ravel())
-
-        if apply_symmetries:
-            block_starts, block_sizes = sqw._merge_ranges(
-                starts_per_sym, sizes_per_sym
-            )
-        else:
-            block_starts = starts_per_sym[0]
-            block_sizes = sizes_per_sym[0]
-
-        targ_dims = tuple(int(x) for x in targ_axes.dims_as_ssize)
-        s = np.zeros(targ_dims, dtype=np.float64, order="F")
-        e = np.zeros(targ_dims, dtype=np.float64, order="F")
-        npix = np.zeros(targ_dims, dtype=np.float64, order="F")
-
-        buf_size = int(hor_config().mem_chunk_size)
-        chunks_starts, chunks_sizes = sqw._split_data_blocks(
-            block_starts, block_sizes, buf_size
+        """Accumulate binned signal, error, npix, and pixels for a cut (port of ``@sqw/private/cut_accumulate_data_.m``)."""
+        from pyhorace.sqw._sqw_methods import (
+            _cut_accumulate_data as _cut_accumulate_data_impl,
         )
 
-        pix_retained: List[PixelDataBase] = []
-        pix_ix_retained: List[np.ndarray] = []
-        unique_runid = np.array([], dtype=np.int64)
-
-        num_chunks = len(chunks_starts)
-        is_fb = bool(self._pix.is_filebacked)
-        access_type = "Read" if is_fb else "Access"
-        pixel_contrib_name = "retained" if keep_pixels else "contributed"
-
-        import time
-
-        t_start = time.perf_counter()
-        t_read_total = 0.0
-        t_bin_total = 0.0
-        t_sort_total = 0.0
-
-        for iter_idx, (ch_starts, ch_sizes) in enumerate(
-            zip(chunks_starts, chunks_sizes), start=1
-        ):
-            t0 = time.perf_counter()
-            candidate_pix = self._pix.get_pix_in_ranges(ch_starts, ch_sizes, False, True)
-            t_read_total += time.perf_counter() - t0
-            if candidate_pix.num_pixels == 0:
-                continue
-
-            if log_level >= 1:
-                print(
-                    f"*** Step {iter_idx:3d} of {num_chunks:3d}; Read data for {candidate_pix.num_pixels:8d} pixels -- processing data...",
-                    end="",
-                )
-
-            t1 = time.perf_counter()
-            npix_before = float(np.sum(npix))
-            if keep_pixels:
-                for i in range(n_sym):
-                    proj = targ_proj_list[i]
-                    if apply_symmetries:
-                        (
-                            npix,
-                            s,
-                            e,
-                            pix_ok,
-                            unique_runid,
-                            pix_indx,
-                            selected,
-                        ) = proj.bin_pixels(
-                            targ_axes,
-                            candidate_pix,
-                            npix,
-                            s,
-                            e,
-                            unique_runid,
-                            "-nomex",
-                            nargout=7,
-                        )
-                        if pix_ok.num_pixels > 0:
-                            pix_ok.q_coordinates = sym_list[i].transform_vec(
-                                pix_ok.q_coordinates
-                            )
-                        candidate_pix = candidate_pix.tag(selected)
-                    else:
-                        (
-                            npix,
-                            s,
-                            e,
-                            pix_ok,
-                            unique_runid,
-                            pix_indx,
-                        ) = proj.bin_pixels(
-                            targ_axes,
-                            candidate_pix,
-                            npix,
-                            s,
-                            e,
-                            unique_runid,
-                            "-nomex",
-                            nargout=6,
-                        )
-                    if pix_ok.num_pixels > 0:
-                        pix_retained.append(pix_ok)
-                        pix_ix_retained.append(np.asarray(pix_indx, dtype=np.int64).ravel())
-            else:
-                for i in range(n_sym):
-                    proj = targ_proj_list[i]
-                    if apply_symmetries:
-                        npix, s, e, selected = proj.bin_pixels(
-                            targ_axes,
-                            candidate_pix,
-                            npix,
-                            s,
-                            e,
-                            "-selected_only",
-                            "-nomex",
-                            nargout=4,
-                        )
-                        candidate_pix = candidate_pix.tag(selected)
-                    else:
-                        npix, s, e = proj.bin_pixels(
-                            targ_axes,
-                            candidate_pix,
-                            npix,
-                            s,
-                            e,
-                            "-nomex",
-                            nargout=3,
-                        )
-            t_bin_total += time.perf_counter() - t1
-            npix_step = int(round(float(np.sum(npix)) - npix_before))
-            if log_level >= 1:
-                print(f" ----->  {pixel_contrib_name}  {npix_step:8d} pixels")
-
-        s, e = normalize_signal(s, e, npix)
-
-        t2 = time.perf_counter()
-        if keep_pixels:
-            pix_out = sqw._sort_pix(pix_retained, pix_ix_retained, npix)
-        else:
-            pix_out = PixelDataMemory()
-        t_sort_total += time.perf_counter() - t2
-
-        if log_level >= 2:
-            t_total = max(time.perf_counter() - t_start, 1e-9)
-            t_read_safe = max(t_read_total, 1e-9)
-            n_read_bytes = float(np.sum(block_sizes)) * 9.0 * 4.0
-            speed_mbs = (n_read_bytes / (1024.0 * 1024.0)) / t_read_safe
-            prep_pct = (100.0 * t_sort_total / t_total) if keep_pixels else 0.0
-            print(
-                f"*** Cut timings: Total={t_total:.3f}s | {access_type} speed: {speed_mbs:.2f} MB/sec\n"
-                f"    Resulting pix preparation: {prep_pct:5.1f}%"
-            )
-
-        return s, e, npix, pix_out, unique_runid
+        return _cut_accumulate_data_impl(
+            self, targ_proj, targ_axes, keep_pixels, log_level, return_cut, sym
+        )
 
     @staticmethod
     def _merge_ranges(
         starts_cell: Sequence[np.ndarray], sizes_cell: Sequence[np.ndarray]
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """Merge overlapping or adjacent 1-based pixel block ranges across symmetries.
+        """Merge overlapping or adjacent 1-based pixel block ranges across symmetries."""
+        from pyhorace.sqw._sqw_methods import _merge_ranges as _merge_ranges_impl
 
-        Ported from ``merge_ranges`` in ``@sqw/private/cut_accumulate_data_.m``.
-        """
-        non_empty_starts = []
-        non_empty_ends = []
-        for st, sz in zip(starts_cell, sizes_cell):
-            st_arr = np.asarray(st, dtype=np.int64).ravel()
-            sz_arr = np.asarray(sz, dtype=np.int64).ravel()
-            valid = sz_arr > 0
-            if np.any(valid):
-                s_v = st_arr[valid]
-                e_v = s_v + sz_arr[valid] - 1
-                non_empty_starts.append(s_v)
-                non_empty_ends.append(e_v)
-
-        if not non_empty_starts:
-            return np.array([], dtype=np.int64), np.array([], dtype=np.int64)
-
-        all_starts = np.concatenate(non_empty_starts)
-        all_ends = np.concatenate(non_empty_ends)
-
-        order = np.lexsort((all_ends, all_starts))
-        all_starts = all_starts[order]
-        all_ends = all_ends[order]
-
-        merged_starts = [int(all_starts[0])]
-        merged_ends = [int(all_ends[0])]
-        for s_cur, e_cur in zip(all_starts[1:], all_ends[1:]):
-            if int(s_cur) <= merged_ends[-1] + 1:
-                if int(e_cur) > merged_ends[-1]:
-                    merged_ends[-1] = int(e_cur)
-            else:
-                merged_starts.append(int(s_cur))
-                merged_ends.append(int(e_cur))
-
-        ms = np.asarray(merged_starts, dtype=np.int64)
-        me = np.asarray(merged_ends, dtype=np.int64)
-        return ms, me - ms + 1
+        return _merge_ranges_impl(starts_cell, sizes_cell)
 
     @staticmethod
     def _split_data_blocks(
         block_starts: np.ndarray, block_sizes: np.ndarray, buf_size: int
     ) -> Tuple[List[np.ndarray], List[np.ndarray]]:
-        """Split pixel block ranges into chunks of at most ``buf_size`` pixels.
+        """Split pixel block ranges into chunks of at most ``buf_size`` pixels."""
+        from pyhorace.sqw._sqw_methods import (
+            _split_data_blocks as _split_data_blocks_impl,
+        )
 
-        Ported from ``split_data_blocks.m``.
-        """
-        starts = np.asarray(block_starts, dtype=np.int64).ravel()
-        sizes = np.asarray(block_sizes, dtype=np.int64).ravel()
-        valid = sizes > 0
-        starts = starts[valid]
-        sizes = sizes[valid]
-
-        if starts.size == 0:
-            return [], []
-
-        buf_sz = max(int(buf_size), 1)
-        chunks_starts: List[np.ndarray] = []
-        chunks_sizes: List[np.ndarray] = []
-
-        cur_starts: List[int] = []
-        cur_sizes: List[int] = []
-        cur_sum = 0
-
-        for s_val, sz_val in zip(starts, sizes):
-            s = int(s_val)
-            sz = int(sz_val)
-            while sz > 0:
-                space = buf_sz - cur_sum
-                if sz <= space:
-                    cur_starts.append(s)
-                    cur_sizes.append(sz)
-                    cur_sum += sz
-                    sz = 0
-                    if cur_sum >= buf_sz:
-                        chunks_starts.append(np.asarray(cur_starts, dtype=np.int64))
-                        chunks_sizes.append(np.asarray(cur_sizes, dtype=np.int64))
-                        cur_starts = []
-                        cur_sizes = []
-                        cur_sum = 0
-                else:
-                    cur_starts.append(s)
-                    cur_sizes.append(space)
-                    chunks_starts.append(np.asarray(cur_starts, dtype=np.int64))
-                    chunks_sizes.append(np.asarray(cur_sizes, dtype=np.int64))
-                    cur_starts = []
-                    cur_sizes = []
-                    cur_sum = 0
-                    s += space
-                    sz -= space
-
-        if cur_starts:
-            chunks_starts.append(np.asarray(cur_starts, dtype=np.int64))
-            chunks_sizes.append(np.asarray(cur_sizes, dtype=np.int64))
-
-        return chunks_starts, chunks_sizes
+        return _split_data_blocks_impl(block_starts, block_sizes, buf_size)
 
     @staticmethod
     def _sort_pix(
@@ -1915,49 +1573,22 @@ class sqw(SQWDnDBase, sqw_plot_interface):
         pix_ix_retained: Sequence[np.ndarray],
         npix: np.ndarray,
     ) -> PixelDataBase:
-        """Sort accumulated pixel chunks by 1-based bin index ``pix_ix_retained``.
+        """Sort accumulated pixel chunks by 1-based bin index ``pix_ix_retained``."""
+        from pyhorace.sqw._sqw_methods import _sort_pix as _sort_pix_impl
 
-        Ported from ``sort_pix.m``.
-        """
-        non_empty_pix = []
-        non_empty_ix = []
-        for p, ix in zip(pix_retained, pix_ix_retained):
-            if p is not None and p.num_pixels > 0:
-                non_empty_pix.append(p.get_pixels(np.arange(1, p.num_pixels + 1, dtype=np.intp), "-raw_data"))
-                non_empty_ix.append(np.asarray(ix, dtype=np.int64).ravel())
-
-        if not non_empty_pix:
-            return PixelDataMemory()
-
-        all_raw = np.hstack(non_empty_pix)
-        all_ix = np.concatenate(non_empty_ix)
-        if all_ix.size > 1:
-            order = np.argsort(all_ix, kind="mergesort")
-            all_raw = all_raw[:, order]
-
-        out = PixelDataMemory(np.asarray(all_raw, dtype=np.float64))
-        out.recalc_data_range("all")
-        return out
-
-    def disp2sqw_eval(self, *args: Any, **kwargs: Any) -> Any:
-        """Stub for ``@sqw/disp2sqw_eval.m``."""
-        # TODO(port-dependency): Port @sqw/disp2sqw_eval.m
-        raise NotImplementedError("sqw.disp2sqw_eval is not yet implemented.")
+        return _sort_pix_impl(pix_retained, pix_ix_retained, npix)
 
     def fake_sqw(self, *args: Any, **kwargs: Any) -> Any:
         """Stub for ``@sqw/fake_sqw.m``."""
         # TODO(port-dependency): Port @sqw/fake_sqw.m
         raise NotImplementedError("sqw.fake_sqw is not yet implemented.")
 
-    def func_eval(self, *args: Any, **kwargs: Any) -> Any:
-        """Stub for ``@sqw/func_eval.m``."""
-        # TODO(port-dependency): Port @sqw/func_eval.m
-        raise NotImplementedError("sqw.func_eval is not yet implemented.")
-
-    def gen_sqw(self, *args: Any, **kwargs: Any) -> Any:
-        """Stub for ``@sqw/gen_sqw.m``."""
-        # TODO(port-dependency): Port @sqw/gen_sqw.m
-        raise NotImplementedError("sqw.gen_sqw is not yet implemented.")
+    '''
+        def gen_sqw(self, *args: Any, **kwargs: Any) -> Any:
+            """Stub for ``@sqw/gen_sqw.m``."""
+            # TODO(port-dependency): Port @sqw/gen_sqw.m
+            raise NotImplementedError("sqw.gen_sqw is not yet implemented.")
+    '''
 
     def get_efix(self, *args: Any, **kwargs: Any) -> Any:
         """Stub for ``@sqw/get_efix.m``."""
@@ -2442,16 +2073,6 @@ class sqw(SQWDnDBase, sqw_plot_interface):
         # TODO(port-dependency): Port @sqw/split.m
         raise NotImplementedError("sqw.split is not yet implemented.")
 
-    def sqw_eval(self, *args: Any, **kwargs: Any) -> Any:
-        """Stub for ``@sqw/sqw_eval.m``."""
-        # TODO(port-dependency): Port @sqw/sqw_eval.m
-        raise NotImplementedError("sqw.sqw_eval is not yet implemented.")
-
-    def sqw_eval_pix(self, *args: Any, **kwargs: Any) -> Any:
-        """Stub for ``@sqw/sqw_eval_pix.m``."""
-        # TODO(port-dependency): Port @sqw/sqw_eval_pix.m
-        raise NotImplementedError("sqw.sqw_eval_pix is not yet implemented.")
-
     def symmetrise_sqw(self, *args: Any, **kwargs: Any) -> "sqw":
         """Symmetrise ``sqw`` dataset according to ``Symop`` (port of ``@sqw/symmetrise_sqw.m``)."""
         from pyhorace.coord_transf.a_projection_base import aProjectionBase
@@ -2679,54 +2300,14 @@ class sqw(SQWDnDBase, sqw_plot_interface):
         pars: Any = None,
         *args: Any,
         **kwargs: Any,
-    ) -> "sqw":
+    ) -> Any:
         """Evaluate a function at the plotting bin centres of an ``sqw`` object.
 
         Ported from ``horace_core/sqw/@sqw/func_eval.m``.
         """
-        func_handle_parsed, pars_cell, opts = self.parse_eval_args(
-            func_handle, pars, *args, **kwargs
-        )
-        if int(self.dimensions()) == 0:
-            raise HoraceError(
-                "HORACE:sqw:invalid_argument",
-                "func_eval not supported for zero dimensional objects.",
-            )
+        from pyhorace.sqw._sqw_methods import func_eval_sqw
 
-        sqw_type = bool(self.has_pixels())
-        if sqw_type:
-            opts["all"] = False
-            opts["all_bins"] = False
-
-        wout = self.copy()
-        opt_dnd = dict(opts)
-        if sqw_type:
-            opt_dnd["outfile"] = ""
-        wout.data = self.data.func_eval(func_handle_parsed, pars_cell, opt_dnd)
-
-        if sqw_type:
-            from pyhorace.coord_transf.page_operations.page_op_func_eval import (
-                PageOp_func_eval,
-            )
-
-            page_op = PageOp_func_eval()
-            outfile_str = (
-                opts["outfile"][0]
-                if isinstance(opts["outfile"], (list, tuple)) and len(opts["outfile"]) > 0
-                else str(opts["outfile"] or "")
-            )
-            if outfile_str:
-                page_op.outfile = outfile_str
-            page_op.init_filebacked_output = bool(
-                opts.get("filebacked", False) or self.is_filebacked
-            )
-            page_op = page_op.init(wout)
-            wout = sqw.apply_op(wout, page_op)
-
-        if bool(opts.get("all", False)):
-            wout.data.npix = np.ones_like(wout.data.npix)
-
-        return wout
+        return func_eval_sqw(self, func_handle, pars, *args, **kwargs)
 
     def sqw_eval(
         self,
@@ -2734,43 +2315,30 @@ class sqw(SQWDnDBase, sqw_plot_interface):
         pars: Any = None,
         *args: Any,
         **kwargs: Any,
-    ) -> "sqw":
+    ) -> Any:
         """Calculate sqw for a model scattering function over input sqw object.
 
         Ported from ``horace_core/sqw/@SQWDnDBase/sqw_eval.m``.
         """
-        return super().sqw_eval(sqwfunc, pars, *args, **kwargs)
+        from pyhorace.sqw._sqw_methods import sqw_eval_method
+
+        return sqw_eval_method(self, sqwfunc, pars, *args, **kwargs)
 
     def sqw_eval_pix(
         self,
         sqwfunc: Callable[..., Any],
         pars: Any,
-        options: Dict[str, Any],
+        options: Union[Dict[str, Any], bool],
         *args: Any,
         **kwargs: Any,
-    ) -> "sqw":
+    ) -> Any:
         """Helper function for ``sqw_eval`` executed on a full ``sqw`` object containing pixels.
 
         Ported from ``horace_core/sqw/@sqw/sqw_eval_pix.m``.
         """
-        from pyhorace.coord_transf.page_operations.page_op_sqw_eval import PageOp_sqw_eval
+        from pyhorace.sqw._sqw_methods import sqw_eval_pix_method
 
-        eval_op = options.get("pageop_processor")
-        if eval_op is None:
-            eval_op = PageOp_sqw_eval()
-        outfile = options.get("outfile", "")
-        if isinstance(outfile, (list, tuple)):
-            outfile = outfile[0] if len(outfile) > 0 else ""
-        if outfile:
-            eval_op.outfile = str(outfile)
-        eval_op.init_filebacked_output = bool(
-            options.get("filebacked", False) or self.is_filebacked
-        )
-        eval_op = eval_op.init(
-            self, sqwfunc, pars, bool(options.get("average", False))
-        )
-        eval_op.do_nopix = bool(options.get("nopix", False))
-        return sqw.apply_op(self, eval_op)
+        return sqw_eval_pix_method(self, sqwfunc, pars, options, *args, **kwargs)
 
     def disp2sqw_eval(
         self,
@@ -2779,12 +2347,14 @@ class sqw(SQWDnDBase, sqw_plot_interface):
         fwhh: Any,
         *args: Any,
         **kwargs: Any,
-    ) -> "sqw":
+    ) -> Any:
         """Calculate sqw for a model dispersion relation.
 
         Ported from ``horace_core/sqw/@SQWDnDBase/disp2sqw_eval.m``.
         """
-        return super().disp2sqw_eval(dispreln, pars, fwhh, *args, **kwargs)
+        from pyhorace.sqw._sqw_methods import disp2sqw_eval_method
+
+        return disp2sqw_eval_method(self, dispreln, pars, fwhh, *args, **kwargs)
 
     def equal_to_tol(
         self,

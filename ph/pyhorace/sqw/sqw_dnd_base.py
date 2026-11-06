@@ -56,17 +56,9 @@ def _parse_char_options(
 
 def _call_user_func(func: Callable[..., Any], *coord_arrays: Any, pars: Any = None) -> Any:
     """Invoke a user function handling both MATLAB-style (coords..., pars) and unpacked (*coords, *pars)."""
-    if pars is None or (isinstance(pars, (list, tuple)) and len(pars) == 0):
-        try:
-            return func(*coord_arrays)
-        except TypeError:
-            return func(*coord_arrays, [])
-    try:
-        return func(*coord_arrays, pars)
-    except TypeError:
-        if isinstance(pars, (list, tuple)):
-            return func(*coord_arrays, *pars)
-        raise
+    from pyhorace.sqw._sqw_methods import _invoke_eval_func
+
+    return _invoke_eval_func(func, *coord_arrays, pars=pars)
 
 
 def disp2sqw(*args: Any, **kwargs: Any) -> np.ndarray:
@@ -341,175 +333,19 @@ class SQWDnDBase(
         qsqr = qw[0] ** 2 + qw[1] ** 2 + qw[2] ** 2
         return [qsqr, qw[3]]
 
-    def _sqw_eval_nopix_impl(
+    def sqw_eval_nopix(
         self,
         sqwfunc: Callable[..., Any],
-        pars: Any,
+        pars: Any = None,
         options: Optional[Dict[str, Any]] = None,
     ) -> "SQWDnDBase":
         """Evaluate 4D S(Q, w) model function at bin centers (ignoring pixels).
 
         Ported from ``horace_core/sqw/@SQWDnDBase/sqw_eval_nopix.m``.
         """
-        opts = options or {}
-        if hasattr(self, "data") and getattr(self, "data") is not self:
-            self.data = self.data.sqw_eval_nopix(sqwfunc, pars, opts)
-            return self
-        all_bins = bool(opts.get("all_bins", opts.get("all", False)))
-        qw = self.calculate_qw_bins(nargout=1)
-        empty_npix = self.npix == 0
-        has_any_pix = not np.all(empty_npix)
-        if not all_bins and has_any_pix:
-            keep = (~empty_npix).ravel(order="F")
-            qw_eval = [q[keep].reshape(-1, 1) for q in qw]
-            val_sub = np.asarray(
-                _call_user_func(sqwfunc, *qw_eval, pars=pars), dtype=float
-            ).ravel(order="F")
-            s_flat = np.zeros(self.s.size, dtype=float)
-            s_flat[keep] = val_sub
-            val_arr = s_flat.reshape(self.s.shape, order="F")
-        else:
-            qw_eval = [q.reshape(-1, 1) for q in qw]
-            val = _call_user_func(sqwfunc, *qw_eval, pars=pars)
-            val_arr = np.asarray(val, dtype=float).reshape(self.s.shape, order="F")
-        self.s = val_arr
-        self.e = np.zeros_like(self.s)
-        if all_bins:
-            self.npix = np.ones_like(self.npix)
-        return self
+        from pyhorace.sqw._sqw_methods import sqw_eval_nopix_method
 
-    def sqw_eval(
-        self,
-        sqwfunc: Callable[..., Any],
-        pars: Any,
-        *args: Any,
-        **kwargs: Any,
-    ) -> "SQWDnDBase":
-        """Calculate sqw for a model scattering function.
-
-        Ported from ``horace_core/sqw/@SQWDnDBase/sqw_eval.m``.
-        """
-        from pyhorace.coord_transf.bmatrix import _infer_nargout
-        from pyhorace.coord_transf.page_operations.page_op_sqw_eval import PageOp_sqw_eval
-
-        nargout = kwargs.pop("nargout", None)
-        if nargout is None:
-            nargout = _infer_nargout(default=1)
-
-        rem_args = list(args)
-        if len(rem_args) > 0 and isinstance(rem_args[0], PageOp_sqw_eval):
-            op = rem_args.pop(0)
-        else:
-            op = PageOp_sqw_eval()
-
-        sqwfunc_parsed, pars_cell, opts = self._parse_eval_options(
-            sqwfunc, pars, *rem_args, **kwargs
-        )
-        outfiles = opts["outfile"]
-        if bool(opts["filebacked"]) and nargout > 0:
-            opts["outfile"] = ""
-
-        has_pix = hasattr(self, "has_pixels") and bool(self.has_pixels())
-        if not has_pix and bool(opts["all_bins"]):
-            for dim_size in self.s.shape:
-                if dim_size == 0:
-                    raise HoraceError(
-                        "HORACE:sqw_eval:invalid_argument",
-                        "Empty object cannot be evaluated using option 'all'",
-                    )
-
-        if has_pix and not bool(opts["nopix"]):
-            wout = self.sqw_eval_pix(
-                sqwfunc_parsed,
-                pars_cell,
-                opts,
-                bool(opts["average"]),
-                outfiles,
-                op=op,
-            )
-            return wout
-        else:
-            wout = self.copy()
-            if has_pix:
-                from pyhorace.data.pixels.pixel_data_base import PixelDataBase
-
-                wout.pix = PixelDataBase.create()
-            wout = wout.sqw_eval_nopix(sqwfunc_parsed, pars_cell, opts)
-            if outfiles:
-                wout.save(outfiles)
-            return wout
-
-    def disp2sqw_eval(
-        self,
-        dispreln: Callable[..., Any],
-        pars: Any,
-        fwhh: Any,
-        *args: Any,
-        **kwargs: Any,
-    ) -> "SQWDnDBase":
-        """Calculate sqw for a model dispersion relation.
-
-        Ported from ``horace_core/sqw/@SQWDnDBase/disp2sqw_eval.m``.
-        """
-        from pyhorace.coord_transf.page_operations.page_op_sqw_eval import PageOp_sqw_eval
-
-        pars_list = list(pars) if isinstance(pars, (list, tuple)) else ([pars] if pars is not None else [])
-        meta_param = [dispreln, pars_list, fwhh]
-        op = PageOp_sqw_eval(op_name="disp2sqw_eval")
-        return self.sqw_eval(disp2sqw, meta_param, op, *args, **kwargs)
-
-    def _legacy_sqw_eval_nopix_unused(
-        self,
-        sqwfunc: Callable[..., Any],
-        pars: Any,
-        options: Optional[Dict[str, Any]] = None,
-    ) -> "SQWDnDBase":
-        """Evaluate 4D S(Q, w) model function at bin centers (ignoring pixels)."""
-        opts = options or {}
-        all_bins = bool(opts.get("all_bins", False))
-        qw = self.calculate_qw_bins(nargout=1)
-        val = _call_user_func(sqwfunc, qw[0], qw[1], qw[2], qw[3], pars=pars)
-        val_arr = np.asarray(val, dtype=float).reshape(self.s.shape, order="F")
-        if not all_bins:
-            val_arr = val_arr.copy()
-            val_arr[self.npix == 0] = 0.0
-        self.s = val_arr
-        self.e = np.zeros_like(self.s)
-        return self
-
-    def sqw_eval(
-        self,
-        sqwfunc: Callable[..., Any],
-        pars: Any,
-        *args: Any,
-        **kwargs: Any,
-    ) -> "SQWDnDBase":
-        """Evaluate S(Q, w) function on a DnD or SQW object."""
-        opts = self._parse_eval_options(*args, **kwargs)
-        wout = self.copy()
-        wout = wout.sqw_eval_nopix(sqwfunc, pars, opts)
-        return wout
-
-    def disp2sqw_eval(
-        self,
-        dispreln: Callable[..., Any],
-        pars: Any,
-        fwhh: float,
-        all_bins: bool = False,
-    ) -> "SQWDnDBase":
-        """Evaluate dispersion relation spectral weight on a single object."""
-        qw = self.calculate_qw_bins(nargout=1)
-        val = disp2sqw(qw, dispreln, pars, fwhh)
-        val_arr = np.asarray(val, dtype=float).reshape(self.s.shape, order="F")
-        if not all_bins:
-            val_arr = val_arr.copy()
-            val_arr[self.npix == 0] = 0.0
-        wout = self.copy()
-        wout.s = val_arr
-        wout.e = np.zeros_like(wout.s)
-        if all_bins:
-            wout.npix = np.ones_like(wout.npix)
-        return wout
+        return sqw_eval_nopix_method(self, sqwfunc, pars, options)
 
     def disp2sqw(
         self,
@@ -1182,7 +1018,7 @@ class SQWDnDBase(
     def parse_eval_args(
         self,
         func_handle: Callable[..., Any],
-        pars: Any,
+        pars: Any = None,
         *args: Any,
         **kwargs: Any,
     ) -> Tuple[Callable[..., Any], List[Any], Dict[str, Any]]:
@@ -1190,189 +1026,24 @@ class SQWDnDBase(
 
         Ported from ``horace_core/sqw/@SQWDnDBase/private/parse_eval_args_.m``.
         """
-        from pyhorace.coord_transf.page_operations.page_op_sqw_eval import PageOp_sqw_eval
+        from pyhorace.sqw._sqw_methods import parse_eval_args as _parse_eval_args
 
-        if not callable(func_handle):
-            raise HoraceError(
-                "HORACE:sqw_eval:invalid_argument",
-                "func_handle must be a callable function handle",
-            )
-
-        rem_args = list(args)
-        the_page_op = None
-        if len(rem_args) > 0 and isinstance(rem_args[0], PageOp_sqw_eval):
-            the_page_op = rem_args.pop(0)
-
-        all_flag = bool(kwargs.get("all", False) or kwargs.get("all_bins", False))
-        ave_flag = bool(kwargs.get("average", False) or kwargs.get("ave", False))
-        filebacked_flag = bool(kwargs.get("filebacked", False))
-        combine_flag = bool(kwargs.get("combine", False))
-        nopix_flag = bool(kwargs.get("nopix", False))
-        test_inputs = bool(kwargs.get("test_input_parsing", False))
-        outfile = kwargs.get("outfile", "")
-
-        idx = 0
-        while idx < len(rem_args):
-            arg = rem_args[idx]
-            if isinstance(arg, str):
-                a_low = arg.lower()
-                if a_low.startswith("-"):
-                    flag = a_low.lstrip("-")
-                    if "all".startswith(flag) and len(flag) >= 2:
-                        all_flag = True
-                        idx += 1
-                        continue
-                    if "average".startswith(flag) and len(flag) >= 2:
-                        ave_flag = True
-                        idx += 1
-                        continue
-                    if "filebacked".startswith(flag) and len(flag) >= 2:
-                        filebacked_flag = True
-                        idx += 1
-                        continue
-                    if "combine".startswith(flag) and len(flag) >= 2:
-                        combine_flag = True
-                        idx += 1
-                        continue
-                    if "nopix".startswith(flag) and len(flag) >= 2:
-                        nopix_flag = True
-                        idx += 1
-                        continue
-                    if "test_input_parsing".startswith(flag) and len(flag) >= 2:
-                        test_inputs = True
-                        idx += 1
-                        continue
-                    raise HoraceError(
-                        "HORACE:sqw:invalid_argument",
-                        f"Unrecognised flag '{arg}'",
-                    )
-                else:
-                    if idx + 1 >= len(rem_args):
-                        raise HoraceError(
-                            "HORACE:sqw:invalid_argument",
-                            f"Parameter '{arg}' requires a value",
-                        )
-                    val = rem_args[idx + 1]
-                    k_low = a_low.strip()
-                    if "average".startswith(k_low):
-                        ave_flag = bool(val)
-                    elif "all".startswith(k_low):
-                        all_flag = bool(val)
-                    elif "filebacked".startswith(k_low):
-                        filebacked_flag = bool(val)
-                    elif "combine".startswith(k_low):
-                        combine_flag = bool(val)
-                    elif "nopix".startswith(k_low):
-                        nopix_flag = bool(val)
-                    elif "test_input_parsing".startswith(k_low):
-                        test_inputs = bool(val)
-                    elif "outfile".startswith(k_low):
-                        outfile = val
-                    else:
-                        raise HoraceError(
-                            "HORACE:sqw:invalid_argument",
-                            f"Unrecognised parameter '{arg}'",
-                        )
-                    idx += 2
-                    continue
-            idx += 1
-
-        if isinstance(pars, (list, tuple)):
-            pars_cell = list(pars)
-        elif pars is None or (isinstance(pars, np.ndarray) and pars.size == 0):
-            pars_cell = [[]]
-        else:
-            pars_cell = [pars]
-
-        if isinstance(outfile, (list, tuple)):
-            outfile_cell = [str(x) if x is not None else "" for x in outfile]
-        else:
-            outfile_cell = [str(outfile) if outfile else ""]
-
-        outfiles_empty = all(len(x) == 0 for x in outfile_cell)
-        if not outfiles_empty and len(outfile_cell) != 1:
-            raise HoraceError(
-                "HORACE:sqw:invalid_argument",
-                f"Number of outfiles specified must match number of input objects.\n"
-                f"Found {len(outfile_cell)} outfile(s), but 1 sqw object(s).",
-            )
-        if outfiles_empty and filebacked_flag:
-            import os
-            import tempfile
-            import uuid
-
-            outfile_cell = [
-                os.path.join(
-                    tempfile.gettempdir(), f"horace_eval_{uuid.uuid4().hex}.sqw"
-                )
-            ]
-
-        opts = {
-            "func_handle": func_handle,
-            "pars": pars_cell,
-            "average": ave_flag,
-            "all": all_flag,
-            "all_bins": all_flag,
-            "filebacked": filebacked_flag,
-            "combine": combine_flag,
-            "nopix": nopix_flag,
-            "test_input_parsing": test_inputs,
-            "outfile": outfile_cell,
-            "pageop_processor": the_page_op,
-        }
-        return func_handle, pars_cell, opts
+        return _parse_eval_args(self, func_handle, pars, *args, **kwargs)
 
     def sqw_eval(
         self,
         sqwfunc: Callable[..., Any],
-        pars: Any,
+        pars: Any = None,
         *args: Any,
         **kwargs: Any,
-    ) -> "SQWDnDBase":
+    ) -> Any:
         """Calculate sqw for a model scattering function over input sqw/dnd object.
 
         Ported from ``horace_core/sqw/@SQWDnDBase/sqw_eval.m``.
         """
-        from pyhorace.coord_transf.bmatrix import _infer_nargout
+        from pyhorace.sqw._sqw_methods import sqw_eval_method
 
-        nargout = kwargs.pop("nargout", None)
-        if nargout is None:
-            nargout = _infer_nargout(default=1)
-
-        sqwfunc_parsed, pars_cell, opts = self.parse_eval_args(
-            sqwfunc, pars, *args, **kwargs
-        )
-        outfile_str = opts["outfile"][0] if opts["outfile"] else ""
-        if not outfile_str or bool(opts["filebacked"]):
-            if nargout == 0:
-                raise HoraceError(
-                    "HORACE:sqw_eval:invalid_argument",
-                    f"This method request single output argument. Got: {nargout}",
-                )
-
-        has_pix = hasattr(self, "has_pixels") and bool(self.has_pixels())
-        if not has_pix and bool(opts["all_bins"]):
-            for dim_size in self.s.shape:
-                if dim_size == 0:
-                    raise HoraceError(
-                        "HORACE:sqw_eval:invalid_argument",
-                        "Empty object cannot be evaluated using option 'all'",
-                    )
-
-        if has_pix and not bool(opts["nopix"]):
-            optl = dict(opts)
-            optl["outfile"] = outfile_str
-            return self.sqw_eval_pix(sqwfunc_parsed, pars_cell, optl)
-        else:
-            wout = self.copy()
-            if has_pix:
-                from pyhorace.data.pixels.pixel_data_base import PixelDataBase
-
-                wout.pix = PixelDataBase.create()
-            wout = wout.sqw_eval_nopix(sqwfunc_parsed, pars_cell, opts)
-            if outfile_str:
-                wout.save(outfile_str)
-            return wout
+        return sqw_eval_method(self, sqwfunc, pars, *args, **kwargs)
 
     def disp2sqw_eval(
         self,
@@ -1381,42 +1052,14 @@ class SQWDnDBase(
         fwhh: Any,
         *args: Any,
         **kwargs: Any,
-    ) -> "SQWDnDBase":
+    ) -> Any:
         """Calculate sqw for a model dispersion relation.
 
         Ported from ``horace_core/sqw/@SQWDnDBase/disp2sqw_eval.m``.
         """
-        all_bins = bool(kwargs.get("all", False) or kwargs.get("all_bins", False))
-        ave_pix = bool(kwargs.get("average", False) or kwargs.get("ave", False))
-        for arg in args:
-            if isinstance(arg, str):
-                a_low = arg.lower().lstrip("-")
-                if "all".startswith(a_low) and len(a_low) >= 2:
-                    all_bins = True
-                elif "average".startswith(a_low) and len(a_low) >= 2:
-                    ave_pix = True
-                else:
-                    raise HoraceError(
-                        "HORACE:sqw:invalid_arguments",
-                        f"Unrecognised option '{arg}'.\n"
-                        "Valid values for optional arguments are '-al[l]' or '-av[erage]'.",
-                    )
+        from pyhorace.sqw._sqw_methods import disp2sqw_eval_method
 
-        pars_cell = list(pars) if isinstance(pars, (list, tuple)) else [pars]
-        extra_args: List[str] = []
-        if ave_pix:
-            extra_args.append("-ave")
-        if all_bins:
-            extra_args.append("-all")
-
-        has_pix = hasattr(self, "has_pixels") and bool(self.has_pixels())
-        if has_pix:
-            return self.sqw_eval(
-                disp2sqw, [dispreln, pars_cell, fwhh], *extra_args
-            )
-        else:
-            wout = self.copy()
-            return wout.disp2sqw(dispreln, pars_cell, fwhh, *extra_args)
+        return disp2sqw_eval_method(self, dispreln, pars, fwhh, *args, **kwargs)
 
     def unary_op_manager(self, *args: Any) -> Any:
         """Apply a unary operation to a DnD or SQW object.

@@ -375,6 +375,21 @@ class DataOpArray(np.ndarray):
 
         return _alg_cut_sym(self, *args, **kwargs)
 
+    def sqw_eval(self, *args: Any, **kwargs: Any) -> Any:
+        from pyhorace.sqw._sqw_methods import sqw_eval_method
+
+        return sqw_eval_method(self, *args, **kwargs)
+
+    def func_eval(self, *args: Any, **kwargs: Any) -> Any:
+        from pyhorace.sqw._sqw_methods import func_eval as _alg_func_eval
+
+        return _alg_func_eval(self, *args, **kwargs)
+
+    def disp2sqw_eval(self, *args: Any, **kwargs: Any) -> Any:
+        from pyhorace.sqw._sqw_methods import disp2sqw_eval_method
+
+        return disp2sqw_eval_method(self, *args, **kwargs)
+
 
 class data_op_interface(ABC):
     """DATA_OP_INTERFACE defines the operations which are available on
