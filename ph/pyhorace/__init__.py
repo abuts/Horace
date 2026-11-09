@@ -52,6 +52,28 @@ from pyhorace.algorithms import (
     sqw_eval,
     symmetrise_sqw,
 )
+from pyhorace.models import (
+    bose_times_eps,
+    demo_4gauss_2dQ,
+    demo_FM_spinwaves_2dSlice_sqw,
+    demo_null_func,
+    disp_bcc_hfm,
+    disp_bcc_hfm0,
+    disp_fcc_hfm,
+    disp_sc_hfm,
+    dsho_over_eps,
+    einstein,
+    example_sqw_background,
+    example_sqw_flat_mode,
+    example_sqw_spin_waves,
+    rod_sqw,
+    sheet_sqw,
+    sqw_bcc_hfm,
+    sqw_fcc_hfm,
+    sqw_sc_hfm,
+    template_sqw_from_dispersion,
+    van_sqw,
+)
 
 __version__ = "0.1.0"
 __all__ = [
