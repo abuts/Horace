@@ -5,9 +5,8 @@ Translated from MATLAB ``horace_core/sqw_models/sqw_bcc_hfm.m``.
 
 from __future__ import annotations
 
-from typing import Any, Sequence
-
 import numpy as np
+from numpy.typing import ArrayLike
 
 from pyhorace.models.bose_times_eps import bose_times_eps
 from pyhorace.models.disp_bcc_hfm import disp_bcc_hfm
@@ -19,7 +18,7 @@ def sqw_bcc_hfm(
     qk: np.ndarray,
     ql: np.ndarray,
     en: np.ndarray,
-    par: Arraylike,
+    par: ArrayLike,
 ) -> np.ndarray:
     r"""Spectral weight for body-centred cubic Heisenberg ferromagnet.
 

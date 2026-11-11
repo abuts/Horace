@@ -6,9 +6,10 @@ Translated from MATLAB ``horace_core/sqw_models/disp_bcc_hfm.m``.
 from __future__ import annotations
 
 import math
-from typing import Any, List, Optional, Sequence, Tuple
+from typing import Optional, Tuple
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 # Module-level cache matching MATLAB `persistent rho`
 _rho: Optional[np.ndarray] = None
@@ -21,7 +22,7 @@ def _reset_rho() -> None:
 
 
 def disp_bcc_hfm(
-    qh: np.ndarray, qk: np.ndarray, ql: np.ndarray, par: np.ndarray
+    qh: np.ndarray, qk: np.ndarray, ql: np.ndarray, par: ArrayLike
 ) -> Tuple[np.ndarray, np.ndarray]:
     r"""Spin wave dispersion relation for the body-centred cubic Heisenberg ferromagnet.
 

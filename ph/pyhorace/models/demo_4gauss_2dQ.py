@@ -5,13 +5,12 @@ Translated from MATLAB ``horace_core/functions/demo_4gauss_2dQ.m``.
 
 from __future__ import annotations
 
-from typing import Any, Sequence
-
 import numpy as np
+from numpy.typing import ArrayLike
 
 
 def demo_4gauss_2dQ(
-    q1: Any, q2: Any, p: Sequence[float] | np.ndarray
+    q1: np.ndarray, q2: np.ndarray, p: ArrayLike
 ) -> np.ndarray:
     """Calculate 4 Gaussians at symmetric positions in momentum space.
 
@@ -22,11 +21,11 @@ def demo_4gauss_2dQ(
 
     Parameters
     ----------
-    q1 : array_like
+    q1 : np.ndarray
         Variable component ``q1`` (meshgrid style matrix or vector).
-    q2 : array_like
+    q2 : np.ndarray
         Variable component ``q2``.
-    p : sequence of float or np.ndarray
+    p : ArrayLike
         Parameters ``[amp, posx, posy, wid, symposx, symposy, bg]``.
 
     Returns
@@ -34,16 +33,14 @@ def demo_4gauss_2dQ(
     np.ndarray
         Array the same size as the input arrays ``q1`` and ``q2``.
     """
-    q1_arr = np.asarray(q1, dtype=np.float64)
-    q2_arr = np.asarray(q2, dtype=np.float64)
-
-    amp = float(p[0])
-    posx = float(p[1])
-    posy = float(p[2])
-    wid = float(p[3])
-    symposx = float(p[4])
-    symposy = float(p[5])
-    bg = float(p[6])
+    p_arr = np.asarray(p, dtype=np.float64).ravel()
+    amp = float(p_arr[0])
+    posx = float(p_arr[1])
+    posy = float(p_arr[2])
+    wid = float(p_arr[3])
+    symposx = float(p_arr[4])
+    symposy = float(p_arr[5])
+    bg = float(p_arr[6])
 
     pos1 = (symposx + posx, symposy)
     pos2 = (symposx, symposy - posy)
@@ -53,17 +50,17 @@ def demo_4gauss_2dQ(
     with np.errstate(divide="ignore", invalid="ignore"):
         y = (
             amp
-            * np.exp(-0.5 * ((q1_arr - pos1[0]) / wid) ** 2)
-            * np.exp(-0.5 * ((q2_arr - pos1[1]) / wid) ** 2)
+            * np.exp(-0.5 * ((q1 - pos1[0]) / wid) ** 2)
+            * np.exp(-0.5 * ((q2 - pos1[1]) / wid) ** 2)
             + amp
-            * np.exp(-0.5 * ((q1_arr - pos2[0]) / wid) ** 2)
-            * np.exp(-0.5 * ((q2_arr - pos2[1]) / wid) ** 2)
+            * np.exp(-0.5 * ((q1 - pos2[0]) / wid) ** 2)
+            * np.exp(-0.5 * ((q2 - pos2[1]) / wid) ** 2)
             + amp
-            * np.exp(-0.5 * ((q1_arr - pos3[0]) / wid) ** 2)
-            * np.exp(-0.5 * ((q2_arr - pos3[1]) / wid) ** 2)
+            * np.exp(-0.5 * ((q1 - pos3[0]) / wid) ** 2)
+            * np.exp(-0.5 * ((q2 - pos3[1]) / wid) ** 2)
             + amp
-            * np.exp(-0.5 * ((q1_arr - pos4[0]) / wid) ** 2)
-            * np.exp(-0.5 * ((q2_arr - pos4[1]) / wid) ** 2)
+            * np.exp(-0.5 * ((q1 - pos4[0]) / wid) ** 2)
+            * np.exp(-0.5 * ((q2 - pos4[1]) / wid) ** 2)
             + bg
         )
 

@@ -11,7 +11,7 @@ import numpy as np
 
 
 def demo_null_func(
-    qh: Any, qk: Any, ql: Any, en: Any, p: Any = None
+    qh: np.ndarray, qk: np.ndarray, ql: np.ndarray, en: np.ndarray, p: Any = None
 ) -> np.ndarray:
     """Return an array of zeros the same size as the input array ``qh``.
 
@@ -19,7 +19,7 @@ def demo_null_func(
 
     Parameters
     ----------
-    qh, qk, ql, en : array_like
+    qh, qk, ql, en : np.ndarray
         Coordinate arrays in ``(Q, E)``-space.
     p : Any, optional
         Model parameters (unused).
@@ -29,6 +29,5 @@ def demo_null_func(
     np.ndarray
         Array of zeros with the same shape as ``qh``.
     """
-    qh_arr = np.asarray(qh, dtype=np.float64)
-    return np.zeros_like(qh_arr, dtype=np.float64)
+    return np.zeros_like(qh, dtype=np.float64)
 

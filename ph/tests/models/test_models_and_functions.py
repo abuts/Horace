@@ -132,8 +132,8 @@ class TestSqwModels:
 
         w0, sf0 = disp_bcc_hfm0(qh, qk, ql, par)
         w1, sf1 = disp_bcc_hfm(qh, qk, ql, par)
-        np.testing.assert_allclose(w0[0], w1[0], atol=1e-13, rtol=1e-13)
-        np.testing.assert_allclose(sf0[0], sf1[0], atol=1e-13, rtol=1e-13)
+        np.testing.assert_allclose(w0, w1, atol=1e-13, rtol=1e-13)
+        np.testing.assert_allclose(sf0, sf1, atol=1e-13, rtol=1e-13)
 
     def test_sqw_bcc_fcc_sc_hfm_and_spin_waves(self) -> None:
         qh = np.array([0.1, 0.2, 0.3])
@@ -159,13 +159,17 @@ class TestSqwModels:
         assert np.all(wfcc > 0)
         assert np.all(wsc > 0)
 
-        # template_sqw_from_dispersion with non-cell (direct ndarray) dispersion function
-        def single_disp(h, k, l, p):
-            w_cell, sf_cell = disp_sc_hfm(h, k, l, p)
-            return w_cell[0], sf_cell[0]
-
-        wtmpl_sc = template_sqw_from_dispersion(qh, qk, ql, en, par, single_disp)
+        # template_sqw_from_dispersion with disp_sc_hfm (direct ndarray return)
+        wtmpl_sc = template_sqw_from_dispersion(qh, qk, ql, en, par, disp_sc_hfm)
         np.testing.assert_allclose(wsc, wtmpl_sc, atol=1e-14)
+
+        # template_sqw_from_dispersion with multi-branch (list of ndarray) dispersion function
+        def multi_branch_disp(h: np.ndarray, k: np.ndarray, l: np.ndarray, p: np.ndarray):
+            w_arr, sf_arr = disp_sc_hfm(h, k, l, p)
+            return [w_arr], [sf_arr]
+
+        wtmpl_multi = template_sqw_from_dispersion(qh, qk, ql, en, par, multi_branch_disp)
+        np.testing.assert_allclose(wsc, wtmpl_multi, atol=1e-14)
 
     def test_van_sqw_and_example_sqw_background(self) -> None:
         qh = np.zeros(5)

@@ -30,9 +30,9 @@ class TestDispFccHfm:
         Q_hhk = QsymRelated(qh_ref, qh_ref, qk_ref, rlp)
         Q_hkl = QsymRelated(qh_ref, qk_ref, ql_ref, rlp)
 
-        self.qh_ref = qh_ref
-        self.qk_ref = qk_ref
-        self.ql_ref = ql_ref
+        self.qh_ref = np.array([qh_ref], dtype=np.float64)
+        self.qk_ref = np.array([qk_ref], dtype=np.float64)
+        self.ql_ref = np.array([ql_ref], dtype=np.float64)
         self.Qh = [
             Q_h00[:, 0],
             Q_hh0[:, 0],
@@ -112,25 +112,25 @@ class TestDispFccHfm:
         par[js_idx_1based + 1] = self.JS[js_idx_1based - 1]
         for i in range(len(self.Qh)):
             w, wt = disp_fcc_hfm(self.Qh[i], self.Qk[i], self.Ql[i], par)
-            assert w[0][0] > 0, "energy must be greater than zero"
+            assert w[0] > 0, "energy must be greater than zero"
             np.testing.assert_allclose(
-                w[0], np.full_like(w[0], w[0][0]), atol=self.atol, rtol=self.rtol
+                w, np.full_like(w, w[0]), atol=self.atol, rtol=self.rtol
             )
             np.testing.assert_allclose(
-                wt[0], np.full_like(wt[0], self.Seff / 2.0), atol=self.atol, rtol=self.rtol
+                wt, np.full_like(wt, self.Seff / 2.0), atol=self.atol, rtol=self.rtol
             )
 
     def test_gap(self) -> None:
         par = [self.Seff, self.gap]
         for i in range(len(self.Qh)):
             w, wt = disp_fcc_hfm(self.Qh[i], self.Qk[i], self.Ql[i], par)
-            assert w[0][0] > 0, "energy must be greater than zero"
+            assert w[0] > 0, "energy must be greater than zero"
             np.testing.assert_allclose(
-                w[0], np.full_like(w[0], w[0][0]), atol=self.atol, rtol=self.rtol
+                w, np.full_like(w, w[0]), atol=self.atol, rtol=self.rtol
             )
-            np.testing.assert_allclose(w[0][0], self.gap, atol=self.atol, rtol=self.rtol)
+            np.testing.assert_allclose(w[0], self.gap, atol=self.atol, rtol=self.rtol)
             np.testing.assert_allclose(
-                wt[0], np.full_like(wt[0], self.Seff / 2.0), atol=self.atol, rtol=self.rtol
+                wt, np.full_like(wt, self.Seff / 2.0), atol=self.atol, rtol=self.rtol
             )
 
     def test_JS1(self) -> None:
@@ -183,12 +183,12 @@ class TestDispFccHfm:
         par[2:17] = self.JS
         for i in range(len(self.Qh)):
             w, wt = disp_fcc_hfm(self.Qh[i], self.Qk[i], self.Ql[i], par)
-            assert w[0][0] > 0, "energy must be greater than zero"
+            assert w[0] > 0, "energy must be greater than zero"
             np.testing.assert_allclose(
-                w[0], np.full_like(w[0], w[0][0]), atol=self.atol, rtol=self.rtol
+                w, np.full_like(w, w[0]), atol=self.atol, rtol=self.rtol
             )
             np.testing.assert_allclose(
-                wt[0], np.full_like(wt[0], self.Seff / 2.0), atol=self.atol, rtol=self.rtol
+                wt, np.full_like(wt, self.Seff / 2.0), atol=self.atol, rtol=self.rtol
             )
 
     def test_JS1_to_JS6(self) -> None:
@@ -197,8 +197,8 @@ class TestDispFccHfm:
 
         wfull, wtfull = disp_fcc_hfm(self.qh_ref, self.qk_ref, self.ql_ref, par)
         w, wt = disp_fcc_hfm(self.qh_ref, self.qk_ref, self.ql_ref, par[:8])
-        np.testing.assert_allclose(wfull[0], w[0], atol=self.atol, rtol=self.rtol)
-        np.testing.assert_allclose(wtfull[0], wt[0], atol=self.atol, rtol=self.rtol)
+        np.testing.assert_allclose(wfull, w, atol=self.atol, rtol=self.rtol)
+        np.testing.assert_allclose(wtfull, wt, atol=self.atol, rtol=self.rtol)
 
     def test_absolute_energy_JS_one_at_a_time(self) -> None:
         for i in range(15):

@@ -24,7 +24,7 @@ dependencies = [
     "matplotlib>=3.7",
     "numba>=0.57",
     "lmfit>=1.2",
-    "pydantic>=2.0"
+    "pydantic>=2.0",
     "pyqt6>=6.12"
 ]
 

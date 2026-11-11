@@ -6,9 +6,10 @@ Translated from MATLAB ``horace_core/sqw_models/disp_fcc_hfm.m``.
 from __future__ import annotations
 
 import math
-from typing import Any, List, Optional, Sequence, Tuple
+from typing import Optional, Tuple
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 from pyhorace.models.disp_bcc_hfm import _fdisp
 
@@ -23,8 +24,8 @@ def _reset_rho() -> None:
 
 
 def disp_fcc_hfm(
-    qh: Any, qk: Any, ql: Any, par: Sequence[float] | np.ndarray
-) -> Tuple[List[np.ndarray], List[np.ndarray]]:
+    qh: np.ndarray, qk: np.ndarray, ql: np.ndarray, par: ArrayLike
+) -> Tuple[np.ndarray, np.ndarray]:
     r"""Spin wave dispersion relation for the face-centred cubic Heisenberg ferromagnet.
 
     Translated from MATLAB ``horace_core/sqw_models/disp_fcc_hfm.m``.
@@ -43,10 +44,10 @@ def disp_fcc_hfm(
 
     Parameters
     ----------
-    qh, qk, ql : array_like or float
-        Arrays of ``h, k, l`` at which to compute the spin wave energies and
-        spectral weights.
-    par : sequence of float or np.ndarray
+    qh, qk, ql : np.ndarray
+        Arrays of ``h, k, l`` coordinates at which to compute the spin wave
+        energies and spectral weights.
+    par : ArrayLike
         Parameters ``[Seff, gap, JS1, JS2, JS3, JS4, ...]``:
         - ``Seff``: Intensity scale factor as an effective local moment spin with
           value ``Seff`` on each atomic site.
@@ -72,19 +73,17 @@ def disp_fcc_hfm(
 
     Returns
     -------
-    wdisp : list of np.ndarray
-        Single-element list containing the array of spin wave energies at the
-        points defined by ``qh, qk, ql``.
-    sf : list of np.ndarray
-        Single-element list containing the array of corresponding spectral
-        weights, ``Seff / 2`` (i.e. ``par[0] / 2``).
+    wdisp : np.ndarray
+        Array of spin wave energies at the points defined by ``qh, qk, ql``.
+    sf : np.ndarray
+        Array of corresponding spectral weights, ``Seff / 2`` (i.e. ``par[0] / 2``).
     """
     global _rho
 
-    qh_arr = np.asarray(qh, dtype=np.float64)
-    qk_arr = np.asarray(qk, dtype=np.float64)
-    ql_arr = np.asarray(ql, dtype=np.float64)
-    par_arr = np.asarray(par, dtype=np.float64).ravel()
+    qh_arr = qh.ravel()
+    qk_arr = qk.ravel()
+    ql_arr = ql.ravel()
+    par_arr = np.asarray(par).ravel()
 
     Seff = float(par_arr[0])
     gap = float(par_arr[1])
@@ -102,9 +101,8 @@ def disp_fcc_hfm(
             if JS[i] != 0.0:
                 w = w + JS[i] * _fdisp(qh_arr, qk_arr, ql_arr, _rho[i, :])
 
-    wdisp = [w]
-    sf = [(Seff / 2.0) * np.ones_like(w, dtype=np.float64)]
-    return wdisp, sf
+    sf = (Seff / 2.0) * np.ones_like(w, dtype=np.float64)
+    return w.ravel(), sf.ravel()
 
 
 def _d_upper_bound_fcc(N: int) -> float:

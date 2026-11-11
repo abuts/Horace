@@ -6,23 +6,24 @@ Translated from MATLAB ``horace_core/sqw_models/disp_bcc_hfm0.m``.
 from __future__ import annotations
 
 import math
-from typing import Any, List, Sequence, Tuple
+from typing import Tuple
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 
 def disp_bcc_hfm0(
-    qh: Any, qk: Any, ql: Any, par: Sequence[float] | np.ndarray
-) -> Tuple[List[np.ndarray], List[np.ndarray]]:
+    qh: np.ndarray, qk: np.ndarray, ql: np.ndarray, par: ArrayLike
+) -> Tuple[np.ndarray, np.ndarray]:
     """Spin wave dispersion relation for body-centred cubic Heisenberg ferromagnet (up to 5th neighbour).
 
     Translated from MATLAB ``horace_core/sqw_models/disp_bcc_hfm0.m``.
 
     Parameters
     ----------
-    qh, qk, ql : array_like or float
+    qh, qk, ql : np.ndarray
         Arrays of ``h, k, l``.
-    par : sequence of float or np.ndarray
+    par : ArrayLike
         Parameters ``[Seff, gap, JS_p5p5p5, JS_100, JS_110, JS_3p5p5p5, JS_111]``:
         - ``Seff``: Intensity scale factor
         - ``gap``: Gap at zone centre
@@ -36,22 +37,23 @@ def disp_bcc_hfm0(
 
     Returns
     -------
-    wdisp : list of np.ndarray
-        Single-element list containing the array of energies for the dispersion.
-    sf : list of np.ndarray
-        Single-element list containing the array of spectral weights.
+    wdisp : np.ndarray
+        Array of energies for the dispersion.
+    sf : np.ndarray
+        Array of spectral weights.
     """
-    qh_arr = np.asarray(qh, dtype=np.float64)
-    qk_arr = np.asarray(qk, dtype=np.float64)
-    ql_arr = np.asarray(ql, dtype=np.float64)
+    qh_arr = qh.ravel()
+    qk_arr = qk.ravel()
+    ql_arr = ql.ravel()
+    par_arr = np.asarray(par).ravel()
 
-    Seff = float(par[0])
-    gap = float(par[1])
-    JS_p5p5p5 = float(par[2])
-    JS_100 = float(par[3])
-    JS_110 = float(par[4])
-    JS_3p5p5p5 = float(par[5])
-    JS_111 = float(par[6])
+    Seff = float(par_arr[0])
+    gap = float(par_arr[1])
+    JS_p5p5p5 = float(par_arr[2])
+    JS_100 = float(par_arr[3])
+    JS_110 = float(par_arr[4])
+    JS_3p5p5p5 = float(par_arr[5])
+    JS_111 = float(par_arr[6])
 
     w = gap * np.ones_like(qh_arr, dtype=np.float64)
 
@@ -94,7 +96,6 @@ def disp_bcc_hfm0(
     if JS_111 != 0.0:
         w = w + (8.0 * JS_111) * (1.0 - cos2h * cos2k * cos2l)
 
-    wdisp = [w]
-    sf = [(Seff / 2.0) * np.ones_like(w, dtype=np.float64)]
-    return wdisp, sf
+    sf = (Seff / 2.0) * np.ones_like(w, dtype=np.float64)
+    return w.ravel(), sf.ravel()
 

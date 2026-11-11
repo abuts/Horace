@@ -6,17 +6,17 @@ Translated from MATLAB ``horace_core/sqw_models/example_sqw_flat_mode.m``.
 from __future__ import annotations
 
 import math
-from typing import Any, Sequence
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 
 def example_sqw_flat_mode(
-    qh: Any,
-    qk: Any,
-    ql: Any,
-    en: Any,
-    pars: Sequence[float] | np.ndarray,
+    qh: np.ndarray,
+    qk: np.ndarray,
+    ql: np.ndarray,
+    en: np.ndarray,
+    pars: ArrayLike,
 ) -> np.ndarray:
     """Dispersionless mode at non-zero energy ``en0`` approximated as a Gaussian in energy (plus optional Lorentzian).
 
@@ -24,9 +24,9 @@ def example_sqw_flat_mode(
 
     Parameters
     ----------
-    qh, qk, ql, en : array_like
+    qh, qk, ql, en : np.ndarray
         Arrays of Q and energy values at which to evaluate dispersion.
-    pars : sequence of float or np.ndarray
+    pars : ArrayLike
         Either ``[Amplitude, en0, fwhh]`` (3 parameters) for a pure Gaussian
         dispersionless mode, or ``[HE, CE, fwhh, H1, G1, T]`` (6 parameters)
         including an inelastic detailed-balance Lorentzian component.
@@ -36,7 +36,7 @@ def example_sqw_flat_mode(
     np.ndarray
         Spectral weight.
     """
-    en_arr = np.asarray(en, dtype=np.float64)
+    en_arr = en.ravel()
     pars_arr = np.asarray(pars, dtype=np.float64).ravel()
 
     HE = float(pars_arr[0])

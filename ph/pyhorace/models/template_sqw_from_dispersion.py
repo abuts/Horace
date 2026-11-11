@@ -5,20 +5,21 @@ Translated from MATLAB ``horace_core/sqw_models/template_sqw_from_dispersion.m``
 
 from __future__ import annotations
 
-from typing import Any, Callable, Optional, Sequence, Tuple
+from typing import Any, Callable, Optional, Tuple
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 from pyhorace.models.bose_times_eps import bose_times_eps
 from pyhorace.models.dsho_over_eps import dsho_over_eps
 
 
 def template_sqw_from_dispersion(
-    qh: Any,
-    qk: Any,
-    ql: Any,
-    en: Any,
-    par: Sequence[float] | np.ndarray,
+    qh: np.ndarray,
+    qk: np.ndarray,
+    ql: np.ndarray,
+    en: np.ndarray,
+    par: ArrayLike,
     my_dispersion_relation: Optional[Callable[..., Tuple[Any, Any]]] = None,
 ) -> np.ndarray:
     r"""Template for a function to broaden a dispersion relation.
@@ -38,11 +39,11 @@ def template_sqw_from_dispersion(
 
     Parameters
     ----------
-    qh, qk, ql : array_like
+    qh, qk, ql : np.ndarray
         Arrays of ``h, k, l``.
-    en : array_like
+    en : np.ndarray
         Array of energy transfers.
-    par : sequence of float or np.ndarray
+    par : ArrayLike
         Parameters ``[T, gamma, par[2], par[3], ...]``:
         - ``T``: Temperature (K)
         - ``gamma``: Inverse lifetime (meV)
@@ -69,16 +70,14 @@ def template_sqw_from_dispersion(
     bose = bose_times_eps(en, T)
 
     if isinstance(wdisp, (list, tuple)):
-        w0 = np.asarray(wdisp[0], dtype=np.float64)
+        w0 = wdisp[0].ravel()
         weight = np.zeros_like(w0, dtype=np.float64)
         for w_i, id_i in zip(wdisp, idisp):
-            weight = weight + np.asarray(id_i, dtype=np.float64) * (
+            weight = weight + id_i.ravel() * (
                 dsho_over_eps(en, w_i, gamma) * bose
             )
     else:
-        weight = np.asarray(idisp, dtype=np.float64) * (
-            dsho_over_eps(en, wdisp, gamma) * bose
-        )
+        weight = idisp * (dsho_over_eps(en, wdisp, gamma) * bose)
 
     return weight
 

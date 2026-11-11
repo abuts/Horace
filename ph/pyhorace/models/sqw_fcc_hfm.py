@@ -5,9 +5,8 @@ Translated from MATLAB ``horace_core/sqw_models/sqw_fcc_hfm.m``.
 
 from __future__ import annotations
 
-from typing import Any, Sequence
-
 import numpy as np
+from numpy.typing import ArrayLike
 
 from pyhorace.models.bose_times_eps import bose_times_eps
 from pyhorace.models.disp_fcc_hfm import disp_fcc_hfm
@@ -15,11 +14,11 @@ from pyhorace.models.dsho_over_eps import dsho_over_eps
 
 
 def sqw_fcc_hfm(
-    qh: Any,
-    qk: Any,
-    ql: Any,
-    en: Any,
-    par: Sequence[float] | np.ndarray,
+    qh: np.ndarray,
+    qk: np.ndarray,
+    ql: np.ndarray,
+    en: np.ndarray,
+    par: ArrayLike,
 ) -> np.ndarray:
     r"""Spectral weight for face-centred cubic Heisenberg ferromagnet.
 
@@ -34,11 +33,11 @@ def sqw_fcc_hfm(
 
     Parameters
     ----------
-    qh, qk, ql : array_like
+    qh, qk, ql : np.ndarray
         Arrays of ``h, k, l``.
-    en : array_like
+    en : np.ndarray
         Array of energy transfers.
-    par : sequence of float or np.ndarray
+    par : ArrayLike
         Parameters ``[T, gamma, Seff, gap, JS_p5p50, JS_100, JS_1p5p5, JS_110, ...]``:
         - ``T``: Temperature (K)
         - ``gamma``: Inverse lifetime (meV)
@@ -56,8 +55,8 @@ def sqw_fcc_hfm(
     gamma = float(par_arr[1])
 
     wdisp, idisp = disp_fcc_hfm(qh, qk, ql, par_arr[2:])
-    weight = idisp[0] * (
-        dsho_over_eps(en, wdisp[0], gamma) * bose_times_eps(en, T)
+    weight = idisp * (
+        dsho_over_eps(en, wdisp, gamma) * bose_times_eps(en, T)
     )
     return weight
 
