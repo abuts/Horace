@@ -30,3 +30,5 @@ cmake-build-debug/*
 ### Built user documentation ###
 documentation/user_docs/build/*
 /herbert_core/admin/herbert_get_build_version.m
+#
+.ipynb_checkpoints

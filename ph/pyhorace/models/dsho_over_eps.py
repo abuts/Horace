@@ -10,8 +10,8 @@ from typing import Any
 import numpy as np
 
 
-def dsho_over_eps(en: Any, en0: Any, gam: Any) -> np.ndarray:
-    r"""Delta function response function divided by energy, broadened as DSHO.
+def dsho_over_eps(en: np.ndarray, en0: np.ndarray, gam: Arraylike[float]) -> np.ndarray:
+    """Delta function response function divided by energy, broadened as DSHO.
 
     Translated from MATLAB ``herbert_core/utilities/maths_functions/dsho_over_eps.m``.
 
@@ -40,13 +40,12 @@ def dsho_over_eps(en: Any, en0: Any, gam: Any) -> np.ndarray:
     np.ndarray
         Array of calculated response (has the same size as ``en``).
     """
-    en_arr = np.asarray(en, dtype=np.float64)
-    en0_arr = np.asarray(en0, dtype=np.float64)
+    en_arr = en.ravel()
     gam_arr = np.asarray(gam, dtype=np.float64)
 
     with np.errstate(divide="ignore", invalid="ignore"):
-        y = ((4.0 / np.pi) * np.abs(gam_arr * en0_arr)) / (
-            (en_arr**2 - en0_arr**2) ** 2 + 4.0 * (gam_arr * en_arr) ** 2
+        y = ((4.0 / np.pi) * np.abs(gam_arr * en0)) / (
+            ((en_arr - en0)*(en_arr + en0)) ** 2 + 4.0 * (gam_arr * en_arr) ** 2
         )
-    return y
+    return y.ravel()
 

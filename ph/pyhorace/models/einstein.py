@@ -10,8 +10,8 @@ from typing import Any
 import numpy as np
 
 
-def einstein(y: Any) -> np.ndarray:
-    r"""Calculate the function ``y / (1 - exp(-y))``, carefully handling negative ``y`` and ``|y|`` near zero.
+def einstein(y: np.ndarray) -> np.ndarray:
+    """Calculate the function ``y / (1 - exp(-y))``, carefully handling negative ``y`` and ``|y|`` near zero.
 
     Translated from MATLAB ``herbert_core/utilities/maths_functions/einstein.m``.
 
@@ -28,7 +28,7 @@ def einstein(y: Any) -> np.ndarray:
     np.ndarray
         Evaluated ``y / (1 - exp(-y))`` with the same shape as ``y``.
     """
-    y_arr = np.asarray(y, dtype=np.float64)
+    y_arr = y.ravel()
     p = np.zeros_like(y_arr, dtype=np.float64)
 
     yabs = np.abs(y_arr)
@@ -55,5 +55,5 @@ def einstein(y: Any) -> np.ndarray:
             )
         )
 
-    return p
+    return p.ravel()
 

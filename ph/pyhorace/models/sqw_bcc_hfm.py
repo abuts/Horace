@@ -15,11 +15,11 @@ from pyhorace.models.dsho_over_eps import dsho_over_eps
 
 
 def sqw_bcc_hfm(
-    qh: Any,
-    qk: Any,
-    ql: Any,
-    en: Any,
-    par: Sequence[float] | np.ndarray,
+    qh: np.ndarray,
+    qk: np.ndarray,
+    ql: np.ndarray,
+    en: np.ndarray,
+    par: Arraylike,
 ) -> np.ndarray:
     r"""Spectral weight for body-centred cubic Heisenberg ferromagnet.
 
@@ -56,8 +56,8 @@ def sqw_bcc_hfm(
     gamma = float(par_arr[1])
 
     wdisp, idisp = disp_bcc_hfm(qh, qk, ql, par_arr[2:])
-    weight = idisp[0] * (
-        dsho_over_eps(en, wdisp[0], gamma) * bose_times_eps(en, T)
+    weight = idisp * (
+        dsho_over_eps(en, wdisp, gamma) * bose_times_eps(en, T)
     )
     return weight
 

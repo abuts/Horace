@@ -25,6 +25,7 @@ dependencies = [
     "numba>=0.57",
     "lmfit>=1.2",
     "pydantic>=2.0"
+    "pyqt6>=6.12"
 ]
 
 [project.optional-dependencies]

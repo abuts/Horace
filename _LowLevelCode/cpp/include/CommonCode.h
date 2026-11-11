@@ -76,6 +76,23 @@ inline size_t copy_pixels(span<const SRC> pixel_data, long source_pos, span<TRG>
     }
     return targ_pos;
 };
+
+template<typename SRC>
+void split_into_M_almost_equal_parts(SRC first, SRC last, int N_threads)
+{
+    using diff_t = typename std::iterator_traits<SRC>::difference_type;
+    diff_t N = std::distance(first, last);
+    if (N <= 0 || N_threads <= 1)
+        return;
+    if ((diff_t)M > N)
+        M = (int)N; // at most one element per part diff_t prev = 0; 
+    for (int k = 1; k < M; ++k) {
+        diff_t idx = (diff_t)k * N / M; // boundary index in [0..N] 
+        if (idx == prev) continue; 
+        std::nth_element(first + prev, first + idx, last);
+        prev = idx;
+    }
+};
 // Align and copy pixels from source to target array template <class SRC, class TRG>
 template <class SRC, class TRG>
 inline size_t align_and_copy_pixels(const std::vector<double> &al_matr,span<const SRC> pixel_data, long source_pos, span<TRG> pix_sorted, size_t targ_pos)
