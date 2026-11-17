@@ -42,8 +42,9 @@ else
 end
 [alatt0,angdeg0,ok,mess] = lattice_parameters(wsqw);
 if ~ok
-    mess=['Crystal refinement: ',mess];
-    error(mess)
+    mess = ['Crystal refinement: ', mess];
+    xtal = [];
+    return
 end
 
 % Get the foreground parameters

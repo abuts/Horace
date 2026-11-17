@@ -5,11 +5,16 @@ function obj = tobyfit (varargin)
 %   >> myobj = tobyfit (w1, w2, ...)      % w1, w2 sqw objects or arrays of objects
 %
 % More generally:
-%   >> myobj = tobyfit (w1, w2, ..., instrument_type)
+%   >> myobj = tobyfit (w1, w2, ..., 'res_model', model, 'fitter', fitter)
 %
-%   where instrument_type can be:
-%       'fermi'     Direct geometry fermi chopper instrument e.g. MAPS, MERLIN
-%       'disk'      Direct geometry disk chopper instrument e.g. LET
+%   'res_model'   Replaceable resolution model (subclass of tobyfit_res_model_base)
+%                 or instrument identifier (e.g. 'IX_inst_DGfermi', 'IX_inst_DGdisk')
+%   'fitter'      Replaceable fitting algorithm (subclass of mf_fitter_base)
+%                 or fitter name (e.g. 'lsqr')
+%
+% Legacy syntax (deprecated):
+%   >> myobj = tobyfit (w1, w2, ..., instrument_type)
+%       where instrument_type was 'fermi' or 'disk'
 %
 % This creates a fitting object of class mfclass_tobyfit with the provided
 % data, which can then be manipulated to add further data, set the fitting
@@ -48,7 +53,6 @@ is_sqw_object = cellfun(@(x) isa(x,'sqw'), varargin);
 ind = find(~is_sqw_object,1);
 
 if isempty(ind)
-    nsqw = numel(varargin);
     sqws = varargin;
     argi = {};
 else
@@ -69,38 +73,54 @@ if any(arrayfun(@(x) x.pix.is_filebacked, [sqws{:}]))
 end
 
 
-[inst, all_inst] = get_inst_class(sqws{:});
+% Parse optional trailing 'res_model' / 'fitter' keywords or legacy char flag
+res_model_arg = [];
+fitter_arg = [];
+if isscalar(argi) && (ischar(argi{1}) || isstring(argi{1})) && ...
+        ~any(strcmpi(char(argi{1}), {'res_model', 'fitter'}))
+    warning('HORACE:tobyfit:deprecated_argument', ...
+        'The instrument is determined from the sqw object. Redundant option ''%s'' ignored', argi{1})
+elseif ~isempty(argi)
+    key = struct('res_model', [], 'fitter', []);
+    [par, key, ~, ~, ok, mess] = parse_arguments(argi, key);
+    if ~ok
+        error('HORACE:tobyfit:invalid_argument', '%s', mess)
+    elseif ~isempty(par)
+        error('HORACE:tobyfit:invalid_argument', ...
+            'Unrecognised positional argument(s) passed to tobyfit')
+    end
+    res_model_arg = key.res_model;
+    fitter_arg = key.fitter;
+end
 
-if isempty(inst)
-    if all_inst
-        error('HORACE:tobyfit:invalid_argument', 'The instrument type must be the same for all datasets')
-    else
-        error('HORACE:tobyfit:invalid_argument', 'All sqw objects must now have the instrument type set as an instrument object')
+% Resolve resolution model (explicit override or inferred from sqw instrument)
+if isempty(res_model_arg)
+    [inst, all_inst] = get_inst_class(sqws{:});
+    if isempty(inst)
+        if all_inst
+            error('HORACE:tobyfit:invalid_argument', 'The instrument type must be the same for all datasets')
+        else
+            error('HORACE:tobyfit:invalid_argument', 'All sqw objects must now have the instrument type set as an instrument object')
+        end
+    end
+    try
+        res_model = tobyfit_get_res_model(inst);
+    catch ME
+        error('HORACE:tobyfit:invalid_argument', '%s', ME.message)
+    end
+else
+    try
+        res_model = tobyfit_get_res_model(res_model_arg);
+    catch ME
+        error('HORACE:tobyfit:invalid_argument', '%s', ME.message)
     end
 end
 
-% For not actually failing with old syntax where the instrument type was set
-% by a character string
-if ~isempty(argi) && ischar(argi{end})
-    warning('HORACE:tobyfit:deprecated_argument', ...
-        'The instrument is determined from the sqw object. Redundant option ''%s'' ignored', argi{end})
+% Construct mfclass_tobyfit with injected dependencies
+ctor_args = {'sqw', 'res_model', res_model};
+if ~isempty(fitter_arg)
+    ctor_args = [ctor_args, {'fitter', fitter_arg}];
 end
-
-% Initialise
-switch class(inst)
-    case 'IX_inst_DGfermi'
-        mf_init = mfclass_wrapfun (@tobyfit_DGfermi_resconv, [], @func_eval, [],...
-            true, false, @tobyfit_DGfermi_resconv_init, []);
-
-    case 'IX_inst_DGdisk'
-        mf_init = mfclass_wrapfun (@tobyfit_DGdisk_resconv, [], @func_eval, [],...
-            true, false, @tobyfit_DGdisk_resconv_init, []);
-
-    otherwise
-        error('HORACE:tobyfit:invalid_argument', 'No resolution function model implemented for this instrument')
-end
-
-% Construct
-obj = mfclass_tobyfit (sqws{:}, 'sqw', mf_init);
+obj = mfclass_tobyfit (sqws{:}, ctor_args{:});
 
 end

@@ -114,13 +114,12 @@ end
 
 % Check other input arguments and get defaults where necessary
 % ------------------------------------------------------------
-key = struct ('axis','','noplot',false,'current',false,'name',[]);
+key = struct ('axis','','noplot',false,'current',false,'name',[],'res_model',[]);
 flags = {'noplot','current'};
 opts.flags_noneg = true;
 opts.flags_noval = true;
 [par,key,present] = parse_arguments (varargin, key, flags, opts);
-present_logical = cell2mat(struct2cell(present));
-if sum(present_logical(2:end))>1
+if sum([present.noplot, present.current, present.name])>1
     error('HORACE:resolution_plot:invalid_argument',...
         'Only one of the plot options ''noplot'', ''current'', and ''name'' can be present')
 end
@@ -199,30 +198,35 @@ end
 
 % Plot resolution function
 % ------------------------
-% Determine the instrument
-[inst, all_inst] = get_inst_class(w);
-if isempty(inst)
-    if all_inst
-        error('HORACE:resolution_plot:invalid_argument',...
-            'The instrument type is not the same for all contributing raw data files')
-    else
-        error('HORACE:resolution_plot:invalid_argument',...
-            'The instrument has not been defined for all contributing raw data files')
+% Determine the resolution model (explicit override or from sqw instrument)
+if ~isempty(key.res_model)
+    try
+        res_model = tobyfit_get_res_model(key.res_model);
+    catch ME
+        error('HORACE:resolution_plot:invalid_argument', '%s', ME.message)
     end
-end
-if isa(inst,'IX_inst_DGfermi')
-    resfun_model = @tobyfit_DGfermi_resfun_covariance;
-elseif isa(inst,'IX_inst_DGdisk')
-    resfun_model = @tobyfit_DGdisk_resfun_covariance;
 else
-    error('HORACE:resolution_plot:invalid_argument',...
-        'No resolution function model implemented for this instrument')
+    [inst, all_inst] = get_inst_class(w);
+    if isempty(inst)
+        if all_inst
+            error('HORACE:resolution_plot:invalid_argument',...
+                'The instrument type is not the same for all contributing raw data files')
+        else
+            error('HORACE:resolution_plot:invalid_argument',...
+                'The instrument has not been defined for all contributing raw data files')
+        end
+    end
+    try
+        res_model = tobyfit_get_res_model(inst);
+    catch ME
+        error('HORACE:resolution_plot:invalid_argument', '%s', ME.message)
+    end
 end
 
 % Compute resolution function, and plot unless 'noplot' requested
 [kept, ipix] = get_nearest_pixels (w, xp);
 if numel(ipix)>0
-    [cov_proj, cov_spec, cov_hkle] = resfun_model(w, ipix);
+    [cov_proj, cov_spec, cov_hkle] = res_model.covariance(w, ipix);
     xp_kept = xp(kept,:);
     iax_plot = [w.data.pax, iax];
     if ~present.noplot

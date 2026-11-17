@@ -136,6 +136,7 @@ classdef mfclass_tobyfit < mfclass
     % -----------------------------------------------------------------------------
 
     properties (Access=private, Hidden=true)
+        res_model_ = [];
         mc_contributions_ = [];
         mc_points_ = [];
         refine_crystal_ = [];
@@ -170,6 +171,9 @@ classdef mfclass_tobyfit < mfclass
         %   pin             Pulse shape parameters (row vector)
         %   free            Logical row vector of zeros and ones (0 fixed, 1 free)
         refine_moderator
+
+        % Active resolution convolution model (subclass of tobyfit_res_model_base)
+        res_model
     end
 
     methods
@@ -177,7 +181,21 @@ classdef mfclass_tobyfit < mfclass
         % Constructor
         %------------------------------------------------------------------
         function obj = mfclass_tobyfit (varargin)
-            obj@mfclass(varargin{:});
+            [mf_args, res_model_in, fitter_in] = parse_ctor_args_(varargin{:});
+            obj@mfclass(mf_args{:});
+            if ~isempty(res_model_in)
+                obj = obj.set_resolution_model(res_model_in);
+            elseif ~isempty(obj.wrapfun.fun_wrap)
+                switch func2str(obj.wrapfun.fun_wrap)
+                    case 'tobyfit_DGfermi_resconv'
+                        obj.res_model_ = tobyfit_DGfermi_res_model();
+                    case 'tobyfit_DGdisk_resconv'
+                        obj.res_model_ = tobyfit_DGdisk_res_model();
+                end
+            end
+            if ~isempty(fitter_in)
+                obj = obj.set_fitter(fitter_in);
+            end
             obj = obj.set_mc_contributions;
             obj = obj.set_mc_points;
             obj = obj.set_refine_crystal (false);
@@ -187,6 +205,9 @@ classdef mfclass_tobyfit < mfclass
         %------------------------------------------------------------------
         % Set/get methods
         %------------------------------------------------------------------
+        function out = get.res_model (obj)
+            out = obj.res_model_;
+        end
         function out = get.mc_contributions (obj)
             out = obj.mc_contributions_;
         end
@@ -207,6 +228,9 @@ classdef mfclass_tobyfit < mfclass
         % Interfaces to extended superclass methods
         %------------------------------------------------------------------
         % Extend set_fun and set_bfun solely to provide tailored documentation
+
+        % Set resolution convolution model
+        obj = set_resolution_model(obj, res_model)
 
         % Set foreground function or functions
         obj = set_fun(obj,varargin)

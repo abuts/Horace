@@ -97,7 +97,13 @@ end
 
 % Update parameter wrapping
 obj_tmp = obj;
-obj_tmp.wrapfun.p_wrap = append_args (obj_tmp.wrapfun.p_wrap, obj.mc_contributions, obj.mc_points, [], []);
+if ~isempty(obj_tmp.res_model_) && strcmp(func2str(obj_tmp.wrapfun.fun_wrap), 'tobyfit_resconv')
+    obj_tmp.wrapfun.p_wrap = append_args (obj_tmp.wrapfun.p_wrap, ...
+        obj.mc_contributions, obj.mc_points, [], [], obj_tmp.res_model_);
+else
+    obj_tmp.wrapfun.p_wrap = append_args (obj_tmp.wrapfun.p_wrap, ...
+        obj.mc_contributions, obj.mc_points, [], []);
+end
 
 % Perform simulation
 [data_out, calcdata] = simulate@mfclass (obj_tmp, varargin{:});

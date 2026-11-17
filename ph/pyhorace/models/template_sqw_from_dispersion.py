@@ -22,7 +22,7 @@ def template_sqw_from_dispersion(
     par: ArrayLike,
     my_dispersion_relation: Optional[Callable[..., Tuple[Any, Any]]] = None,
 ) -> np.ndarray:
-    r"""Template for a function to broaden a dispersion relation.
+    """Template for a function to broaden a dispersion relation.
 
     Translated from MATLAB ``horace_core/sqw_models/template_sqw_from_dispersion.m``.
 

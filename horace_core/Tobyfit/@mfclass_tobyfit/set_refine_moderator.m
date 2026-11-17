@@ -69,25 +69,28 @@ else
                 wsqw = data;
             end
         else
-            error('No data sets have been set - not possible to set moderator refinement options')
+            error('HORACE:mfclass_tobyfit:invalid_argument', ...
+                'No data sets have been set - not possible to set moderator refinement options')
         end
         % Check all incident energies are the same in input objects
         [~,~,ok,mess] = get_efix(wsqw);
         if ~ok
             mess=['Moderator refinement: ',mess];
-            error(mess)
+            error('HORACE:mfclass_tobyfit:invalid_argument', '%s', mess)
         end
         % Check that there is a moderator to refine in the data
         [pulse_model,pin,ok,mess,~,present] = get_mod_pulse(wsqw);
         if present
             if ~isempty(pulse_model) && ~ok    % all spe files have same moderator model, but a spread of parameter values
-                warning (['Moderator refinement: ',mess])   % warning if too much parameter variation
+                warning ('HORACE:mfclass_tobyfit:invalid_argument', ...
+                    'Moderator refinement: %s', mess)   % warning if too much parameter variation
             end
             mod_opts_default.pulse_model = pulse_model;
             mod_opts_default.pin = pin;
             mod_opts_default.free = true(size(pin));
         else
-            error(['Moderator refinement: ',mess])
+            error('HORACE:mfclass_tobyfit:invalid_argument', ...
+                'Moderator refinement: %s', mess)
         end
         % Fill mod_opts, checking for consistency of any supplied information with the current moderator
         if numel(varargin)==0 || (numel(varargin)==1 &&...
@@ -95,7 +98,8 @@ else
             if ~isempty(pulse_model)    % by construction default should be a valid model
                 [mod_opts,ok,mess] = refine_moderator_parse (mod_opts_default);
             else
-                error(['Moderator refinement: ',mess])
+                error('HORACE:mfclass_tobyfit:invalid_argument', ...
+                    'Moderator refinement: %s', mess)
             end
         else
             if numel(varargin)==1 && isstruct(varargin{1})
@@ -107,10 +111,11 @@ else
         if ok
             obj.refine_moderator_ = mod_opts;
         else
-            error(mess)
+            error('HORACE:mfclass_tobyfit:invalid_argument', '%s', mess)
         end
         % -------------------------------------------------------------------------------
     else
-        error('Cannot set refine_moderator if refine_crystal has been set')
+        error('HORACE:mfclass_tobyfit:invalid_argument', ...
+            'Cannot set refine_moderator if refine_crystal has been set')
     end
 end

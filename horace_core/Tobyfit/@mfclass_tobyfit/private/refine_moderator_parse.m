@@ -65,12 +65,12 @@ if numel(varargin)<=3
         [mod_opts,ok,mess] = check_ok (mod_opts_default);   % Check defaults
         if ok
             if numel(varargin)==1
-                mod_opts_in.pulse_model = mod_opts_default.pulse_shape;
+                mod_opts_in.pulse_model = mod_opts_default.pulse_model;
                 mod_opts_in.pin = mod_opts_default.pin;
                 mod_opts_in.free = varargin{1};
                 [mod_opts,ok,mess] = check_ok (mod_opts_in);
             elseif numel(varargin)==2
-                mod_opts_in.pulse_model = mod_opts_default.pulse_shape;
+                mod_opts_in.pulse_model = mod_opts_default.pulse_model;
                 mod_opts_in.pin = varargin{1};
                 mod_opts_in.free = varargin{2};
                 [mod_opts,ok,mess] = check_ok (mod_opts_in);

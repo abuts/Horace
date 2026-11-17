@@ -161,6 +161,7 @@ classdef mfclass
         %   squeeze_xye             Remove points from simulation of x-y-e
         %                          data where data is masked or not fittable
         options_ = struct([]);
+        fitter_ = mf_fitter_lsqr();
 
     end
 
@@ -339,6 +340,8 @@ classdef mfclass
         %   squeeze_xye             Remove points from simulation of x-y-e
         %                          data where data is masked or not fittable
         options
+        % Fitting algorithm object (subclass of mf_fitter_base)
+        fitter
 
     end
     properties(Dependent,Hidden) %
@@ -589,6 +592,10 @@ classdef mfclass
 
         function out = get.options(obj)
             out = obj.options_;
+        end
+
+        function out = get.fitter(obj)
+            out = obj.fitter_;
         end
 
     end

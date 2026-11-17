@@ -27,12 +27,18 @@ function obj = set_mc_contributions (obj, varargin)
 
 
 % Get the possible contributions
-[~,~,mc_contr]=obj.wrapfun.func_init();
+if ~isempty(obj.res_model_)
+    mc_contr = obj.res_model_.mc_contribution_names();
+elseif ~isempty(obj.wrapfun.func_init)
+    [~,~,mc_contr] = obj.wrapfun.func_init();
+else
+    mc_contr = {};
+end
 
 % Now parse input
 [mc_contributions,ok,mess] = mc_contributions_parse (mc_contr,varargin{:});
 if ok
     obj.mc_contributions_ = mc_contributions;
 else
-    error(mess)
+    error('HORACE:mfclass_tobyfit:invalid_argument', '%s', mess)
 end

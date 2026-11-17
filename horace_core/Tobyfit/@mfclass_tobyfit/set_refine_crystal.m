@@ -106,13 +106,14 @@ else
                 wsqw = data;
             end
         else
-            error('No data sets have been set - not possible to set moderator refinement options')
+            error('HORACE:mfclass_tobyfit:invalid_argument', ...
+                'No data sets have been set - not possible to set crystal refinement options')
         end
         % Check that the lattice parameters are the same in all objects
         [alatt0,angdeg0,ok,mess] = lattice_parameters(wsqw);
         if ~ok
             mess=['Crystal refinement: ',mess];
-            error(mess)
+            error('HORACE:mfclass_tobyfit:invalid_argument', '%s', mess)
         end
         % Fill crystal options
         if numel(varargin)==0 || (numel(varargin)==1 &&...
@@ -124,9 +125,10 @@ else
         if ok
             obj.refine_crystal_ = xtal_opts;
         else
-            error(mess)
+            error('HORACE:mfclass_tobyfit:invalid_argument', '%s', mess)
         end
     else
-        error('Cannot set refine_crystal if refine_moderator has been set')
+        error('HORACE:mfclass_tobyfit:invalid_argument', ...
+            'Cannot set refine_crystal if refine_moderator has been set')
     end
 end

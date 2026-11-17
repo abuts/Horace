@@ -229,5 +229,5 @@ function obj = set_bfun(obj,varargin)
 try
     obj = set_bfun@mfclass (obj, varargin{:});
 catch ME
-    error(ME.message)
+    rethrow(ME)
 end

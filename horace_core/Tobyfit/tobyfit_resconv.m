@@ -1,0 +1,13 @@
+function [wout, state_out, store_out] = tobyfit_resconv(win, caller, ...
+    state_in, store_in, sqwfunc, pars, lookup, mc_contributions, ...
+    mc_points, xtal, modshape, res_model)
+% Delegate Tobyfit resolution convolution to a replaceable resolution model
+%
+% Named wrapper compatible with mfclass_wrapfun and parallel multifit
+% (multifit_lsqr_par checks for leading 'tobyfit' function name and extracts
+% lookup from plist{3}).
+
+[wout, state_out, store_out] = res_model.convolve(win, caller, ...
+    state_in, store_in, sqwfunc, pars, lookup, mc_contributions, ...
+    mc_points, xtal, modshape);
+end

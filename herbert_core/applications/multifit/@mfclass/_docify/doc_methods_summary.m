@@ -52,3 +52,4 @@
 % Fit control parameters and other options:
 %   set_options  - Set options
 %   get_options  - Get values of one or more specific options
+%   set_fitter   - Set the optimization algorithm (subclass of mf_fitter_base)

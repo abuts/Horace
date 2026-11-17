@@ -69,17 +69,15 @@ end
 [fun_wrap, pin_wrap, bfun_wrap, bpin_wrap] = ...
     wrap_functions_and_parameters (obj.wrapfun_, wmask, obj.fun_, obj.pin_, obj.bfun_, obj.bpin_);
 
-% Now fit the data
+% Now fit the data using the configured fitting algorithm (default: mf_fitter_lsqr)
 xye = cellfun(@isstruct, obj.w_);
 f_pass_caller = obj.wrapfun_.f_pass_caller;
 bf_pass_caller = obj.wrapfun_.bf_pass_caller;
-listing = obj.options_.listing;
-fcp = obj.options_.fit_control_parameters;
 perform_fit = true;
 
-[pf, sig, cor, chisqr_red, converged] =...
-    multifit_lsqr (wmask, xye, fun_wrap, bfun_wrap, pin_wrap, bpin_wrap,...
-    f_pass_caller, bf_pass_caller, pfin, p_info, listing, fcp, perform_fit);
+[pf, sig, cor, chisqr_red, converged] = ...
+    obj.fitter_.fit(wmask, xye, fun_wrap, bfun_wrap, pin_wrap, bpin_wrap, ...
+    f_pass_caller, bf_pass_caller, pfin, p_info, obj.options_, perform_fit);
 
 % Evaluate the data at the fitted parameter values
 %  On the face of it, it should not be necessary to re-evaluate the function,

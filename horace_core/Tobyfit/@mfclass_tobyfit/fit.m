@@ -129,12 +129,14 @@ if isempty(data)
 end
 
 % Update parameter wrapping
+ok = true;
+mess = '';
 obj_tmp = obj;
 
 is_refine_crystal = ~isempty(obj_tmp.refine_crystal);
 if is_refine_crystal
     [ok, mess, obj_tmp, xtal] = refine_crystal_pack_parameters_ (obj_tmp);
-    if ~ok, error(mess), end
+    if ~ok, error('HORACE:mfclass_tobyfit:invalid_argument', '%s', mess), end
 else
     xtal = [];
 end
@@ -142,12 +144,18 @@ end
 is_refine_moderator = ~isempty(obj_tmp.refine_moderator);
 if is_refine_moderator
     [ok, mess, obj_tmp, modshape] = refine_moderator_pack_parameters_ (obj_tmp);
-    if ~ok, error(mess), end
+    if ~ok, error('HORACE:mfclass_tobyfit:invalid_argument', '%s', mess), end
 else
     modshape = [];
 end
 
-obj_tmp.wrapfun.p_wrap = append_args (obj_tmp.wrapfun.p_wrap, obj.mc_contributions, obj.mc_points, xtal, modshape);
+if ~isempty(obj_tmp.res_model_) && strcmp(func2str(obj_tmp.wrapfun.fun_wrap), 'tobyfit_resconv')
+    obj_tmp.wrapfun.p_wrap = append_args (obj_tmp.wrapfun.p_wrap, ...
+        obj.mc_contributions, obj.mc_points, xtal, modshape, obj_tmp.res_model_);
+else
+    obj_tmp.wrapfun.p_wrap = append_args (obj_tmp.wrapfun.p_wrap, ...
+        obj.mc_contributions, obj.mc_points, xtal, modshape);
+end
 
 % Perform fit
 [data_out, fitdata] = fit@mfclass (obj_tmp, varargin{:});
