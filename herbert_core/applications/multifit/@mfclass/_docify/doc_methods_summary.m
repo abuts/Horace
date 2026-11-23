@@ -53,3 +53,5 @@
 %   set_options  - Set options
 %   get_options  - Get values of one or more specific options
 %   set_fitter   - Set the optimization algorithm (subclass of mf_fitter_base)
+%   set_fitting_ranges    - Set parameter fitting ranges [lb, ub] for bounded optimizers
+%   set_fitter_parameters - Set additional optimizer parameters (e.g. SwarmSize, MaxIterations)

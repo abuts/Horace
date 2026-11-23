@@ -69,14 +69,15 @@ end
 [fun_wrap, pin_wrap, bfun_wrap, bpin_wrap] = ...
     wrap_functions_and_parameters (obj.wrapfun_, wmask, obj.fun_, obj.pin_, obj.bfun_, obj.bpin_);
 
-% Now fit the data using the configured fitting algorithm (default: mf_fitter_lsqr)
+% Now fit the data using the configured fitting algorithm (default: hor_config.fitting_method / mf_fitter_lsqr)
 xye = cellfun(@isstruct, obj.w_);
 f_pass_caller = obj.wrapfun_.f_pass_caller;
 bf_pass_caller = obj.wrapfun_.bf_pass_caller;
 perform_fit = true;
 
+active_fitter = obj.resolve_fitter_(pfin, p_info);
 [pf, sig, cor, chisqr_red, converged] = ...
-    obj.fitter_.fit(wmask, xye, fun_wrap, bfun_wrap, pin_wrap, bpin_wrap, ...
+    active_fitter.fit(wmask, xye, fun_wrap, bfun_wrap, pin_wrap, bpin_wrap, ...
     f_pass_caller, bf_pass_caller, pfin, p_info, obj.options_, perform_fit);
 
 % Evaluate the data at the fitted parameter values

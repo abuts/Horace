@@ -134,17 +134,23 @@ mess = '';
 obj_tmp = obj;
 
 is_refine_crystal = ~isempty(obj_tmp.refine_crystal);
+np_before = obj_tmp.np;
+nbp_before = obj_tmp.nbp;
 if is_refine_crystal
     [ok, mess, obj_tmp, xtal] = refine_crystal_pack_parameters_ (obj_tmp);
     if ~ok, error('HORACE:mfclass_tobyfit:invalid_argument', '%s', mess), end
+    obj_tmp = pad_fitting_ranges_for_refinement_(obj_tmp, np_before, nbp_before);
 else
     xtal = [];
 end
 
 is_refine_moderator = ~isempty(obj_tmp.refine_moderator);
 if is_refine_moderator
+    np_before = obj_tmp.np;
+    nbp_before = obj_tmp.nbp;
     [ok, mess, obj_tmp, modshape] = refine_moderator_pack_parameters_ (obj_tmp);
     if ~ok, error('HORACE:mfclass_tobyfit:invalid_argument', '%s', mess), end
+    obj_tmp = pad_fitting_ranges_for_refinement_(obj_tmp, np_before, nbp_before);
 else
     modshape = [];
 end
@@ -193,5 +199,43 @@ if is_refine_moderator
     varargout={fitmod.pulse_model,fitmod.p,fitmod.sig};
 end
 
+end
+
+% -------------------------------------------------------------------------
+function obj = pad_fitting_ranges_for_refinement_(obj, np_before, nbp_before)
+% When fitting_ranges were given for the model parameters prior to appending
+% crystal/moderator refinement parameters, extend the bounds with [-Inf, Inf]
+% for the newly appended refinement parameters.
+ranges = obj.fitting_ranges;
+if isempty(ranges)
+    return
+end
+
+np_after = obj.np;
+n_spec = numel(ranges.lb);
+n_fore_before = sum(np_before);
+n_tot_before = n_fore_before + sum(nbp_before);
+
+if n_spec ~= n_fore_before && n_spec ~= n_tot_before
+    return
+end
+
+lb_new = cell(numel(np_before), 1);
+ub_new = cell(numel(np_before), 1);
+pos = 0;
+for i = 1:numel(np_before)
+    n_orig = np_before(i);
+    n_extra = np_after(i) - n_orig;
+    lb_new{i} = [ranges.lb(pos + (1:n_orig)); -inf(n_extra, 1)];
+    ub_new{i} = [ranges.ub(pos + (1:n_orig));  inf(n_extra, 1)];
+    pos = pos + n_orig;
+end
+lb_all = vertcat(lb_new{:});
+ub_all = vertcat(ub_new{:});
+if n_spec == n_tot_before && sum(nbp_before) > 0
+    lb_all = [lb_all; ranges.lb(n_fore_before + 1:end)];
+    ub_all = [ub_all; ranges.ub(n_fore_before + 1:end)];
+end
+obj = obj.set_fitting_ranges(lb_all, ub_all);
 end
 

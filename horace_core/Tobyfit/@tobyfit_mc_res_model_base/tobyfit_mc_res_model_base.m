@@ -48,7 +48,7 @@ classdef (Abstract) tobyfit_mc_res_model_base < tobyfit_res_model_base
             end
 
             all_pixels = ~exist('ipix', 'var');
-            if ~all_pixels
+            if ~all_pixels % check if indices are acceptable
                 parse_pixel_indices(win, ipix);
             end
 

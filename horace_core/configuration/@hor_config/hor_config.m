@@ -45,6 +45,11 @@ classdef hor_config < config_base
     %                       settings themselves.
     %
     %   force_mex_if_use_mex - Fail if mex can not be used. Used in mex files debugging
+    %   fitting_method   - Default optimization algorithm used by multifit /
+    %                      Tobyfit ('lsqr', 'fminsearch', 'lsqnonlin',
+    %                      'particleswarm').
+    %   fitting_method_options
+    %                    - Read-only cell array of valid fitting_method names.
     %--
     %   init_tests       -  Enable Horace specific unit test functions and
     %                       access to Horace unit tests folders. Works for
@@ -120,12 +125,19 @@ classdef hor_config < config_base
         % search path (option for Horace testing). Works for Horace
         % retrieved from repository only.
         init_tests;
+
+        % Optimization method used by multifit and Tobyfit when not
+        % explicitly overridden on the fitting object ('lsqr', 'fminsearch',
+        % 'lsqnonlin', 'particleswarm'). Default: 'lsqr'.
+        fitting_method;
     end
 
     properties(Dependent,SetAccess=private)
         % location of the folder with unit tests
         unit_test_folder;
 
+        % Read-only list of supported fitting_method choices
+        fitting_method_options;
     end
 
     properties(Dependent,Hidden)
@@ -163,6 +175,7 @@ classdef hor_config < config_base
         store_src_in_plots_ = true;
         init_tests_ = false;
         spe_file_en_transf_field_width_ = 10;
+        fitting_method_ = 'lsqr';
     end
 
     properties(Constant, Access=private)
@@ -178,7 +191,9 @@ classdef hor_config < config_base
             'store_src_in_plots',...
             'force_mex_if_use_mex', ...
             'log_level', ...
-            'init_tests'}
+            'init_tests', ...
+            'fitting_method'}
+        fitting_method_options_ = {'lsqr', 'fminsearch', 'lsqnonlin', 'particleswarm'};
     end
 
     methods
@@ -244,6 +259,14 @@ classdef hor_config < config_base
 
         function doinit = get.init_tests(this)
             doinit = get_or_restore_field(this,'init_tests');
+        end
+
+        function method = get.fitting_method(obj)
+            method = get_or_restore_field(obj,'fitting_method');
+        end
+
+        function opts = get.fitting_method_options(obj)
+            opts = obj.fitting_method_options_;
         end
 
         function is = get.wkdir_is_default(~)
@@ -352,6 +375,36 @@ classdef hor_config < config_base
             if (init && ~isempty(path)) || ~init
                 config_store.instance().store_config(obj,'init_tests',init);
             end
+        end
+
+        function obj = set.fitting_method(obj,val)
+            if ~(ischar(val) || (isstring(val) && isscalar(val))) || isempty(char(val))
+                error('HORACE:hor_config:invalid_argument', ...
+                    'fitting_method must be a non-empty string (%s)', ...
+                    strjoin(obj.fitting_method_options_, ', '));
+            end
+            opts = obj.fitting_method_options_;
+            [ok, mess, use_lsqr, use_fmin, use_lsqnl, use_pso] = ...
+                parse_char_options({char(val)}, opts);
+            if ~ok
+                error('HORACE:hor_config:invalid_argument', ...
+                    'Invalid fitting_method: %s. Valid options are: %s', ...
+                    mess, strjoin(opts, ', '));
+            end
+            idx = [use_lsqr, use_fmin, use_lsqnl, use_pso];
+            method_name = opts{idx};
+            if ~isempty(which('mf_get_fitter'))
+                try
+                    mf_get_fitter(method_name);
+                catch ME
+                    if strcmp(ME.identifier, 'HERBERT:mf_get_fitter:not_available')
+                        error('HORACE:hor_config:not_available', '%s', ME.message);
+                    else
+                        rethrow(ME);
+                    end
+                end
+            end
+            config_store.instance().store_config(obj, 'fitting_method', method_name);
         end
 
         function obj = set.force_mex_if_use_mex(obj,val)

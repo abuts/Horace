@@ -162,6 +162,9 @@ classdef mfclass
         %                          data where data is masked or not fittable
         options_ = struct([]);
         fitter_ = mf_fitter_lsqr();
+        fitter_is_explicit_ = false;
+        fitting_ranges_ = [];
+        fitter_params_ = struct();
 
     end
 
@@ -342,6 +345,10 @@ classdef mfclass
         options
         % Fitting algorithm object (subclass of mf_fitter_base)
         fitter
+        % Parameter fitting ranges ([lb, ub] struct or [])
+        fitting_ranges
+        % Extra algorithm-specific fitter parameters
+        fitter_parameters
 
     end
     properties(Dependent,Hidden) %
@@ -394,6 +401,7 @@ classdef mfclass
                 error('HERBERT:mf_class:invalid_argument',mess)
             end
             obj = set_options(obj,'-default');
+            obj = set_fitter(obj,'-default');
             %--------------------------------------------------------------------------------------
             %--------------------------------------------------------------------------------------
         end
@@ -595,7 +603,15 @@ classdef mfclass
         end
 
         function out = get.fitter(obj)
-            out = obj.fitter_;
+            out = obj.resolve_fitter_();
+        end
+
+        function out = get.fitting_ranges(obj)
+            out = obj.fitting_ranges_;
+        end
+
+        function out = get.fitter_parameters(obj)
+            out = obj.fitter_params_;
         end
 
     end
@@ -625,6 +641,7 @@ classdef mfclass
         obj = clear_bind_private_ (obj, isfore, ifun)
 
         [ok_sim, ok_fit, mess, pf, p_info] = ptrans_initialise_ (obj)
+        fitter_obj = resolve_fitter_ (obj, pfin, p_info)
 
     end
 

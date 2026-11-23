@@ -15,7 +15,7 @@ classdef mf_fitter_lsqr < mf_fitter_base
             % Construct default Levenberg-Marquardt least-squares fitter.
         end
 
-        function [p_best, sig, cor, chisqr_red, converged] = fit(~, w, xye, ...
+        function [p_best, sig, cor, chisqr_red, converged] = fit(obj, w, xye, ...
                 func, bfunc, pin, bpin, f_pass_caller_info, bf_pass_caller_info, ...
                 pfin, p_info, options, perform_fit)
             % Run Levenberg-Marquardt least-squares minimization or chi2 evaluation.
@@ -28,6 +28,11 @@ classdef mf_fitter_lsqr < mf_fitter_base
             end
             if nargin < 13 || isempty(perform_fit)
                 perform_fit = true;
+            end
+
+            if perform_fit && ~isempty(obj.bounds_)
+                % Triggers clear bounds_not_supported warning for finite bounds
+                obj.resolve_bounds_(numel(pfin));
             end
 
             [p_best, sig, cor, chisqr_red, converged] = multifit_lsqr( ...

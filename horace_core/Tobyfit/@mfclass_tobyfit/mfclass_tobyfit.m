@@ -63,10 +63,14 @@ classdef mfclass_tobyfit < mfclass
     %   set_options  - Set options
     %   get_options  - Get values of one or more specific options
     %
-    % In addtion, specifically for Tobyfit:
+    % In addition, specifically for Tobyfit / fitter control:
     %   set_mc_contributions    - Alter which components contribute to the resolution
     %   set_mc_points           - Set the number of Monte Carlo points per pixel
-    %   set_refine_crystal      - Refine crystal lattice parmaeters and orientation
+    %   set_resolution_model    - Set replaceable resolution model
+    %   set_fitter              - Set fitting algorithm (subclass of mf_fitter_base)
+    %   set_fitting_ranges      - Set parameter bounds [lb, ub] for bounded fitters
+    %   set_fitter_parameters   - Set additional optimizer parameters
+    %   set_refine_crystal      - Refine crystal lattice parameters and orientation
     %   set_refine_moderator    - Refine moderator parameters
     %
     %
@@ -95,6 +99,9 @@ classdef mfclass_tobyfit < mfclass
     %
     % Options:
     %   options      - options defining fit control parameters
+    %   fitter       - active optimization algorithm (subclass of mf_fitter_base)
+    %   fitting_ranges    - parameter bounds [lb, ub] for bounded optimizers
+    %   fitter_parameters - additional optimizer parameters
     %
     % In addition, specifically for Tobyfit:
     %   mc_contributions    - Defines which components contribute to the resolution
@@ -181,7 +188,7 @@ classdef mfclass_tobyfit < mfclass
         % Constructor
         %------------------------------------------------------------------
         function obj = mfclass_tobyfit (varargin)
-            [mf_args, res_model_in, fitter_in] = parse_ctor_args_(varargin{:});
+            [mf_args, res_model_in, fitter_in, ranges_in, fparams_in] = parse_ctor_args_(varargin{:});
             obj@mfclass(mf_args{:});
             if ~isempty(res_model_in)
                 obj = obj.set_resolution_model(res_model_in);
@@ -195,6 +202,12 @@ classdef mfclass_tobyfit < mfclass
             end
             if ~isempty(fitter_in)
                 obj = obj.set_fitter(fitter_in);
+            end
+            if ~isempty(ranges_in)
+                obj = obj.set_fitting_ranges(ranges_in);
+            end
+            if ~isempty(fparams_in)
+                obj = obj.set_fitter_parameters(fparams_in);
             end
             obj = obj.set_mc_contributions;
             obj = obj.set_mc_points;
@@ -231,6 +244,12 @@ classdef mfclass_tobyfit < mfclass
 
         % Set resolution convolution model
         obj = set_resolution_model(obj, res_model)
+
+        % Set parameter fitting ranges [lb, ub] for bounded optimizers
+        obj = set_fitting_ranges(obj, varargin)
+
+        % Set additional fitter parameters
+        obj = set_fitter_parameters(obj, varargin)
 
         % Set foreground function or functions
         obj = set_fun(obj,varargin)

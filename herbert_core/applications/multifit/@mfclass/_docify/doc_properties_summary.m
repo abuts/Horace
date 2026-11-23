@@ -22,3 +22,5 @@
 % Options:
 %   options      - options defining fit control parameters
 %   fitter       - optimization algorithm object (subclass of mf_fitter_base)
+%   fitting_ranges    - parameter lower/upper bounds for bounded optimizers
+%   fitter_parameters - additional algorithm-specific optimizer parameters

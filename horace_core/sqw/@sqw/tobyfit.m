@@ -5,12 +5,15 @@ function obj = tobyfit (varargin)
 %   >> myobj = tobyfit (w1, w2, ...)      % w1, w2 sqw objects or arrays of objects
 %
 % More generally:
-%   >> myobj = tobyfit (w1, w2, ..., 'res_model', model, 'fitter', fitter)
+%   >> myobj = tobyfit (w1, w2, ..., 'res_model', model, 'fitter', fitter, ...
+%                'fitting_ranges', ranges, 'fitter_parameters', params)
 %
 %   'res_model'   Replaceable resolution model (subclass of tobyfit_res_model_base)
 %                 or instrument identifier (e.g. 'IX_inst_DGfermi', 'IX_inst_DGdisk')
 %   'fitter'      Replaceable fitting algorithm (subclass of mf_fitter_base)
-%                 or fitter name (e.g. 'lsqr')
+%                 or fitter name ('lsqr', 'fminsearch', 'lsqnonlin', 'particleswarm')
+%   'fitting_ranges'     Parameter lower/upper bounds ([lb, ub]) for bounded fitters
+%   'fitter_parameters'  Struct of extra optimizer options (e.g. SwarmSize, MaxIterations)
 %
 % Legacy syntax (deprecated):
 %   >> myobj = tobyfit (w1, w2, ..., instrument_type)
@@ -73,15 +76,17 @@ if any(arrayfun(@(x) x.pix.is_filebacked, [sqws{:}]))
 end
 
 
-% Parse optional trailing 'res_model' / 'fitter' keywords or legacy char flag
+% Parse optional trailing 'res_model' / 'fitter' / range keywords or legacy char flag
 res_model_arg = [];
 fitter_arg = [];
+ranges_arg = [];
+fparams_arg = [];
 if isscalar(argi) && (ischar(argi{1}) || isstring(argi{1})) && ...
-        ~any(strcmpi(char(argi{1}), {'res_model', 'fitter'}))
+        ~any(strcmpi(char(argi{1}), {'res_model', 'fitter', 'fitting_ranges', 'fitter_parameters'}))
     warning('HORACE:tobyfit:deprecated_argument', ...
         'The instrument is determined from the sqw object. Redundant option ''%s'' ignored', argi{1})
 elseif ~isempty(argi)
-    key = struct('res_model', [], 'fitter', []);
+    key = struct('res_model', [], 'fitter', [], 'fitting_ranges', [], 'fitter_parameters', []);
     [par, key, ~, ~, ok, mess] = parse_arguments(argi, key);
     if ~ok
         error('HORACE:tobyfit:invalid_argument', '%s', mess)
@@ -91,6 +96,8 @@ elseif ~isempty(argi)
     end
     res_model_arg = key.res_model;
     fitter_arg = key.fitter;
+    ranges_arg = key.fitting_ranges;
+    fparams_arg = key.fitter_parameters;
 end
 
 % Resolve resolution model (explicit override or inferred from sqw instrument)
@@ -120,6 +127,12 @@ end
 ctor_args = {'sqw', 'res_model', res_model};
 if ~isempty(fitter_arg)
     ctor_args = [ctor_args, {'fitter', fitter_arg}];
+end
+if ~isempty(ranges_arg)
+    ctor_args = [ctor_args, {'fitting_ranges', ranges_arg}];
+end
+if ~isempty(fparams_arg)
+    ctor_args = [ctor_args, {'fitter_parameters', fparams_arg}];
 end
 obj = mfclass_tobyfit (sqws{:}, ctor_args{:});
 

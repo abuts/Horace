@@ -126,5 +126,67 @@ classdef test_tobyfit_res_model < TestCase
             [~, fp] = kk.fit();
             assertTrue(fp.converged);
         end
+
+        function test_hor_config_and_fitting_ranges_in_tobyfit(obj)
+            clob_cfg = set_temporary_config_options(hor_config, 'fitting_method', 'fminsearch'); %#ok<NASGU>
+            clob_warn = set_temporary_warning('off', 'HERBERT:mask_data_for_fit:bad_points'); %#ok<NASGU>
+
+            kk = tobyfit(obj.w2a, 'res_model', mock_tobyfit_res_model(0, 1));
+            assertTrue(isa(kk.fitter, 'mf_fitter_fminsearch'));
+
+            kk = kk.set_fun(@(qh, qk, ql, en, p) p(1) + 0 * en, 10);
+            kk = kk.set_fitting_ranges([0, 50]);
+            [~, fp_fmin] = kk.fit();
+            assertTrue(fp_fmin.converged);
+            assertTrue(fp_fmin.sig(1) > 0);
+            assertTrue(fp_fmin.p(1) >= 0 && fp_fmin.p(1) <= 50);
+
+            if mf_fitter_particleswarm.is_available()
+                rng_old = rng(7, 'twister');
+                clob_rng = onCleanup(@() rng(rng_old)); %#ok<NASGU>
+
+                set(hor_config, 'fitting_method', 'particleswarm', '-buffer');
+                assertTrue(isa(kk.fitter, 'mf_fitter_particleswarm'));
+
+                kk_nobnd = kk.set_fitting_ranges([]);
+                assertExceptionThrown(@() kk_nobnd.fit(), ...
+                    'HERBERT:mf_fitter_base:missing_bounds');
+
+                kk_pso = kk.set_fitting_ranges([0, 30]);
+                kk_pso = kk_pso.set_fitter_parameters('SwarmSize', 15, 'MaxIterations', 100);
+                [~, fp_pso] = kk_pso.fit();
+                assertTrue(fp_pso.converged);
+                assertTrue(fp_pso.p(1) >= 0 && fp_pso.p(1) <= 30);
+                assertElementsAlmostEqual(fp_pso.p, fp_fmin.p, 'absolute', 1e-2);
+            end
+        end
+
+        function test_tobyfit_real_mc_with_non_lsqr_and_moderator_ranges(obj)
+            clob_cfg = set_temporary_config_options(hor_config, 'fitting_method', 'fminsearch'); %#ok<NASGU>
+            clob_warn = set_temporary_warning('off', 'HERBERT:mask_data_for_fit:bad_points'); %#ok<NASGU>
+            rng_old = rng(101, 'twister');
+            clob_rng = onCleanup(@() rng(rng_old)); %#ok<NASGU>
+
+            kk = tobyfit(obj.w2a);
+            kk = kk.set_mc_points(1);
+            kk = kk.set_fun(@(qh, qk, ql, en, p) p(1) + 0 * en, 10);
+            kk = kk.set_fitting_ranges([0, 500]);
+            kk = kk.set_fitter_parameters('MaxFunEvals', 80);
+
+            if mf_fitter_lsqnonlin.is_available()
+                set(hor_config, 'fitting_method', 'lsqnonlin', '-buffer');
+                kk = kk.set_refine_moderator([1, 0, 0]);
+                kk = kk.set_fitter_parameters('MaxIterations', 5);
+                [~, fp, ok, ~, pulse_model, mod_p, mod_sig] = kk.fit();
+                assertTrue(ok);
+                assertEqual(numel(mod_p), 3);
+                assertEqual(numel(mod_sig), 3);
+                assertFalse(isempty(pulse_model));
+                assertTrue(fp.p(1) >= 0 && fp.p(1) <= 500);
+            else
+                [~, fp] = kk.fit();
+                assertTrue(fp.p(1) >= 0 && fp.p(1) <= 500);
+            end
+        end
     end
 end
