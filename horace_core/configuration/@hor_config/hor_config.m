@@ -112,6 +112,13 @@ classdef hor_config < config_base
         % if this option is set to true, the whole operation may fail.
         force_mex_if_use_mex;
 
+        % Optimization method used by multifit and Tobyfit when not
+        % explicitly overridden on the fitting object ('lsqr', 'fminsearch',
+        % 'lsqnonlin', 'particleswarm'). Default: 'lsqr'.
+        fitting_method;
+        % Read-only list of supported fitting_method choices
+        fitting_methods_available;
+
         % the property, related to high performance computing settings.
         % Here it provided for information only while changes to this
         % property should be made through hpc_config class setters directly.
@@ -125,19 +132,11 @@ classdef hor_config < config_base
         % search path (option for Horace testing). Works for Horace
         % retrieved from repository only.
         init_tests;
-
-        % Optimization method used by multifit and Tobyfit when not
-        % explicitly overridden on the fitting object ('lsqr', 'fminsearch',
-        % 'lsqnonlin', 'particleswarm'). Default: 'lsqr'.
-        fitting_method;
     end
 
     properties(Dependent,SetAccess=private)
         % location of the folder with unit tests
         unit_test_folder;
-
-        % Read-only list of supported fitting_method choices
-        fitting_method_options;
     end
 
     properties(Dependent,Hidden)
@@ -193,7 +192,7 @@ classdef hor_config < config_base
             'log_level', ...
             'init_tests', ...
             'fitting_method'}
-        fitting_method_options_ = {'lsqr', 'fminsearch', 'lsqnonlin', 'particleswarm'};
+        fitting_method_available_ = {'lsqr', 'fminsearch', 'lsqnonlin', 'particleswarm'};
     end
 
     methods
@@ -265,8 +264,8 @@ classdef hor_config < config_base
             method = get_or_restore_field(obj,'fitting_method');
         end
 
-        function opts = get.fitting_method_options(obj)
-            opts = obj.fitting_method_options_;
+        function opts = get.fitting_methods_available(obj)
+            opts = obj.fitting_method_available_;
         end
 
         function is = get.wkdir_is_default(~)
@@ -381,14 +380,14 @@ classdef hor_config < config_base
             if ~(ischar(val) || (isstring(val) && isscalar(val))) || isempty(char(val))
                 error('HORACE:hor_config:invalid_argument', ...
                     'fitting_method must be a non-empty string (%s)', ...
-                    strjoin(obj.fitting_method_options_, ', '));
+                    strjoin(obj.fitting_method_available_, ', '));
             end
-            opts = obj.fitting_method_options_;
+            opts = obj.fitting_method_available_;
             [ok, mess, use_lsqr, use_fmin, use_lsqnl, use_pso] = ...
                 parse_char_options({char(val)}, opts);
             if ~ok
                 error('HORACE:hor_config:invalid_argument', ...
-                    'Invalid fitting_method: %s. Valid options are: %s', ...
+                    'Unknown fitting_method: %s. Valid options are: %s', ...
                     mess, strjoin(opts, ', '));
             end
             idx = [use_lsqr, use_fmin, use_lsqnl, use_pso];
