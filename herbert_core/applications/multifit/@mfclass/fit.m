@@ -61,7 +61,7 @@ if ~ok
 end
 
 % Allow for the case of input argument over-riding initial parameter values for fit
-if numel(args)==1
+if isscalar(args)
     pfin = ptrans_par_inverse(args{1}, p_info);
 end
 

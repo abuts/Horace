@@ -96,6 +96,12 @@ classdef mf_fitter_lsqnonlin < mf_fitter_base
 
             if ctrl.listing > 0
                 disp_mode = 'iter';
+                disp('--------------------------------------------------------------------')
+                fprintf(['Beginning lsqnonlin fit (Trust-Region-Reflective/Levenberg-Marquardt\n'...
+                    'fitter backed by MATLAB Optimization Toolbox `lsqnonlin`) with: \n' ...
+                    'max %d iterations;  TolFun %g\n'], ...
+                    max_iter,tol_fun);
+                disp('--------------------------------------------------------------------')
             else
                 disp_mode = 'off';
             end

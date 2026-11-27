@@ -73,6 +73,13 @@ classdef mf_fitter_particleswarm < mf_fitter_base
 
             if ctrl.listing > 0
                 disp_mode = 'iter';
+                disp('--------------------------------------------------------------------')
+                fprintf(['Beginning particleswarm fit (Global derivative-free particle swarm\n'...
+                    'optimizer backed by Global Optimization Toolbox particleswarm`) with: \n' ...
+                    '%d swarm_size; %d max iterations;  TolFun %g\n'], ...
+                    swarm_size,max_iter,tol_fun);
+                disp('--------------------------------------------------------------------')
+                
             else
                 disp_mode = 'off';
             end

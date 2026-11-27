@@ -594,12 +594,12 @@ end
 function fit_listing_header(listing,niter)
 if listing==1
     disp('--------------------------------------')
-    fprintf('Beginning fit (max %d iterations)',niter);
+    fprintf('Beginning lsqr (Levenberg-Marquardt) fit \n(max %d iterations)',niter);
     disp('--------------------------------------')
     disp('Iteration  Time(s)  Reduced Chi^2');
 else
     disp('--------------------------------------------------------------------------------')
-    fprintf('Beginning fit (max %d iterations)',niter);
+    fprintf('Beginning lsqr fit (max %d iterations)',niter);
 end
 tic
 end

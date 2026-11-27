@@ -73,6 +73,12 @@ classdef mf_fitter_fminsearch < mf_fitter_base
 
             if ctrl.listing > 0
                 disp_mode = 'iter';
+                disp('----------------------------------------------------')
+                fprintf(['Beginning fminsearch fit (Nelder-Mead simplex) with: \n' ...
+                    'max %d iterations; max %d func eval;\n' ...
+                    'tol_x %g;  TolFun %g\n'], ...
+                    max_iter,max_evals,tol_x,tol_fun);
+                disp('----------------------------------------------------')
             else
                 disp_mode = 'off';
             end

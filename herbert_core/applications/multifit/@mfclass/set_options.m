@@ -87,7 +87,9 @@ elseif rem(numel(varargin),2)==0
     for k=1:numel(varargin)/2
         opt_name = varargin{2*k-1};
         if ~isempty(opt_name) && is_string(opt_name)
-            tf = strncmpi (opt_name, opt_names, numel(opt_name));
+            % currently 3 is the minimal number of letters which defines
+            % unique option
+            tf = strncmpi (opt_name, opt_names, 3);
             if sum(tf)==1
                 i = find(tf);
                 val_in = varargin{2*k};
@@ -102,7 +104,8 @@ elseif rem(numel(varargin),2)==0
                     end
                 end
             else
-                error('Unrecognised or ambiguous option name')
+                error('HORACE:mf_class:invalid_argument', ...
+                    'Unrecognised or ambiguous option name %s',opt_name)
             end
         else
             error('Must give option name as first argument')

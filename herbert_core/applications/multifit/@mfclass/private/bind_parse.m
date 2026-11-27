@@ -98,7 +98,7 @@ if isempty(bnd)
     [ipb,ifunb,ipf,ifunf,R]=empty_return;   % just use to fill with suitable values
     return
     
-elseif isnumeric(bnd) || (iscell(bnd) && numel(bnd)==1 && isnumeric(bnd{1}))
+elseif isnumeric(bnd) || (iscell(bnd) && isscalar(bnd) && isnumeric(bnd{1}))
     % Case of numeric or {numeric} - so expecting a numeric array of binding descriptors
     if isnumeric(bnd)
         [ok,mess,ipb,ifunb,ipf,ifunf,R,self_rem] = bind_parse_array (np,nbp,isfore,bnd);
